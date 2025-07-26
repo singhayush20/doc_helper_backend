@@ -1,0 +1,12 @@
+spring:
+  profiles:
+    active:
+      - dev
+
+  application:
+    name: doc_helper
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
