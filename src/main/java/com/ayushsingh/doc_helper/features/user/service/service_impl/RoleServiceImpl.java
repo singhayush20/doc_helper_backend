@@ -1,19 +1,25 @@
 package com.ayushsingh.doc_helper.features.user.service.service_impl;
 
 import com.ayushsingh.doc_helper.features.user.domain.Role;
+import com.ayushsingh.doc_helper.features.user.repository.RoleRepository;
 import com.ayushsingh.doc_helper.features.user.service.RoleService;
 import org.springframework.stereotype.Service;
+
+import javax.management.relation.RoleNotFoundException;
+import java.util.Set;
 
 @Service
 public class RoleServiceImpl implements RoleService {
 
-    @Override
-    public Role findByName(String name) {
-        return null;
+    private final RoleRepository roleRepository;
+
+    public RoleServiceImpl(RoleRepository roleRepository) {
+        this.roleRepository = roleRepository;
     }
 
+
     @Override
-    public Role createRole(String name, String description) {
-        return null;
+    public Set<Role> findAllByNameIn(Set<String> roleNames) {
+        return roleRepository.findAllByNameIn(roleNames);
     }
 }

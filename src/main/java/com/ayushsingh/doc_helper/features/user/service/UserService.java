@@ -2,13 +2,16 @@ package com.ayushsingh.doc_helper.features.user.service;
 
 import com.ayushsingh.doc_helper.features.user.domain.Role;
 import com.ayushsingh.doc_helper.features.user.domain.User;
+import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
+import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
+
+import java.util.Set;
 
 public interface UserService {
     User findByFirebaseUid(String firebaseUid);
 
-    User findByEmail(String email);
+    UserDetailsDto createUser(UserCreateDto userCreateDto);
 
-    User createUser(User user);
+    Boolean existsByEmailOrFirebaseUid(String email, String firebaseUid);
 
-    void assignRoleToUser(User user, Role role);
 }

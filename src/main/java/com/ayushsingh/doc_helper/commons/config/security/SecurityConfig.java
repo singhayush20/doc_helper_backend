@@ -92,9 +92,4 @@ public class SecurityConfig {
             response.getWriter().write(jsonResponse);
         };
     }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
 }

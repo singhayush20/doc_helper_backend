@@ -1,8 +1,14 @@
 package com.ayushsingh.doc_helper.commons.exception_handling;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 
-class ErrorResponse {
+@Getter
+@Setter
+public class ErrorResponse {
     private final String code;
     private final String message;
     private final Instant timestamp;
