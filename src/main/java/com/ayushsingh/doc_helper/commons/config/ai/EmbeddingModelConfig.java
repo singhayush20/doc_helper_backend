@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.config.ai;
+package com.ayushsingh.doc_helper.commons.config.ai;
 
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.ollama.OllamaEmbeddingModel;

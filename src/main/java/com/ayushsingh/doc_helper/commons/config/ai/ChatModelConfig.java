@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.config.ai;
+package com.ayushsingh.doc_helper.commons.config.ai;
 
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;
