@@ -6,3 +6,11 @@ spring:
       enabled: true
   jpa:
     open-in-view: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui/index.html
+    enabled: true
+  show-actuator: false

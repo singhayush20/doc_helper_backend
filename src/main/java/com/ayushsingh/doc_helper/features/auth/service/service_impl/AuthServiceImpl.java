@@ -22,16 +22,16 @@ public class AuthServiceImpl implements AuthService {
         this.userService = userService;
     }
 
-    public UserDetailsDto signUp(UserCreateDto userCreateDto) {
+    public UserDetailsDto signUp(UserCreateDto userCreateDto, String firebaseToken) {
         try {
-            var decodedToken = firebaseAuth.verifyIdToken(userCreateDto.getFirebaseIdToken());
+            var decodedToken = firebaseAuth.verifyIdToken(firebaseToken);
             var firebaseUid = decodedToken.getUid();
 
             if (userService.existsByEmailOrFirebaseUid(userCreateDto.getEmail(), firebaseUid)) {
                 throw new DuplicateUserFoundException("User account already exists");
             }
 
-            return userService.createUser(userCreateDto);
+            return userService.createUser(userCreateDto, decodedToken);
 
         } catch (FirebaseAuthException e) {
             throw new RuntimeException(e);

@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.commons.exception_handling;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.DuplicateUserFoundException;
+import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.FirebaseAuthenticationException;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.RolesNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RolesNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleRolesNotFoundException(RolesNotFoundException e) {
         return new ResponseEntity<>(new ErrorResponse(e.getMessage(), e.getCode()), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(FirebaseAuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleFirebaseAuthenticationException(FirebaseAuthenticationException e) {
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage(), e.getCode()), HttpStatus.UNAUTHORIZED);
     }
 
 }

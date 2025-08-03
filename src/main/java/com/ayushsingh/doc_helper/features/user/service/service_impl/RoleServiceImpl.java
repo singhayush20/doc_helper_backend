@@ -4,8 +4,6 @@ import com.ayushsingh.doc_helper.features.user.domain.Role;
 import com.ayushsingh.doc_helper.features.user.repository.RoleRepository;
 import com.ayushsingh.doc_helper.features.user.service.RoleService;
 import org.springframework.stereotype.Service;
-
-import javax.management.relation.RoleNotFoundException;
 import java.util.Set;
 
 @Service

@@ -1,0 +1,11 @@
+package com.ayushsingh.doc_helper.commons.constants;
+
+public final class AuthConstants {
+
+    private AuthConstants() {}
+
+    public static final String AUTHORIZATION_HEADER = "Authorization";
+    public static final String BEARER = "Bearer";
+    public static final String AUTH_API_PREFIX = "/api/auth/";
+    public static final String AUTH_API_PATTERN = "/api/auth/**";
+}

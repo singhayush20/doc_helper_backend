@@ -1,11 +1,6 @@
 package com.ayushsingh.doc_helper.commons.config.security;
 
-import java.io.IOException;
-
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
+import com.ayushsingh.doc_helper.commons.constants.AuthConstants;
 import com.ayushsingh.doc_helper.features.auth.domain.AuthUser;
 import com.ayushsingh.doc_helper.features.user.domain.User;
 import com.ayushsingh.doc_helper.features.user.service.UserService;
@@ -18,6 +13,11 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
 
 @Component
 @Slf4j
@@ -32,9 +32,7 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         String token = getTokenFromRequest(request);
 
@@ -46,8 +44,7 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
 
                 if (user != null) {
                     AuthUser authUser = new AuthUser(user);
-                    FirebaseAuthenticationToken authentication = new FirebaseAuthenticationToken(authUser,
-                            authUser.getAuthorities());
+                    FirebaseAuthenticationToken authentication = new FirebaseAuthenticationToken(authUser, authUser.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 } else {
                     log.warn("User not found for Firebase UID: {}", firebaseUid);
@@ -63,8 +60,8 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+        String bearerToken = request.getHeader(AuthConstants.AUTHORIZATION_HEADER);
+        if (bearerToken != null && bearerToken.startsWith(AuthConstants.BEARER)) {
             return bearerToken.substring(7);
         }
         return null;
@@ -76,7 +73,19 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         String method = request.getMethod();
 
         // Skip filter for public endpoints
-        return (path.startsWith("/api/auth/signup") && "POST".equals(method)) ||
-                (path.startsWith("/api/auth/verify-email") && "POST".equals(method));
+        var skipFilter = (path.startsWith(AuthConstants.AUTH_API_PREFIX) && "POST".equals(method)) || path.startsWith("/swagger-ui")
+                || path.startsWith("/swagger-resources")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/webjars/")
+                || path.equals("/swagger-ui/index.html")
+                || path.endsWith(".js")
+                || path.endsWith(".css")
+                || path.endsWith(".html")
+                || path.endsWith(".png")
+                || path.endsWith(".ico")
+                || path.endsWith(".map")
+                || path.startsWith("/api/public/");
+
+        return skipFilter;
     }
 }

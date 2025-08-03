@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,9 +18,6 @@ import java.util.Set;
 @Setter
 public class UserCreateDto {
 
-    @NotBlank(message = "Firebase ID token is required")
-    String firebaseIdToken;
-
     @NotBlank(message = "First name is required")
     String firstName;
 
@@ -34,5 +32,6 @@ public class UserCreateDto {
     @Size(min = 8, message = "Password must be at least 8 characters long")
     String password;
 
+    @NotEmpty
     Set<String> roles = new HashSet<>();
 }
