@@ -14,3 +14,9 @@ springdoc:
     path: /swagger-ui/index.html
     enabled: true
   show-actuator: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics, caches

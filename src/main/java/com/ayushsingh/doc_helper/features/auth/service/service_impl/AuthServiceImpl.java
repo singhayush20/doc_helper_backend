@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.auth.service.service_impl;
 
-import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.DuplicateUserFoundException;
+import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.auth.service.AuthService;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
 import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
@@ -22,13 +23,23 @@ public class AuthServiceImpl implements AuthService {
         this.userService = userService;
     }
 
-    public UserDetailsDto signUp(UserCreateDto userCreateDto, String firebaseToken) {
+    public UserDetailsDto signUp(UserCreateDto userCreateDto,
+            String firebaseToken) {
         try {
             var decodedToken = firebaseAuth.verifyIdToken(firebaseToken);
             var firebaseUid = decodedToken.getUid();
+            var email = decodedToken.getEmail();
 
-            if (userService.existsByEmailOrFirebaseUid(userCreateDto.getEmail(), firebaseUid)) {
-                throw new DuplicateUserFoundException("User account already exists");
+            if (!userCreateDto.getEmail().equals(email)) {
+                throw new BaseException(
+                        "Email in token and email in request do not " +
+                        "match", ExceptionCodes.EMAIL_MISMATCH);
+            }
+
+            if (userService.existsByEmailOrFirebaseUid(userCreateDto.getEmail(),
+                    firebaseUid)) {
+                throw new BaseException("User account already exists",
+                        ExceptionCodes.DUPLICATE_USER_FOUND);
             }
 
             return userService.createUser(userCreateDto, decodedToken);
