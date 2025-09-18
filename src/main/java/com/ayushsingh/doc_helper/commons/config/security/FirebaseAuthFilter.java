@@ -1,6 +1,8 @@
 package com.ayushsingh.doc_helper.commons.config.security;
 
 import com.ayushsingh.doc_helper.commons.constants.AuthConstants;
+import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.auth.domain.AuthUser;
 import com.ayushsingh.doc_helper.features.user.domain.User;
 import com.ayushsingh.doc_helper.features.user.service.UserService;
@@ -32,7 +34,8 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         String token = getTokenFromRequest(request);
 
@@ -44,15 +47,18 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
 
                 if (user != null) {
                     AuthUser authUser = new AuthUser(user);
-                    FirebaseAuthenticationToken authentication = new FirebaseAuthenticationToken(authUser, authUser.getAuthorities());
+                    FirebaseAuthenticationToken authentication = new FirebaseAuthenticationToken(authUser,
+                            authUser.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 } else {
                     log.warn("User not found for Firebase UID: {}", firebaseUid);
                     SecurityContextHolder.clearContext();
+                    throw new BaseException("User not found", ExceptionCodes.USER_NOT_FOUND);
                 }
             } catch (FirebaseAuthException e) {
                 log.error("Firebase token verification failed: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
+                throw new BaseException("User verification failed", ExceptionCodes.FIREBASE_AUTH_EXCEPTION);
             }
         }
 
@@ -73,7 +79,8 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         String method = request.getMethod();
 
         // Skip filter for public endpoints
-        var skipFilter = (path.startsWith(AuthConstants.AUTH_API_PREFIX) && "POST".equals(method)) || path.startsWith("/swagger-ui")
+        var skipFilter = (path.startsWith(AuthConstants.AUTH_API_PREFIX) && "POST".equals(method))
+                || path.startsWith("/swagger-ui")
                 || path.startsWith("/swagger-resources")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/webjars/")

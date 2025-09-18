@@ -59,6 +59,9 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
+    @Column(name = "is_verified", nullable = false)
+    private Boolean isVerified = false;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserRole> userRoles = new HashSet<>();
 
@@ -74,6 +77,7 @@ public class User {
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
         this.isActive = true;
+        this.isVerified = false;
     }
 
     @PreUpdate
@@ -100,7 +104,8 @@ public class User {
         User other = (User) obj;
         if (id == null) {
             return other.id == null;
-        } else return id.equals(other.id);
+        } else
+            return id.equals(other.id);
     }
 
 }

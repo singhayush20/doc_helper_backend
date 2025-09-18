@@ -28,7 +28,7 @@ public class SecurityConfig {
     private final FirebaseAuthenticationProvider firebaseAuthenticationProvider;
 
     public SecurityConfig(FirebaseAuthFilter firebaseAuthFilter,
-                          FirebaseAuthenticationProvider firebaseAuthenticationProvider) {
+            FirebaseAuthenticationProvider firebaseAuthenticationProvider) {
         this.firebaseAuthFilter = firebaseAuthFilter;
         this.firebaseAuthenticationProvider = firebaseAuthenticationProvider;
     }
@@ -49,8 +49,7 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/v3/api-docs/**",
                                 "/v3/api-docs",
-                                "/error"
-                                )
+                                "/error")
                         .permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(firebaseAuthenticationProvider)

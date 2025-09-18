@@ -1,5 +1,7 @@
 package com.ayushsingh.doc_helper.features.auth.service.service_impl;
 
+import org.springframework.stereotype.Service;
+
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.auth.service.AuthService;
@@ -8,8 +10,10 @@ import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
 import com.ayushsingh.doc_helper.features.user.service.UserService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
+
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
@@ -23,29 +27,26 @@ public class AuthServiceImpl implements AuthService {
         this.userService = userService;
     }
 
-    public UserDetailsDto signUp(UserCreateDto userCreateDto,
-            String firebaseToken) {
-        try {
-            var decodedToken = firebaseAuth.verifyIdToken(firebaseToken);
-            var firebaseUid = decodedToken.getUid();
-            var email = decodedToken.getEmail();
+    @Override
+    @Transactional
+    public UserDetailsDto signUp(UserCreateDto userCreateDto) {
 
-            if (!userCreateDto.getEmail().equals(email)) {
-                throw new BaseException(
-                        "Email in token and email in request do not " +
-                        "match", ExceptionCodes.EMAIL_MISMATCH);
+        if (userService.existsByEmail(userCreateDto.getEmail())) {
+            var createRequest = new UserRecord.CreateRequest()
+                    .setEmail(userCreateDto.getEmail())
+                    .setPassword(userCreateDto.getPassword())
+                    .setDisplayName(userCreateDto.getFirstName() + " " + userCreateDto.getLastName());
+            try {
+                var createdUserRecord = firebaseAuth.createUser(createRequest);
+                var userDetails = userService.createUser(userCreateDto, createdUserRecord.getUid());
+                return userDetails;
+            } catch (FirebaseAuthException e) {
+                log.error("Error creating user in Firebase: {}", e.getMessage());
+                throw new BaseException("Error creating user in Firebase: " + e.getMessage(),
+                        ExceptionCodes.FIREBASE_AUTH_EXCEPTION);
             }
-
-            if (userService.existsByEmailOrFirebaseUid(userCreateDto.getEmail(),
-                    firebaseUid)) {
-                throw new BaseException("User account already exists",
-                        ExceptionCodes.DUPLICATE_USER_FOUND);
-            }
-
-            return userService.createUser(userCreateDto, decodedToken);
-
-        } catch (FirebaseAuthException e) {
-            throw new RuntimeException(e);
         }
+        throw new BaseException("User already exists with email: " + userCreateDto.getEmail(),
+                ExceptionCodes.DUPLICATE_USER_FOUND);
     }
 }
