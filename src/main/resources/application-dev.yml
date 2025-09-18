@@ -9,15 +9,16 @@ spring:
       time-to-live: 600000
       cache-null-values: false
 
-  redis:
-    host: localhost
-    port: 6379
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 1
-        time-between-eviction-runs: 60000
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 1
+          time-between-eviction-runs: 60000
 
   datasource:
     url: ${DB_CONNECTION_URL}
@@ -37,30 +38,35 @@ spring:
       max-file-size: 50MB
       max-request-size: 100MB
 
-ai:
-  openai:
-    base-url: ${OPEN_AI_URL}
-    api-key: ${CHATGROQ_API_KEY}
-    chat:
-      options:
-        model: llama-3.1-8b-instant
-        temperature: 0.7
-        max-tokens: 1000
+  ai:
+    openai:
+      base-url: ${OPEN_AI_URL}
+      api-key: ${CHATGROQ_API_KEY}
+      chat:
+        options:
+          model: llama-3.1-8b-instant
+          temperature: 0.7
+          max-tokens: 1000
 
-  ollama:
-    base-url: ${OLLAMA_BASE_URL}
-    embedding:
-      model: nomic-embed-text
+    ollama:
+      base-url: ${OLLAMA_BASE_URL}
+      embedding:
+        model: nomic-embed-text
 
-  vectorstore:
-    pgvector:
-      index-type: HNSW
-      distance-type: COSINE_DISTANCE
-      dimensions: 768
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 768
 
 logging:
   level:
-    root: DEBUG
+    com.ayushsingh: DEBUG
+    org.springframework: WARN
+    org.hibernate: WARN
+    org.apache: WARN
+    ch.qos.logback: WARN
+    net.logstash: WARN
   file:
     path: logs
 

@@ -1,16 +1,23 @@
 package com.ayushsingh.doc_helper.commons.config.logging;
 
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Configuration;
+
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
-import net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder;
-import net.logstash.logback.composite.loggingevent.*;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Configuration;
-
 import jakarta.annotation.PostConstruct;
+import net.logstash.logback.composite.loggingevent.LogLevelJsonProvider;
+import net.logstash.logback.composite.loggingevent.LoggerNameJsonProvider;
+import net.logstash.logback.composite.loggingevent.LoggingEventFormattedTimestampJsonProvider;
+import net.logstash.logback.composite.loggingevent.LoggingEventJsonProviders;
+import net.logstash.logback.composite.loggingevent.LoggingEventThreadNameJsonProvider;
+import net.logstash.logback.composite.loggingevent.MdcJsonProvider;
+import net.logstash.logback.composite.loggingevent.MessageJsonProvider;
+import net.logstash.logback.composite.loggingevent.StackTraceJsonProvider;
+import net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder;
 
 @Configuration
 public class LoggingConfig {
@@ -64,7 +71,7 @@ public class LoggingConfig {
         fileProviders.addLoggerName(new LoggerNameJsonProvider());
         fileProviders.addThreadName(new LoggingEventThreadNameJsonProvider());
         fileProviders.addMessage(new MessageJsonProvider());
-        fileProviders.addMdc(new MdcJsonProvider()); // MDC included
+        fileProviders.addMdc(new MdcJsonProvider());
         fileProviders.addStackTrace(new StackTraceJsonProvider());
 
         fileEncoder.setProviders(fileProviders);
@@ -74,8 +81,7 @@ public class LoggingConfig {
         fileAppender.start();
 
         // ---------------- Attach to Root Logger ----------------
-        ch.qos.logback.classic.Logger rootLogger =
-                context.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        ch.qos.logback.classic.Logger rootLogger = context.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
         rootLogger.detachAndStopAllAppenders();
         rootLogger.addAppender(consoleAppender);
         rootLogger.addAppender(fileAppender);
