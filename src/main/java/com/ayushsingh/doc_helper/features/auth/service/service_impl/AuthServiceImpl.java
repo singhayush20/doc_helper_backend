@@ -5,7 +5,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.ayushsingh.doc_helper.commons.email_handling.EmailService;
@@ -34,16 +33,14 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final RedisTemplate<String, String> redisTemplate;
     private final SecureRandom secureRandom;
-    private final PasswordEncoder passwordEncoder;
 
     public AuthServiceImpl(FirebaseAuth firebaseAuth, UserService userService, EmailService emailService,
-            RedisTemplate<String, String> redisTemplate, PasswordEncoder passwordEncoder) {
+            RedisTemplate<String, String> redisTemplate) {
         this.firebaseAuth = firebaseAuth;
         this.userService = userService;
         this.emailService = emailService;
         this.redisTemplate = redisTemplate;
         this.secureRandom = new SecureRandom();
-        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
