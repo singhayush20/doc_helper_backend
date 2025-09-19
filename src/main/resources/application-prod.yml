@@ -2,22 +2,34 @@ spring:
   config:
     import:
       - optional:file:.env[.properties]
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
 
-#  cache:
-#    type: redis
-#    redis:
-#      time-to-live: 3600000   # 1 hour TTL for general caches
-#      cache-null-values: false
-#
-#  redis:
-#    host: ${REDIS_HOST:localhost}
-#    port: ${REDIS_PORT:6379}
-#    lettuce:
-#      pool:
-#        max-active: 16
-#        max-idle: 16
-#        min-idle: 2
-#        time-between-eviction-runs: 60000
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 1
+          time-between-eviction-runs: 60000
 
   datasource:
     url: ${DB_CONNECTION_URL}
@@ -60,7 +72,7 @@ ai:
 
 logging:
   level:
-    root: INFO        # less verbose than dev
+    root: INFO
   file:
     path: logs
     name: app.log

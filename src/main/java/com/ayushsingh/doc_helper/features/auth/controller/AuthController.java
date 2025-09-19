@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationRequestDto;
+import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationResponseDto;
+import com.ayushsingh.doc_helper.features.auth.dto.PasswordResetRequestDto;
 import com.ayushsingh.doc_helper.features.auth.service.AuthService;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
 import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
@@ -26,12 +29,32 @@ public class AuthController {
         return ResponseEntity.ok(userDetailsDto);
     }
 
-    // TODO: Create endpoint for email verification
+    @PostMapping("/email/otp")
+    public ResponseEntity<Void> sendEmailVerificationOtp(@RequestBody EmailVerificationRequestDto emailDto) {
+        authService.sendEmailVerificationOtp(emailDto);
+        return ResponseEntity.ok().build();
+    }
 
-    // TODO: Create endpoint for password reset
+    @PostMapping("/email/verify-otp")
+    public ResponseEntity<EmailVerificationResponseDto> verifyEmailOtp(
+            @RequestBody EmailVerificationRequestDto emailDto) {
+        var response = authService.verifyEmailOtp(emailDto);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/password/otp")
+    public ResponseEntity<Void> postMethodName(@RequestBody EmailVerificationRequestDto emailDto) {
+        authService.sendPasswordResetOtp(emailDto);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<EmailVerificationResponseDto> resetPassword(
+            @RequestBody PasswordResetRequestDto passwordDto) {
+        var response = authService.resetPassword(passwordDto);
+        return ResponseEntity.ok(response);
+    }
 
     // TODO: No endpoint for sign-in as it will be handled by Firebase directly, on
     // the frontend
 }
-
-// https://chatgpt.com/share/68cc5a23-13f8-8006-8442-4eaef3ce9ce5

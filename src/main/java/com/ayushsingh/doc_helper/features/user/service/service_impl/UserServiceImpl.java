@@ -77,7 +77,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean existsByEmail(String email) {
+    public Boolean updateUserPassword(String email, String newPassword) {
+        var userOpt = this.userRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            var user = userOpt.get();
+            user.setPassword(passwordEncoder.encode(newPassword));
+            this.userRepository.save(user);
+            return true;
+        } else {
+            log.error("User not found with email: {}", email);
+            throw new BaseException("User not found with email: " + email, ExceptionCodes.USER_NOT_FOUND);
+        }
+    }
+
+    @Override
+    public Boolean existsByEmail(String email) {
         return this.userRepository.existsByEmail(email);
     }
 

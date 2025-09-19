@@ -24,7 +24,6 @@ public class AuthUser implements UserDetails {
         return user;
     }
 
-    // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return this.user.getUserRoles().stream().map(userRole -> userRole.getRole()).collect(Collectors.toList());
@@ -47,7 +46,7 @@ public class AuthUser implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return user.getIsActive();
     }
 
     @Override
@@ -57,6 +56,6 @@ public class AuthUser implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return user.getIsActive();
+        return user.getIsVerified();
     }
 }

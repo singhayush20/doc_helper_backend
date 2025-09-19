@@ -26,7 +26,6 @@ public class LoggingConfig {
     public void setupLogging() {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
 
-        // ---------------- Console Appender ----------------
         ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
         consoleAppender.setContext(context);
 
@@ -48,7 +47,6 @@ public class LoggingConfig {
         consoleAppender.setEncoder(consoleEncoder);
         consoleAppender.start();
 
-        // ---------------- File Appender ----------------
         RollingFileAppender<ILoggingEvent> fileAppender = new RollingFileAppender<>();
         fileAppender.setContext(context);
         fileAppender.setFile("logs/app.log");
@@ -80,7 +78,6 @@ public class LoggingConfig {
         fileAppender.setEncoder(fileEncoder);
         fileAppender.start();
 
-        // ---------------- Attach to Root Logger ----------------
         ch.qos.logback.classic.Logger rootLogger = context.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
         rootLogger.detachAndStopAllAppenders();
         rootLogger.addAppender(consoleAppender);

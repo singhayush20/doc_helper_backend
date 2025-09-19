@@ -9,6 +9,8 @@ public interface UserService {
 
     UserDetailsDto createUser(UserCreateDto userCreateDto, String firebaseUid);
 
-    boolean existsByEmail(String email);
+    Boolean existsByEmail(String email);
+
+    Boolean updateUserPassword(String email, String newPassword);
 
 }
