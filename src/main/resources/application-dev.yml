@@ -88,3 +88,6 @@ logging:
 
 server:
   port: 8085
+
+storage:
+  location: ./uploads

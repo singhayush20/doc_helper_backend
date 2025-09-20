@@ -2,9 +2,11 @@ package com.ayushsingh.doc_helper.features.user_doc.repository;
 
 import java.util.Optional;
 
+import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
@@ -25,4 +27,8 @@ public interface UserDocRepository extends JpaRepository<UserDoc, Long> {
                 WHERE d.user.id = :userId
             """)
     Page<UserDocDetails> findDocsByUserId(Long userId, Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE UserDoc d SET d.status = :status WHERE d.id = :docId")
+    void updateDocumentProcessingStatus(Long docId, DocumentStatus status);
 }

@@ -39,6 +39,8 @@ public class GlobalExceptionHandler {
                                 HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+
+
         private HttpStatus getHttpStatus(BaseException e) {
                 return switch (e.getCode()) {
                         case ExceptionCodes.DUPLICATE_USER_FOUND -> HttpStatus.CONFLICT;

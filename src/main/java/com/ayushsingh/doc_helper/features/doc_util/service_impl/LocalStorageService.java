@@ -2,14 +2,18 @@ package com.ayushsingh.doc_helper.features.doc_util.service_impl;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -70,6 +74,23 @@ public class LocalStorageService implements DocService {
         } catch (IOException e) {
             log.error("File path error {}", e.getMessage());
             throw new BaseException("File path error.", ExceptionCodes.FILE_IO_ERROR);
+        }
+    }
+
+    @Override
+    public Resource loadFileAsResource(String sourcePath) {
+        try {
+            Path filePath = rootLocation.resolve(sourcePath).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() && resource.isReadable()) {
+                return resource;
+            } else {
+                throw new InternalServerException("Could not read file: " + sourcePath, ExceptionCodes.INTERNAL_FILE_IO_ERROR);
+            }
+        } catch (MalformedURLException e) {
+            log.error("File path is invalid {}", e.getMessage());
+            throw new InternalServerException("Could not read file: " + sourcePath, ExceptionCodes.INTERNAL_FILE_IO_ERROR);
         }
     }
 }

@@ -1,7 +1,9 @@
 package com.ayushsingh.doc_helper.features.user_doc.service.service_impl;
 
 import com.ayushsingh.doc_helper.config.security.UserContext;
+import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,10 +26,13 @@ public class UserDocServiceImpl implements UserDocService {
 
     private final DocService docService;
     private final UserDocRepository userDocRepository;
+    private final EmbeddingService embeddingService;
 
-    public UserDocServiceImpl(DocService docService, UserDocRepository userDocRepository) {
+    public UserDocServiceImpl(DocService docService, UserDocRepository userDocRepository,
+            EmbeddingService embeddingService) {
         this.docService = docService;
         this.userDocRepository = userDocRepository;
+        this.embeddingService = embeddingService;
     }
 
     @Override
@@ -50,6 +55,10 @@ public class UserDocServiceImpl implements UserDocService {
         newUserDoc.setStatus(DocumentStatus.UPLOADED);
         var savedFile = userDocRepository.save(newUserDoc);
         log.info("File record saved successfully...");
+
+        Resource resource = docService.loadFileAsResource(filePath);
+        embeddingService.generateAndStoreEmbeddings(savedFile.getId(), authUser.getUser().getId(), resource);
+
         return new FileUploadResponse(savedFile.getStoragePath(), savedFile.getFileName());
     }
 
@@ -59,5 +68,4 @@ public class UserDocServiceImpl implements UserDocService {
         final var authUser = UserContext.getCurrentUser();
         return userDocRepository.findDocsByUserId(authUser.getUser().getId(), pageable);
     }
-
 }
