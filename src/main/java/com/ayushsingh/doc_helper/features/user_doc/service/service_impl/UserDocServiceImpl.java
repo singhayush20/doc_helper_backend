@@ -1,9 +1,11 @@
 package com.ayushsingh.doc_helper.features.user_doc.service.service_impl;
 
 import com.ayushsingh.doc_helper.config.security.UserContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
@@ -16,8 +18,7 @@ import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
 import com.ayushsingh.doc_helper.features.user_doc.service.UserDocService;
 
-import jakarta.transaction.Transactional;
-
+@Slf4j
 @Service
 public class UserDocServiceImpl implements UserDocService {
 
@@ -34,11 +35,13 @@ public class UserDocServiceImpl implements UserDocService {
     public FileUploadResponse uploadDocument(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null || (!contentType.equals("application/pdf") && !contentType.equals("text/plain"))) {
+            log.error("Wrong file format! Only .pdf and .txt are allowed.");
             throw new BaseException("Wrong file format! Only .pdf and .txt are allowed.",
                     ExceptionCodes.WRONG_FILE_FORMAT);
         }
         final var authUser = UserContext.getCurrentUser();
         final var filePath = docService.saveFile(file);
+        log.info("File uploaded successfully...");
 
         UserDoc newUserDoc = new UserDoc();
         newUserDoc.setUser(authUser.getUser());
@@ -46,10 +49,12 @@ public class UserDocServiceImpl implements UserDocService {
         newUserDoc.setFileName(file.getName());
         newUserDoc.setStatus(DocumentStatus.UPLOADED);
         var savedFile = userDocRepository.save(newUserDoc);
+        log.info("File record saved successfully...");
         return new FileUploadResponse(savedFile.getStoragePath(), savedFile.getFileName());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<UserDocDetails> getUserDocuments(Pageable pageable) {
         final var authUser = UserContext.getCurrentUser();
         return userDocRepository.findDocsByUserId(authUser.getUser().getId(), pageable);

@@ -8,7 +8,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,6 +18,8 @@ import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.doc_util.DocService;
 
+@Service
+@Slf4j
 public class LocalStorageService implements DocService {
 
     private final Path rootLocation;
@@ -32,21 +36,29 @@ public class LocalStorageService implements DocService {
     @Override
     public String saveFile(MultipartFile file) {
         if (file.isEmpty()) {
+            log.error("File is empty.");
             throw new BaseException("File is empty.", ExceptionCodes.EMPTY_FILE);
+        }
+        final var originalFileName = file.getOriginalFilename();
+        if (originalFileName == null) {
+            log.error("File name is null.");
+            throw new BaseException("File name is null.", ExceptionCodes.INVALID_FILE_NAME);
         }
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
         if (originalFilename.contains("..")) {
+            log.error("File name is invalid.");
             throw new BaseException("File name is invalid.", ExceptionCodes.INVALID_FILE_NAME);
         }
 
         try {
             String extension = StringUtils.getFilenameExtension(originalFilename);
-            String uniqueFilename = UUID.randomUUID().toString() + (extension != null ? "." + extension : "");
+            String uniqueFilename = UUID.randomUUID() + (extension != null ? "." + extension : "");
 
             Path destinationFile = this.rootLocation.resolve(uniqueFilename)
                     .normalize().toAbsolutePath();
 
             if (!destinationFile.getParent().equals(this.rootLocation.toAbsolutePath())) {
+                log.error("File path error.");
                 throw new BaseException("File path error.", ExceptionCodes.INVALID_FILE_PATH);
             }
 
@@ -56,6 +68,7 @@ public class LocalStorageService implements DocService {
 
             return uniqueFilename;
         } catch (IOException e) {
+            log.error("File path error {}", e.getMessage());
             throw new BaseException("File path error.", ExceptionCodes.FILE_IO_ERROR);
         }
     }

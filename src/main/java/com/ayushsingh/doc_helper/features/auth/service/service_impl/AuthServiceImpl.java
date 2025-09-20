@@ -54,8 +54,8 @@ public class AuthServiceImpl implements AuthService {
                     .setDisplayName(userCreateDto.getFirstName() + " " + userCreateDto.getLastName());
             try {
                 var createdUserRecord = firebaseAuth.createUser(createRequest);
-                var userDetails = userService.createUser(userCreateDto, createdUserRecord.getUid());
-                return userDetails;
+                log.info("Firebase user created ...");
+                return userService.createUser(userCreateDto, createdUserRecord.getUid());
             } catch (FirebaseAuthException e) {
                 log.error("Error creating user in Firebase: {}", e.getMessage());
                 throw new BaseException("Error creating user in Firebase: " + e.getMessage(),
