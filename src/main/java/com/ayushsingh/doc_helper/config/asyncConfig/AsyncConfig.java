@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.asyncConfig;
+package com.ayushsingh.doc_helper.config.asyncConfig;
 
 import java.util.concurrent.Executor;
 

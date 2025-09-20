@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.firebase;
+package com.ayushsingh.doc_helper.config.firebase;
 
 import java.io.FileInputStream;
 import java.io.IOException;

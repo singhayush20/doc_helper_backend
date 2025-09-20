@@ -44,37 +44,45 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        format_sql: false
+        "[format_sql]": false
 
   servlet:
     multipart:
       max-file-size: 50MB
       max-request-size: 100MB
 
-ai:
-  openai:
-    base-url: ${OPEN_AI_URL}
-    api-key: ${CHATGROQ_API_KEY}
-    chat:
-      options:
-        model: llama-3.1-8b-instant
-        temperature: 0.7
-        max-tokens: 1000
+  ai:
+    openai:
+      base-url: ${OPEN_AI_URL}
+      api-key: ${CHATGROQ_API_KEY}
+      chat:
+        options:
+          model: llama-3.1-8b-instant
+          temperature: 0.7
+          max-tokens: 1000
 
-  ollama:
-    base-url: ${OLLAMA_BASE_URL}
-    embedding:
-      model: nomic-embed-text
+    ollama:
+      base-url: ${OLLAMA_BASE_URL}
+      embedding:
+        model: nomic-embed-text
 
-  vectorstore:
-    pgvector:
-      index-type: HNSW
-      distance-type: COSINE_DISTANCE
-      dimensions: 768
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 768
 
 logging:
   level:
-    root: INFO
+    "[com.ayushsingh]": INFO
+    "[org.springframework]": WARN
+    "[org.apache]": WARN
+    "[ch.qos.logback]": WARN
+    "[net.logstash]": WARN
+    "[org.hibernate.SQL]": WARN
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": OFF
+    "[org.hibernate.engine.jdbc.internal.StatementLogger]": WARN
+    "[com.p6spy]": OFF
   file:
     path: logs
     name: app.log

@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.logging;
+package com.ayushsingh.doc_helper.config.logging;
 
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;

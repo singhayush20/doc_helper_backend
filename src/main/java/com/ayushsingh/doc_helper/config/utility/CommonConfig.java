@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.utility;
+package com.ayushsingh.doc_helper.config.utility;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;

@@ -20,4 +20,5 @@ public final class ExceptionCodes {
     public static final String INVALID_FILE_PATH = "E0012";
     public static final String FILE_IO_ERROR = "E0013";
     public static final String WRONG_FILE_FORMAT = "E0014";
+    public static final String LARGE_PAGE_SIZE_ERROR = "E0015";
 }

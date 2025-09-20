@@ -44,7 +44,7 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        "[format_sql]": true
 
   servlet:
     multipart:
@@ -74,12 +74,15 @@ spring:
 
 logging:
   level:
-    com.ayushsingh: DEBUG
-    org.springframework: WARN
-    org.hibernate: WARN
-    org.apache: WARN
-    ch.qos.logback: WARN
-    net.logstash: WARN
+    "[com.ayushsingh]": DEBUG
+    "[org.springframework]": WARN
+    "[org.apache]": WARN
+    "[ch.qos.logback]": WARN
+    "[net.logstash]": WARN
+    "[org.hibernate.SQL]": DEBUG
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE
+    "[org.hibernate.engine.jdbc.internal.StatementLogger]": DEBUG
+    "[com.p6spy]": DEBUG
   file:
     path: logs
 

@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.logging;
+package com.ayushsingh.doc_helper.config.logging;
 
 import java.io.IOException;
 import java.util.UUID;

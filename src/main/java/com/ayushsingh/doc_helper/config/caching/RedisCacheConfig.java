@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.caching;
+package com.ayushsingh.doc_helper.config.caching;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

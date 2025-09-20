@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.security;
+package com.ayushsingh.doc_helper.config.security;
 
 import com.ayushsingh.doc_helper.commons.constants.AuthConstants;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;

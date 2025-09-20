@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.security;
+package com.ayushsingh.doc_helper.config.security;
 
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;

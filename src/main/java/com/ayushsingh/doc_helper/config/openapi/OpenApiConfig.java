@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.openapi;
+package com.ayushsingh.doc_helper.config.openapi;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

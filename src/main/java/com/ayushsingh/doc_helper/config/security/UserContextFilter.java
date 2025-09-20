@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.commons.config.security;
+package com.ayushsingh.doc_helper.config.security;
 
 import java.io.IOException;
 
@@ -23,7 +23,7 @@ public class UserContextFilter extends OncePerRequestFilter {
         try {
             var auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof AuthUser authUser) {
-                UserContext.setCurrentUserId(authUser);
+                UserContext.setCurrentUser(authUser);
             }
 
             filterChain.doFilter(request, response);
