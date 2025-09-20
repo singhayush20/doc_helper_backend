@@ -14,4 +14,10 @@ public final class ExceptionCodes {
     public static final String USER_NOT_FOUND = "E0006";
     public static final String INVALID_OTP = "E0007";
     public static final String PASSWORD_UPDATION_EXCEPTION = "E0008";
-};
+    public static final String STORAGE_INIT_ERROR = "E0009";
+    public static final String INVALID_FILE_NAME = "E0010";
+    public static final String EMPTY_FILE = "E0011";
+    public static final String INVALID_FILE_PATH = "E0012";
+    public static final String FILE_IO_ERROR = "E0013";
+    public static final String WRONG_FILE_FORMAT = "E0014";
+}

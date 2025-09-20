@@ -30,6 +30,8 @@ spring:
           max-idle: 8
           min-idle: 1
           time-between-eviction-runs: 60000
+    mongodb:
+      uri: ${MONGO_URL}
 
   datasource:
     url: ${DB_CONNECTION_URL}

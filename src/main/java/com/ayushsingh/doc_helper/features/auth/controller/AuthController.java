@@ -54,7 +54,4 @@ public class AuthController {
         var response = authService.resetPassword(passwordDto);
         return ResponseEntity.ok(response);
     }
-
-    // TODO: No endpoint for sign-in as it will be handled by Firebase directly, on
-    // the frontend
 }

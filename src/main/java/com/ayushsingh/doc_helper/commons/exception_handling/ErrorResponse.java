@@ -1,7 +1,6 @@
 package com.ayushsingh.doc_helper.commons.exception_handling;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
