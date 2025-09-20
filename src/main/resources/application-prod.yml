@@ -82,6 +82,8 @@ logging:
     "[org.hibernate.SQL]": WARN
     "[org.hibernate.type.descriptor.sql.BasicBinder]": OFF
     "[org.hibernate.engine.jdbc.internal.StatementLogger]": WARN
+    "[org.springframework.data.mongodb.core.MongoTemplate]": WARN
+    "[org.mongodb.driver]": INFO
     "[com.p6spy]": OFF
   file:
     path: logs

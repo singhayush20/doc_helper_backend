@@ -1,5 +1,7 @@
 package com.ayushsingh.doc_helper.config.logging;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import net.logstash.logback.decorate.JsonGeneratorDecorator;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,6 +28,7 @@ public class LoggingConfig {
     public void setupLogging() {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
 
+        // Console Appender
         ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
         consoleAppender.setContext(context);
 
@@ -38,11 +41,20 @@ public class LoggingConfig {
         consoleProviders.addLoggerName(new LoggerNameJsonProvider());
         consoleProviders.addThreadName(new LoggingEventThreadNameJsonProvider());
         consoleProviders.addMessage(new MessageJsonProvider());
-        consoleProviders.addMdc(new MdcJsonProvider()); // important!
+        consoleProviders.addMdc(new MdcJsonProvider());
         consoleProviders.addStackTrace(new StackTraceJsonProvider());
 
         consoleEncoder.setProviders(consoleProviders);
         consoleEncoder.start();
+
+
+
+        consoleEncoder.setJsonGeneratorDecorator(new JsonGeneratorDecorator() {
+            @Override
+            public JsonGenerator decorate(JsonGenerator generator) {
+                return generator.useDefaultPrettyPrinter();
+            }
+        });
 
         consoleAppender.setEncoder(consoleEncoder);
         consoleAppender.start();
