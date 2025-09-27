@@ -1,5 +1,14 @@
 package com.ayushsingh.doc_helper.config.security;
 
+import java.io.IOException;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
+
 import com.ayushsingh.doc_helper.commons.constants.AuthConstants;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
@@ -15,24 +24,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
-
-import java.io.IOException;
 
 @Component
 @Slf4j
 public class FirebaseAuthFilter extends OncePerRequestFilter {
 
-
     private final FirebaseAuth firebaseAuth;
     private final UserService userService;
-    private HandlerExceptionResolver exceptionResolver;
+    private final HandlerExceptionResolver exceptionResolver;
 
     public FirebaseAuthFilter(FirebaseAuth firebaseAuth,
             UserService userService,
@@ -40,6 +39,11 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         this.firebaseAuth = firebaseAuth;
         this.userService = userService;
         this.exceptionResolver = exceptionResolver;
+    }
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return true;
     }
 
     @Override
@@ -62,15 +66,15 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                 } else {
                     log.warn("User not found for Firebase UID: {}", firebaseUid);
                     SecurityContextHolder.clearContext();
-                    exceptionResolver.resolveException(request,response,null,
-                           new BaseException("User not found",
+                    exceptionResolver.resolveException(request, response, null,
+                            new BaseException("User not found",
                                     ExceptionCodes.USER_NOT_FOUND));
                     return;
                 }
             } catch (FirebaseAuthException | AuthenticationException e) {
                 log.error("Firebase token verification failed: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
-                exceptionResolver.resolveException(request,response, null,
+                exceptionResolver.resolveException(request, response, null,
                         new BaseException("User is unauthorized",
                                 ExceptionCodes.FIREBASE_AUTH_EXCEPTION));
                 return;

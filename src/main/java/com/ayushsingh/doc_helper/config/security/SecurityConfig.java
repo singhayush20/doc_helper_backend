@@ -2,8 +2,6 @@ package com.ayushsingh.doc_helper.config.security;
 
 import java.time.Instant;
 
-import com.ayushsingh.doc_helper.commons.constants.AuthConstants;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,9 +14,13 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+
+import com.ayushsingh.doc_helper.commons.constants.AuthConstants;
+
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
@@ -33,10 +35,10 @@ public class SecurityConfig {
 
     public SecurityConfig(FirebaseAuthFilter firebaseAuthFilter,
             FirebaseAuthenticationProvider firebaseAuthenticationProvider,
-           @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
         this.firebaseAuthFilter = firebaseAuthFilter;
         this.firebaseAuthenticationProvider = firebaseAuthenticationProvider;
-        this.resolver =  resolver;
+        this.resolver = resolver;
     }
 
     @Bean
@@ -45,6 +47,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers(AuthConstants.AUTH_API_PATTERN,
                                 "/swagger-ui/**",
                                 "/webjars/**",

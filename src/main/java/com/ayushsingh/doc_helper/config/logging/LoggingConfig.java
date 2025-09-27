@@ -1,9 +1,9 @@
 package com.ayushsingh.doc_helper.config.logging;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import net.logstash.logback.decorate.JsonGeneratorDecorator;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -47,14 +47,7 @@ public class LoggingConfig {
         consoleEncoder.setProviders(consoleProviders);
         consoleEncoder.start();
 
-
-
-        consoleEncoder.setJsonGeneratorDecorator(new JsonGeneratorDecorator() {
-            @Override
-            public JsonGenerator decorate(JsonGenerator generator) {
-                return generator.useDefaultPrettyPrinter();
-            }
-        });
+        consoleEncoder.setJsonGeneratorDecorator(JsonGenerator::useDefaultPrettyPrinter);
 
         consoleAppender.setEncoder(consoleEncoder);
         consoleAppender.start();

@@ -1,7 +1,5 @@
 package com.ayushsingh.doc_helper.features.user_doc.controller;
 
-import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
-import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
 import com.ayushsingh.doc_helper.features.user_doc.entity.SortField;
 import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
@@ -47,7 +47,6 @@ public class UserDocController {
                     ExceptionCodes.LARGE_PAGE_SIZE_ERROR);
         }
 
-        // Map SortField to actual field name
         String fieldName = sortField.getFieldName();
         Sort sort = Sort.by(Sort.Direction.fromString(direction), fieldName);
         Pageable pageable = PageRequest.of(page, size, sort);
