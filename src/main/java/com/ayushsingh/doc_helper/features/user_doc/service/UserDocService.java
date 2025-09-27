@@ -1,6 +1,5 @@
 package com.ayushsingh.doc_helper.features.user_doc.service;
 
-import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;

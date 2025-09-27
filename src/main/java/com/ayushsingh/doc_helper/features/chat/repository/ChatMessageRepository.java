@@ -1,11 +1,11 @@
 package com.ayushsingh.doc_helper.features.chat.repository;
 
-import com.ayushsingh.doc_helper.features.chat.entity.ChatMessage;
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.ayushsingh.doc_helper.features.chat.entity.ChatMessage;
 
 public interface ChatMessageRepository extends MongoRepository<ChatMessage, String> {
 

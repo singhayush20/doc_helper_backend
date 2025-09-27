@@ -38,3 +38,5 @@ src/main/resources/secrets/
 
 /logs
 PGSQL.session.sql
+
+/uploads
