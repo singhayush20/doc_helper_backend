@@ -29,6 +29,7 @@ public class GmailServiceImpl implements EmailService {
             helper.setText(body, isHtml);
 
             mailSender.send(message);
+            log.debug("Email sent to {}", to);
         } catch (MessagingException | MailException e) {
             log.error("Failed to send email to {}: {}", to, e.getMessage());
         }

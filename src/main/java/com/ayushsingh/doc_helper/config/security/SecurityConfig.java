@@ -4,6 +4,7 @@ import java.time.Instant;
 
 import com.ayushsingh.doc_helper.commons.constants.AuthConstants;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -17,20 +18,25 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Slf4j
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final FirebaseAuthFilter firebaseAuthFilter;
     private final FirebaseAuthenticationProvider firebaseAuthenticationProvider;
+    private final HandlerExceptionResolver resolver;
 
     public SecurityConfig(FirebaseAuthFilter firebaseAuthFilter,
-            FirebaseAuthenticationProvider firebaseAuthenticationProvider) {
+            FirebaseAuthenticationProvider firebaseAuthenticationProvider,
+           @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
         this.firebaseAuthFilter = firebaseAuthFilter;
         this.firebaseAuthenticationProvider = firebaseAuthenticationProvider;
+        this.resolver =  resolver;
     }
 
     @Bean
@@ -49,6 +55,7 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/v3/api-docs/**",
                                 "/v3/api-docs",
+                                "/api/v1/auth/**",
                                 "/error")
                         .permitAll()
                         .anyRequest().authenticated())
@@ -64,22 +71,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationEntryPoint firebaseAuthenticationEntryPoint() {
         return (request, response, authException) -> {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-
-            String jsonResponse = """
-                    {
-                        "success": false,
-                        "error": {
-                            "code": "UNAUTHORIZED",
-                            "message": "Authentication required. Please provide a valid Firebase token.",
-                            "timestamp": "%s"
-                        }
-                    }
-                    """.formatted(Instant.now());
-
-            response.getWriter().write(jsonResponse);
+            resolver.resolveException(request, response, null, authException);
         };
     }
 

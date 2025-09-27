@@ -15,9 +15,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
@@ -25,12 +29,17 @@ import java.io.IOException;
 @Slf4j
 public class FirebaseAuthFilter extends OncePerRequestFilter {
 
+
     private final FirebaseAuth firebaseAuth;
     private final UserService userService;
+    private HandlerExceptionResolver exceptionResolver;
 
-    public FirebaseAuthFilter(FirebaseAuth firebaseAuth, UserService userService) {
+    public FirebaseAuthFilter(FirebaseAuth firebaseAuth,
+            UserService userService,
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
         this.firebaseAuth = firebaseAuth;
         this.userService = userService;
+        this.exceptionResolver = exceptionResolver;
     }
 
     @Override
@@ -53,12 +62,18 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                 } else {
                     log.warn("User not found for Firebase UID: {}", firebaseUid);
                     SecurityContextHolder.clearContext();
-                    throw new BaseException("User not found", ExceptionCodes.USER_NOT_FOUND);
+                    exceptionResolver.resolveException(request,response,null,
+                           new BaseException("User not found",
+                                    ExceptionCodes.USER_NOT_FOUND));
+                    return;
                 }
-            } catch (FirebaseAuthException e) {
+            } catch (FirebaseAuthException | AuthenticationException e) {
                 log.error("Firebase token verification failed: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
-                throw new BaseException("User verification failed", ExceptionCodes.FIREBASE_AUTH_EXCEPTION);
+                exceptionResolver.resolveException(request,response, null,
+                        new BaseException("User is unauthorized",
+                                ExceptionCodes.FIREBASE_AUTH_EXCEPTION));
+                return;
             }
         }
 

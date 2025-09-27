@@ -9,6 +9,8 @@ public interface UserService {
 
     UserDetailsDto createUser(UserCreateDto userCreateDto, String firebaseUid);
 
+    Boolean updateUserVerifiedStatus(String email, Boolean isVerified);
+
     Boolean existsByEmail(String email);
 
     Boolean updateUserPassword(String email, String newPassword);

@@ -10,7 +10,7 @@ import lombok.Getter;
 public class PasswordResetRequestDto {
 
     @NotBlank(message = "OTP cannot be blank")
-    private final Integer otp;
+    private final String otp;
     @Email(message = "Invalid email format")
     private final String email;
     @NotBlank(message = "New password cannot be blank")

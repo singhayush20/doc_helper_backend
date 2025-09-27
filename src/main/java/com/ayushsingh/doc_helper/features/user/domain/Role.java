@@ -37,7 +37,8 @@ public class Role implements GrantedAuthority {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval =
+            true, fetch = FetchType.EAGER)
     private Set<UserRole> userRoles = new HashSet<>();
 
     public Role(String name, String description) {

@@ -61,6 +61,9 @@ public class LocalStorageService implements DocService {
             Path destinationFile = this.rootLocation.resolve(uniqueFilename)
                     .normalize().toAbsolutePath();
 
+            System.out.println(destinationFile.getParent());
+            System.out.println(this.rootLocation.toAbsolutePath());
+
             if (!destinationFile.getParent().equals(this.rootLocation.toAbsolutePath())) {
                 log.error("File path error.");
                 throw new BaseException("File path error.", ExceptionCodes.INVALID_FILE_PATH);

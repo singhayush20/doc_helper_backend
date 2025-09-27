@@ -1,7 +1,7 @@
 package com.ayushsingh.doc_helper.features.user.domain;
 
 public enum RoleTypes {
-    ADMIN("ROLE_ADMIN"),
+    ADMIN("ROME_ADMIN"),
     USER("ROLE_USER");
 
     final String value;

@@ -12,5 +12,5 @@ public class EmailVerificationRequestDto {
     private final String email;
 
     @NotBlank(message = "OTP cannot be blank")
-    private final Integer otp;
+    private final String otp;
 }

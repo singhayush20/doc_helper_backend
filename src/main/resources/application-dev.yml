@@ -9,11 +9,11 @@ spring:
     password: ${EMAIL_PASSWORD}
     properties:
       mail:
-      smtp:
-        auth: true
-        starttls:
-          enable: true
-
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
   cache:
     type: redis
     redis:
@@ -82,9 +82,15 @@ logging:
     "[org.hibernate.SQL]": DEBUG
     "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE
     "[org.hibernate.engine.jdbc.internal.StatementLogger]": DEBUG
-    "[org.springframework.data.mongodb.core.MongoTemplate]": DEBUG
+    "[org.springframework.data.mongodb.core.MongoTemplate]": INFO
     "[org.mongodb.driver]": INFO
     "[com.p6spy]": DEBUG
+    "[io.lettuce.core]": INFO
+    "[org.springframework.data.redis]": DEBUG
+    "[org.springframework.mail]": DEBUG
+    "[org.springframework.data.redis.core.RedisTemplate]": DEBUG
+    "[org.springframework.data.redis.connection]": DEBUG
+    "[org.springframework.data.redis.listener]": DEBUG
   file:
     path: logs
   pattern:
@@ -95,4 +101,4 @@ server:
   port: 8085
 
 storage:
-  location: ./uploads
+  location: uploads

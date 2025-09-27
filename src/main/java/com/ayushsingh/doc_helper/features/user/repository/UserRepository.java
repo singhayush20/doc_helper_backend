@@ -5,6 +5,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.ayushsingh.doc_helper.features.user.domain.User;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -14,5 +16,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Boolean existsByEmail(String email);
 
-    Boolean existsByFirebaseUid(String firebaseUid);
+    @Modifying
+    @Query("UPDATE User u SET u.isVerified = :isVerified WHERE u.email = :email")
+    void updateUserVerifiedStatus(String email, Boolean isVerified);
+
+    @Modifying
+    @Query("UPDATE User u SET u.password = :password WHERE u.email = :email")
+    void updateUserPassword(String email, String password);
 }

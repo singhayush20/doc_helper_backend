@@ -76,18 +76,18 @@ public class UserServiceImpl implements UserService {
         return this.modelMapper.map(savedUser, UserDetailsDto.class);
     }
 
+    @Transactional
+    @Override
+    public Boolean updateUserVerifiedStatus(String email, Boolean isVerified) {
+        userRepository.updateUserVerifiedStatus(email,isVerified);
+        return true;
+    }
+
+    @Transactional
     @Override
     public Boolean updateUserPassword(String email, String newPassword) {
-        var userOpt = this.userRepository.findByEmail(email);
-        if (userOpt.isPresent()) {
-            var user = userOpt.get();
-            user.setPassword(passwordEncoder.encode(newPassword));
-            this.userRepository.save(user);
-            return true;
-        } else {
-            log.error("User not found with email: {}", email);
-            throw new BaseException("User not found with email: " + email, ExceptionCodes.USER_NOT_FOUND);
-        }
+        userRepository.updateUserPassword(email,passwordEncoder.encode(newPassword));
+        return true;
     }
 
     @Override

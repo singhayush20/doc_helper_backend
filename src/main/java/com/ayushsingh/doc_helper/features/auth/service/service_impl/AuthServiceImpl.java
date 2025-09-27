@@ -94,13 +94,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public EmailVerificationResponseDto verifyEmailOtp(EmailVerificationRequestDto emailDto) {
         final var email = emailDto.getEmail();
-        final String otp = emailDto.getOtp().toString();
+        final String otp = emailDto.getOtp();
         String key = "otp:" + email;
         String storedOtp = redisTemplate.opsForValue().get(key);
 
         if (storedOtp != null && storedOtp.equals(otp)) {
             redisTemplate.delete(key);
-            return new EmailVerificationResponseDto(true, email);
+
+            var isUpdated = userService.updateUserVerifiedStatus(email, true);
+
+            return new EmailVerificationResponseDto(isUpdated, email);
         } else {
             throw new BaseException("Invalid or expired OTP", ExceptionCodes.INVALID_OTP);
         }
@@ -135,7 +138,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public EmailVerificationResponseDto resetPassword(PasswordResetRequestDto emailDto) {
         final var email = emailDto.getEmail();
-        final String otp = emailDto.getOtp().toString();
+        final String otp = emailDto.getOtp();
         final String newPassword = emailDto.getNewPassword();
         String key = "otp:reset:" + email;
         String storedOtp = redisTemplate.opsForValue().get(key);

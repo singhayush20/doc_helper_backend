@@ -19,27 +19,18 @@ public class GlobalExceptionHandler {
                 log.error("Exception caught: {}", e.getMessage(), e);
 
                 if (e instanceof BaseException customEx) {
-                        return new ResponseEntity<>(new ErrorResponse(customEx.getMessage(),
-                                        customEx.getCode()), status);
+                        return new ResponseEntity<>(new ErrorResponse(customEx.getCode(),
+                                        customEx.getMessage()), status);
                 }
                 return new ResponseEntity<>(
-                                new ErrorResponse(e.getMessage(), "UNKNOWN_ERROR"), status);
+                                new ErrorResponse("UNKNOWN_ERROR", e.getMessage()),
+                        status);
         }
 
         @ExceptionHandler(BaseException.class)
         public ResponseEntity<ErrorResponse> handleBaseException(BaseException e) {
                 return buildResponse(e, getHttpStatus(e));
         }
-
-        @ExceptionHandler(Exception.class)
-        public ResponseEntity<ErrorResponse> handleGenericException(Exception e) {
-                log.error("Unhandled exception: {}", e.getMessage(), e);
-                return new ResponseEntity<>(
-                                new ErrorResponse("Internal server error", "UNKNOWN_ERROR"),
-                                HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-
 
         private HttpStatus getHttpStatus(BaseException e) {
                 return switch (e.getCode()) {
