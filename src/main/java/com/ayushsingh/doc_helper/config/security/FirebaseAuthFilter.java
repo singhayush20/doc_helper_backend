@@ -42,11 +42,6 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected boolean shouldNotFilterAsyncDispatch() {
-        return true;
-    }
-
-    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
@@ -79,9 +74,42 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                                 ExceptionCodes.FIREBASE_AUTH_EXCEPTION));
                 return;
             }
+        } else {
+            if (isProtectedRoute(request)) {
+                log.warn("Missing Authorization header for protected route: {}", request.getServletPath());
+                SecurityContextHolder.clearContext();
+                exceptionResolver.resolveException(request, response, null,
+                        new BaseException("Authorization header is required",
+                                ExceptionCodes.FIREBASE_AUTH_EXCEPTION));
+                return;
+            }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isProtectedRoute(HttpServletRequest request) {
+        String path = request.getServletPath();
+        String method = request.getMethod();
+
+        // Return true if route is NOT in the public/permitted routes
+        boolean isPublicRoute = (path.startsWith(AuthConstants.AUTH_API_PREFIX) && "POST".equals(method))
+                                || path.startsWith("/swagger-ui")
+                                || path.startsWith("/swagger-resources")
+                                || path.startsWith("/v3/api-docs")
+                                || path.startsWith("/webjars/")
+                                || path.equals("/swagger-ui/index.html")
+                                || path.endsWith(".js")
+                                || path.endsWith(".css")
+                                || path.endsWith(".html")
+                                || path.endsWith(".png")
+                                || path.endsWith(".ico")
+                                || path.endsWith(".map")
+                                || path.startsWith("/api/public/")
+                                || path.startsWith("/api/v1/auth/")
+                                || path.equals("/error");
+
+        return !isPublicRoute; // Protected if NOT public
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {
@@ -97,21 +125,18 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         String method = request.getMethod();
 
-        // Skip filter for public endpoints
-        var skipFilter = (path.startsWith(AuthConstants.AUTH_API_PREFIX) && "POST".equals(method))
-                || path.startsWith("/swagger-ui")
-                || path.startsWith("/swagger-resources")
-                || path.startsWith("/v3/api-docs")
-                || path.startsWith("/webjars/")
-                || path.equals("/swagger-ui/index.html")
-                || path.endsWith(".js")
-                || path.endsWith(".css")
-                || path.endsWith(".html")
-                || path.endsWith(".png")
-                || path.endsWith(".ico")
-                || path.endsWith(".map")
-                || path.startsWith("/api/public/");
-
-        return skipFilter;
+        return (path.startsWith(AuthConstants.AUTH_API_PREFIX) && "POST".equals(method))
+               || path.startsWith("/swagger-ui")
+               || path.startsWith("/swagger-resources")
+               || path.startsWith("/v3/api-docs")
+               || path.startsWith("/webjars/")
+               || path.equals("/swagger-ui/index.html")
+               || path.endsWith(".js")
+               || path.endsWith(".css")
+               || path.endsWith(".html")
+               || path.endsWith(".png")
+               || path.endsWith(".ico")
+               || path.endsWith(".map")
+               || path.startsWith("/api/public/");
     }
 }
