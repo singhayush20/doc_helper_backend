@@ -23,4 +23,5 @@ public final class ExceptionCodes {
     public static final String LARGE_PAGE_SIZE_ERROR = "E0015";
     public static final String UNAUTHORIZED = "E0016";
     public static final String DOCUMENT_NOT_FOUND = "E0017";
+    public static final String ERROR_DELETING_VECTORS = "E0018";
 }

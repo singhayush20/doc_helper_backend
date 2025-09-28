@@ -5,11 +5,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
@@ -18,6 +14,8 @@ import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
 import com.ayushsingh.doc_helper.features.user_doc.entity.SortField;
 import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
 import com.ayushsingh.doc_helper.features.user_doc.service.UserDocService;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/user-docs")
@@ -52,5 +50,13 @@ public class UserDocController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         return ResponseEntity.ok(userDocService.getUserDocuments(pageable));
+    }
+
+    @DeleteMapping("/{documentId}")
+    public ResponseEntity<Map<String,Boolean>> deleteDocument(
+            @PathVariable Long documentId
+    ) {
+        var isDeleted = userDocService.deleteDocument(documentId);
+        return ResponseEntity.ok(Map.of("isDeleted", isDeleted));
     }
 }

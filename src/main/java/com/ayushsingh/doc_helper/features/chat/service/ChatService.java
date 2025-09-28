@@ -9,5 +9,8 @@ public interface ChatService {
 
      Flux<String> generateStreamingResponse(ChatRequest documentId);
 
-     ChatHistoryResponse fetchChatHistoryForDocument(Long documentId);
+     ChatHistoryResponse fetchChatHistoryForDocument(Long documentId,
+             Integer page);
+
+     Boolean deleteChatHistoryForDocument(Long documentId);
 }

@@ -32,8 +32,9 @@ public class ChatController {
     }
 
     @GetMapping("/chat-history")
-    public ResponseEntity<ChatHistoryResponse> getChatMessagesForDocument(@RequestParam() Long documentId) {
-        final var chatHistory = chatService.fetchChatHistoryForDocument(documentId);
+    public ResponseEntity<ChatHistoryResponse> getChatMessagesForDocument(@RequestParam() Long documentId, @RequestParam(defaultValue = "0") Integer page) {
+        final var chatHistory =
+                chatService.fetchChatHistoryForDocument(documentId, page);
         return ResponseEntity.ok(chatHistory);
     }
 }

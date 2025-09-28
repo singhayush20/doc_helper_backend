@@ -80,7 +80,7 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.clearContext();
                 exceptionResolver.resolveException(request, response, null,
                         new BaseException("Authorization header is required",
-                                ExceptionCodes.FIREBASE_AUTH_EXCEPTION));
+                                ExceptionCodes.UNAUTHORIZED));
                 return;
             }
         }

@@ -13,4 +13,5 @@ public interface UserDocService {
 
     Page<UserDocDetails> getUserDocuments(Pageable pageable);
 
+    Boolean deleteDocument(Long documentId);
 }

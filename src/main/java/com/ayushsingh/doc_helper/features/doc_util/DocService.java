@@ -8,4 +8,6 @@ public interface DocService {
     String saveFile(MultipartFile file);
 
     Resource loadFileAsResource(String sourcePath);
+
+    Boolean deleteFile(String sourcePath);
 }

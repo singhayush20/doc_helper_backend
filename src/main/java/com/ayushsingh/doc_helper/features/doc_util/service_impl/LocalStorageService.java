@@ -61,9 +61,6 @@ public class LocalStorageService implements DocService {
             Path destinationFile = this.rootLocation.resolve(uniqueFilename)
                     .normalize().toAbsolutePath();
 
-            System.out.println(destinationFile.getParent());
-            System.out.println(this.rootLocation.toAbsolutePath());
-
             if (!destinationFile.getParent().equals(this.rootLocation.toAbsolutePath())) {
                 log.error("File path error.");
                 throw new BaseException("File path error.", ExceptionCodes.INVALID_FILE_PATH);
@@ -96,4 +93,29 @@ public class LocalStorageService implements DocService {
             throw new InternalServerException("Could not read file: " + sourcePath, ExceptionCodes.INTERNAL_FILE_IO_ERROR);
         }
     }
+
+    public Boolean deleteFile(String fileName) {
+        try {
+            Path filePath = rootLocation.resolve(fileName).normalize().toAbsolutePath();
+
+            if (!filePath.getParent().equals(this.rootLocation.toAbsolutePath())) {
+                log.error("Attempted to delete file outside storage directory: {}", fileName);
+                throw new BaseException("Invalid file path for deletion", ExceptionCodes.INVALID_FILE_PATH);
+            }
+
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.debug("Successfully deleted file: {}", filePath);
+                return true;
+            } else {
+                log.warn("File not found for deletion: {} (resolved path: {})", fileName, filePath);
+                return false; // File doesn't exist, but deletion request is "successful"
+            }
+
+        } catch (IOException e) {
+            log.error("Error deleting file {}: {}", fileName, e.getMessage());
+            throw new BaseException("File deletion failed: " + e.getMessage(), ExceptionCodes.FILE_IO_ERROR);
+        }
+    }
+
 }

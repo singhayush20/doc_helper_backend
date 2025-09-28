@@ -76,4 +76,19 @@ public class EmbeddingServiceImpl implements EmbeddingService {
             userDocRepository.save(userDoc);
         }
     }
+
+    @Override
+    public void deleteEmbeddingsByDocumentId(Long documentId) {
+        try {
+            String filterExpression = String.format("documentId == %d", documentId);
+            vectorStore.delete(filterExpression);
+
+            log.debug("Deleted vectors with {}={}", "documentId", documentId);
+        } catch (Exception e) {
+            log.error("Error deleting vectors by metadata {}={}: {}",
+                    documentId, documentId, e.getMessage());
+            throw new BaseException("Error deleting history",
+                    ExceptionCodes.ERROR_DELETING_VECTORS);
+        }
+    }
 }

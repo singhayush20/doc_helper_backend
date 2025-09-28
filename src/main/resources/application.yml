@@ -19,9 +19,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, metrics, caches
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
   health:
-    mongo:
-      enabled: true
     redis:
+      enabled: true
+    mongo:
       enabled: true

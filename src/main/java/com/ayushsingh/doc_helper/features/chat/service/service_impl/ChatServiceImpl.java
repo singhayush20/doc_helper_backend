@@ -165,13 +165,14 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public ChatHistoryResponse fetchChatHistoryForDocument(Long documentId) {
+    public ChatHistoryResponse fetchChatHistoryForDocument(Long documentId,
+            Integer page) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         var chatThread =
                 chatThreadRepository.findByDocumentIdAndUserId(documentId,
                         userId);
         if (chatThread.isPresent()) {
-            PageRequest pageRequest = PageRequest.of(0, 10,
+            PageRequest pageRequest = PageRequest.of(page, 10,
                     Sort.by(Sort.Direction.DESC, "timestamp"));
             List<ChatMessage> recentMessages =
                     chatMessageRepository.findByThreadId(
@@ -192,6 +193,33 @@ public class ChatServiceImpl implements ChatService {
         } else {
             return new ChatHistoryResponse();
         }
+    }
+
+    @Override
+    public Boolean deleteChatHistoryForDocument(Long documentId) {
+        var query = new Query();
+        var userId = UserContext.getCurrentUser().getUser().getId();
+        var chatThread =
+                chatThreadRepository.findByDocumentIdAndUserId(documentId,
+                        userId);
+        query.addCriteria(
+                Criteria.where("documentId").is(documentId)
+                        .and("userId").is(userId)
+        );
+
+        var result = mongoTemplate.remove(query, ChatThread.class);
+
+        if(result.getDeletedCount() > 0) {
+           if(chatThread.isPresent()) {
+               var threadQuery = new Query();
+               threadQuery.addCriteria(
+                       Criteria.where("threadId").is(chatThread.get().getId()));
+               mongoTemplate.remove(threadQuery,
+                       ChatMessage.class);
+           }
+        }
+
+       return true;
     }
 
     private ChatThread getOrCreateChatThread(Long documentId, Long userId) {

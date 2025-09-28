@@ -36,11 +36,8 @@ public class UserDoc {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "file_name", nullable = false)
+    @Column(name = "file_name", nullable = false, length = 1024)
     private String fileName;
-
-    @Column(name = "storage_path", nullable = false, length = 1024)
-    private String storagePath;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

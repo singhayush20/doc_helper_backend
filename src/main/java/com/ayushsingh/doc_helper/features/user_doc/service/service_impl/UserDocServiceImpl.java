@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.user_doc.service.service_impl;
 
 import com.ayushsingh.doc_helper.config.security.UserContext;
+import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -27,12 +28,14 @@ public class UserDocServiceImpl implements UserDocService {
     private final DocService docService;
     private final UserDocRepository userDocRepository;
     private final EmbeddingService embeddingService;
+    private final ChatService chatService;
 
     public UserDocServiceImpl(DocService docService, UserDocRepository userDocRepository,
-            EmbeddingService embeddingService) {
+            EmbeddingService embeddingService, ChatService chatService) {
         this.docService = docService;
         this.userDocRepository = userDocRepository;
         this.embeddingService = embeddingService;
+        this.chatService = chatService;
     }
 
     @Override
@@ -45,21 +48,20 @@ public class UserDocServiceImpl implements UserDocService {
                     ExceptionCodes.WRONG_FILE_FORMAT);
         }
         final var authUser = UserContext.getCurrentUser();
-        final var filePath = docService.saveFile(file);
+        final var fileName = docService.saveFile(file);
         log.info("File uploaded successfully...");
 
         UserDoc newUserDoc = new UserDoc();
         newUserDoc.setUser(authUser.getUser());
-        newUserDoc.setStoragePath(filePath);
-        newUserDoc.setFileName(file.getName());
+        newUserDoc.setFileName(fileName);
         newUserDoc.setStatus(DocumentStatus.UPLOADED);
         var savedFile = userDocRepository.save(newUserDoc);
         log.info("File record saved successfully...");
 
-        Resource resource = docService.loadFileAsResource(filePath);
+        Resource resource = docService.loadFileAsResource(fileName);
         embeddingService.generateAndStoreEmbeddings(savedFile.getId(), authUser.getUser().getId(), resource);
 
-        return new FileUploadResponse(savedFile.getStoragePath(), savedFile.getFileName());
+        return new FileUploadResponse(savedFile.getFileName(), savedFile.getFileName());
     }
 
     @Override
@@ -67,5 +69,21 @@ public class UserDocServiceImpl implements UserDocService {
     public Page<UserDocDetails> getUserDocuments(Pageable pageable) {
         final var authUser = UserContext.getCurrentUser();
         return userDocRepository.findDocsByUserId(authUser.getUser().getId(), pageable);
+    }
+
+    @Override
+    @Transactional
+    public Boolean deleteDocument(Long documentId) {
+        final var authUser = UserContext.getCurrentUser();
+        final var sourcePath = userDocRepository.findFileNameById(documentId);
+        final var affectedRows = userDocRepository.deleteDocument(documentId,
+                authUser.getUser().getId());
+        if(affectedRows!=0) {
+            chatService.deleteChatHistoryForDocument(documentId);
+            embeddingService.deleteEmbeddingsByDocumentId(documentId);
+            sourcePath.ifPresent(docService::deleteFile);
+        }
+
+        return affectedRows>0;
     }
 }

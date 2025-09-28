@@ -5,4 +5,5 @@ import org.springframework.core.io.Resource;
 public interface EmbeddingService {
 
     void generateAndStoreEmbeddings(Long docId, Long userId, Resource file);
+    void deleteEmbeddingsByDocumentId(Long documentId);
 }

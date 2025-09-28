@@ -8,19 +8,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
 import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
 
 public interface UserDocRepository extends JpaRepository<UserDoc, Long> {
 
-    Optional<UserDoc> findByIdAndUserId(Long documentId, Long userId);
-
     @Query("""
                 SELECT new com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails(
                     d.id,
                     d.fileName,
-                    d.storagePath,
                     d.status
                 )
                 FROM UserDoc d
@@ -28,7 +24,10 @@ public interface UserDocRepository extends JpaRepository<UserDoc, Long> {
             """)
     Page<UserDocDetails> findDocsByUserId(Long userId, Pageable pageable);
 
+    @Query("DELETE FROM UserDoc d WHERE d.id = :docId AND d.user.id = :userId")
     @Modifying
-    @Query("UPDATE UserDoc d SET d.status = :status WHERE d.id = :docId")
-    void updateDocumentProcessingStatus(Long docId, DocumentStatus status);
+    int deleteDocument(Long docId, Long userId);
+
+    @Query("SELECT d.fileName FROM UserDoc d WHERE d.id = :docId")
+    Optional<String> findFileNameById(Long docId);
 }
