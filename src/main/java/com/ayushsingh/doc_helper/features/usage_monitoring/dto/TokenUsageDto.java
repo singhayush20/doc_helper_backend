@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.usage_monitoring.dto;
 
 import java.math.BigDecimal;
 
+import com.ayushsingh.doc_helper.features.usage_monitoring.entity.ChatOperationType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,7 +21,7 @@ public class TokenUsageDto {
     private Long completionTokens;
     private Long totalTokens;
     private String modelName;
-    private String operationType;
+    private ChatOperationType operationType;
     private BigDecimal estimatedCost;
     private Long durationMs;
 }

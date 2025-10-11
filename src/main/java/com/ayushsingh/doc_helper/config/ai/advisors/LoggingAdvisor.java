@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.ayushsingh.doc_helper.config.security.UserContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.TokenUsageDto;
+import com.ayushsingh.doc_helper.features.usage_monitoring.entity.ChatOperationType;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
 
 import lombok.RequiredArgsConstructor;
@@ -49,8 +50,8 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             @NonNull CallAdvisorChain callAdvisorChain) {
         Instant startTime = Instant.now();
 
-        log.info("===AI Call Started===");
-        log.info("Request timestamp: {}", startTime);
+        log.debug("===AI Call Started===");
+        log.debug("Request timestamp: {}", startTime);
 
         try {
             ChatClientResponse response = callAdvisorChain.nextCall(
@@ -59,12 +60,12 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             Instant endTime = Instant.now();
             Duration duration = Duration.between(startTime, endTime);
 
-            log.info("=== AI Call Completed ===");
-            log.info("Response timestamp: {}", endTime);
-            log.info("Total duration: {} ms", duration.toMillis());
+            log.debug("=== AI Call Completed ===");
+            log.debug("Response timestamp: {}", endTime);
+            log.debug("Total duration: {} ms", duration.toMillis());
             logResponseDetails(response.chatResponse());
 
-            persistUsageMetrics(chatClientRequest, response, duration, "CALL");
+            persistUsageMetrics(chatClientRequest, response, duration, ChatOperationType.CHAT_CALL);
 
             return response;
         } catch (Exception e) {
@@ -122,7 +123,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                             finalResponse.chatResponse() != null) {
                         logResponseDetails(finalResponse.chatResponse());
                         persistUsageMetrics(chatClientRequest,
-                                finalResponse, duration, "STREAM");
+                                finalResponse, duration, ChatOperationType.CHAT_STREAM);
                     }
                 })
                 .doOnError(error -> {
@@ -142,7 +143,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             ChatClientRequest request,
             ChatClientResponse response,
             Duration duration,
-            String operationType) {
+            ChatOperationType chatResponseType) {
         try {
             ChatResponse chatResponse = response.chatResponse();
             if (chatResponse == null || chatResponse.getMetadata() == null) {
@@ -156,14 +157,12 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                 return;
             }
 
-            // Extract context from request and security context
             Long userId = extractUserId();
             Long documentId = extractDocumentId(request);
             String threadId = extractThreadId(request);
             String messageId = extractMessageId(response);
             String modelName = chatResponse.getMetadata().getModel();
 
-            // Build DTO
             TokenUsageDto usageDTO = TokenUsageDto.builder()
                     .userId(userId)
                     .documentId(documentId)
@@ -173,19 +172,18 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                     .completionTokens(usage.getCompletionTokens().longValue())
                     .totalTokens(usage.getTotalTokens().longValue())
                     .modelName(modelName)
-                    .operationType(operationType)
+                    .operationType(chatResponseType)
                     .durationMs(duration.toMillis())
                     .build();
 
-            // Save to PostgreSQL
             tokenUsageService.recordTokenUsage(usageDTO);
 
-            log.info("Successfully persisted token usage to PostgreSQL: userId={}, tokens={}",
+            log.debug("Successfully persisted token usage to DB: userId={}, " +
+                     "tokens={}",
                     userId, usage.getTotalTokens());
 
         } catch (Exception e) {
-            log.error("Failed to persist usage metrics to PostgreSQL", e);
-            // Don't throw - we don't want to fail the request if logging fails
+            log.error("Failed to persist usage metrics to DB", e);
         }
     }
 
@@ -201,9 +199,6 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
         }
     }
 
-    /**
-     * Extract document ID from request context
-     */
     private Long extractDocumentId(ChatClientRequest request) {
         try {
             Object docId = request.context().get("documentId");
@@ -220,9 +215,6 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
         return null;
     }
 
-    /**
-     * Extract thread ID from request context
-     */
     private String extractThreadId(ChatClientRequest request) {
         try {
             Object threadId = request.context().get("threadId");
@@ -235,9 +227,6 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
         return null;
     }
 
-    /**
-     * Extract message ID from response
-     */
     private String extractMessageId(ChatClientResponse response) {
         try {
             if (response.chatResponse() != null &&
@@ -257,8 +246,8 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private void logRequestDetails(ChatClientRequest request) {
-        log.info("Request details:");
-        log.info("- Prompt messages count: {}",
+        log.debug("Request details:");
+        log.debug("- Prompt messages count: {}",
                 request.prompt().getInstructions().size());
 
         // Log the actual prompt content (be careful with sensitive data)
@@ -269,15 +258,15 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                         message.getClass().getSimpleName(),
                         message.getText().length()));
 
-        log.info("- Context keys: {}", request.context().keySet());
+        log.debug("- Context keys: {}", request.context().keySet());
     }
 
     private void logResponseDetails(ChatResponse chatResponse) {
         if (chatResponse != null && chatResponse.getMetadata() != null) {
             Usage usage = chatResponse.getMetadata().getUsage();
             if (usage != null) {
-                log.info("=== Token Usage Summary ===");
-                log.info("Prompt tokens: {} | Completion tokens: {} | Total: {}",
+                log.debug("=== Token Usage Summary ===");
+                log.debug("Prompt tokens: {} | Completion tokens: {} | Total: {}",
                         usage.getPromptTokens(),
                         usage.getCompletionTokens(),
                         usage.getTotalTokens());
@@ -296,9 +285,8 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                 log.warn("No usage metadata available in response");
             }
 
-            // Log model information if available
             if (chatResponse.getMetadata().getModel() != null) {
-                log.info("Model used: {}", chatResponse.getMetadata().getModel());
+                log.debug("Model used: {}", chatResponse.getMetadata().getModel());
             }
         }
     }

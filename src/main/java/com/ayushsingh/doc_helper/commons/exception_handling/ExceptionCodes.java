@@ -26,4 +26,5 @@ public final class ExceptionCodes {
     public static final String ERROR_DELETING_VECTORS = "E0018";
     public static final String QUOTA_EXCEEDED = "E0019";
     public static final String USER_QUOTA_INACTIVE = "E0020";
+    public static final String QUOTA_NOT_FOUND = "E0021";
 }

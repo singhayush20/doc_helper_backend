@@ -7,8 +7,8 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Map;
 
+import com.ayushsingh.doc_helper.features.usage_monitoring.entity.AccountTier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.BillingConfig;
+import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PricingConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.DailyUsageSummary;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.QuotaInfoResponse;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.TokenUsageDto;
@@ -26,33 +28,27 @@ import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQ
 import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenUsageRepository;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class TokenUsageServiceImpl implements TokenUsageService {
 
         private final UserTokenUsageRepository usageRepository;
         private final UserTokenQuotaRepository quotaRepository;
 
-        private static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
+        private final PricingConfig pricingConfig;
+        private final BillingConfig billingConfig;
 
-        // Pricing per 1K tokens (adjust based on your AI model)
-        private static final Map<String, BigDecimal> INPUT_COSTS = Map.of(
-                        "gpt-4", BigDecimal.valueOf(0.03),
-                        "gpt-4-turbo", BigDecimal.valueOf(0.01),
-                        "gpt-3.5-turbo", BigDecimal.valueOf(0.0015),
-                        "llama-3.1", BigDecimal.valueOf(0.001),
-                        "default", BigDecimal.valueOf(0.01));
-
-        private static final Map<String, BigDecimal> OUTPUT_COSTS = Map.of(
-                        "gpt-4", BigDecimal.valueOf(0.06),
-                        "gpt-4-turbo", BigDecimal.valueOf(0.03),
-                        "gpt-3.5-turbo", BigDecimal.valueOf(0.002),
-                        "llama-3.1", BigDecimal.valueOf(0.002),
-                        "default", BigDecimal.valueOf(0.02));
+        public TokenUsageServiceImpl(UserTokenUsageRepository usageRepository,
+                        UserTokenQuotaRepository quotaRepository,
+                        PricingConfig pricingConfig,
+                        BillingConfig billingConfig) {
+                this.usageRepository = usageRepository;
+                this.quotaRepository = quotaRepository;
+                this.billingConfig = billingConfig;
+                this.pricingConfig = pricingConfig;
+        }
 
         /**
          * Record token usage for a user
@@ -81,7 +77,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                                 .documentId(usageDTO.getDocumentId())
                                 .threadId(usageDTO.getThreadId())
                                 .messageId(usageDTO.getMessageId())
-                                .timestamp(Instant.now())
                                 .promptTokens(usageDTO.getPromptTokens())
                                 .completionTokens(usageDTO.getCompletionTokens())
                                 .totalTokens(usageDTO.getTotalTokens())
@@ -89,15 +84,14 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                                 .operationType(usageDTO.getOperationType())
                                 .estimatedCost(cost)
                                 .durationMs(usageDTO.getDurationMs())
-                                .createdAt(Instant.now())
                                 .build();
 
                 usageRepository.save(usage);
 
-                // Update user quota
                 updateUserQuota(usageDTO.getUserId(), usageDTO.getTotalTokens());
 
-                log.info("Token usage recorded: userId={}, totalTokens={}, cost={}",
+                log.debug("Token usage recorded: userId={}, totalTokens={}, " +
+                      "cost={}",
                                 usageDTO.getUserId(), usage.getTotalTokens(), cost);
         }
 
@@ -107,7 +101,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         @Override
         @Transactional
         public void checkAndEnforceQuota(Long userId, Long tokensToUse) {
-                UserTokenQuota quota = getOrCreateQuota(userId);
+                UserTokenQuota quota = getCurrentUserQuota(userId);
 
                 // Reset quota if needed
                 if (Instant.now().isAfter(quota.getResetDate())) {
@@ -141,45 +135,37 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         @Transactional
         @Override
         public void updateUserQuota(Long userId, Long tokensUsed) {
-                int updated = quotaRepository.incrementUsage(userId, tokensUsed, Instant.now());
-
-                if (updated == 0) {
-                        // Quota doesn't exist, create it first
-                        UserTokenQuota quota = getOrCreateQuota(userId);
-                        quota.setCurrentMonthlyUsage(quota.getCurrentMonthlyUsage() + tokensUsed);
-                        quota.setUpdatedAt(Instant.now());
-                        quotaRepository.save(quota);
-                }
+                quotaRepository.incrementUsage(userId, tokensUsed);
         }
 
         /**
          * Get or create user quota
          */
-        @Transactional
         @Override
-        public UserTokenQuota getOrCreateQuota(Long userId) {
+        public UserTokenQuota getCurrentUserQuota(Long userId) {
                 return quotaRepository.findByUserId(userId)
-                                .orElseGet(() -> createDefaultQuota(userId));
+                        .orElseThrow(()-> new BaseException("No quota info " +
+                                                            "found for user: " +
+                                                            userId,
+                                ExceptionCodes.QUOTA_NOT_FOUND));
         }
 
         /**
          * Create default quota for new user
          */
-        private UserTokenQuota createDefaultQuota(Long userId) {
-                log.info("Creating default quota for userId: {}", userId);
+        @Transactional
+        public UserTokenQuota createDefaultQuota(Long userId) {
+                log.debug("Creating default quota for userId: {}", userId);
 
-                Instant now = Instant.now();
                 Instant resetDate = getNextMonthStart();
 
                 UserTokenQuota quota = UserTokenQuota.builder()
                                 .userId(userId)
-                                .monthlyLimit(100000L) // Default: 100K tokens/month
+                                .monthlyLimit(billingConfig.getDefaultMonthlyLimit())
                                 .currentMonthlyUsage(0L)
                                 .resetDate(resetDate)
-                                .tier("free")
+                                .tier(AccountTier.FREE)
                                 .isActive(true)
-                                .createdAt(now)
-                                .updatedAt(now)
                                 .build();
 
                 return quotaRepository.save(quota);
@@ -191,20 +177,19 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         @Override
         @Transactional
         public void resetQuota(UserTokenQuota quota) {
-                log.info("Resetting quota for userId: {}", quota.getUserId());
-
-                Instant now = Instant.now();
+                log.debug("Resetting quota for userId: {}", quota.getUserId());
                 Instant newResetDate = getNextMonthStart();
-
-                quotaRepository.resetQuota(quota.getUserId(), newResetDate, now);
+                quotaRepository.resetQuota(quota.getUserId(), newResetDate);
         }
 
         /**
          * Get start of next month in IST
          */
         private Instant getNextMonthStart() {
-                YearMonth nextMonth = YearMonth.now(IST_ZONE).plusMonths(1);
-                ZonedDateTime firstDayNextMonth = nextMonth.atDay(1).atStartOfDay(IST_ZONE);
+                // TODO: Check if UTC must be used here instead of IST
+                ZoneId zoneId = ZoneId.of(billingConfig.getBillingTimezone());
+                YearMonth nextMonth = YearMonth.now(zoneId).plusMonths(1);
+                ZonedDateTime firstDayNextMonth = nextMonth.atDay(1).atStartOfDay(zoneId);
                 return firstDayNextMonth.toInstant();
         }
 
@@ -212,12 +197,8 @@ public class TokenUsageServiceImpl implements TokenUsageService {
          * Calculate cost based on token usage
          */
         private BigDecimal calculateCost(String modelName, Long promptTokens, Long completionTokens) {
-                String modelKey = modelName != null && INPUT_COSTS.containsKey(modelName)
-                                ? modelName
-                                : "default";
-
-                BigDecimal inputCostPer1k = INPUT_COSTS.get(modelKey);
-                BigDecimal outputCostPer1k = OUTPUT_COSTS.get(modelKey);
+                BigDecimal inputCostPer1k = pricingConfig.getInputCost(modelName);
+                BigDecimal outputCostPer1k = pricingConfig.getOutputCost(modelName);
 
                 BigDecimal inputCost = BigDecimal.valueOf(promptTokens)
                                 .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP)
@@ -235,7 +216,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
          */
         @Override
         public Long getCurrentMonthUsage(Long userId) {
-                UserTokenQuota quota = getOrCreateQuota(userId);
+                UserTokenQuota quota = getCurrentUserQuota(userId);
                 return quota.getCurrentMonthlyUsage();
         }
 
@@ -244,7 +225,8 @@ public class TokenUsageServiceImpl implements TokenUsageService {
          */
         @Override
         public QuotaInfoResponse getUserQuotaInfo(Long userId) {
-                UserTokenQuota quota = getOrCreateQuota(userId);
+                // TODO: Revisit this implementation - use projection
+                UserTokenQuota quota = getCurrentUserQuota(userId);
                 return QuotaInfoResponse.fromEntity(quota);
         }
 
@@ -253,6 +235,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
          */
         @Override
         public Page<UserTokenUsage> getUserUsageHistory(Long userId, Pageable pageable) {
+                // TODO: Revisit this implementation
                 return usageRepository.findByUserIdOrderByTimestampDesc(userId, pageable);
         }
 
@@ -262,6 +245,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         @Override
         public Page<UserTokenUsage> getDocumentUsageHistory(
                         Long userId, Long documentId, Pageable pageable) {
+                // TODO: Revisit this implementation
                 return usageRepository.findByUserIdAndDocumentIdOrderByTimestampDesc(
                                 userId, documentId, pageable);
         }
@@ -272,6 +256,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         @Override
         public List<DailyUsageSummary> getDailyUsageSummary(
                         Long userId, Instant startDate, Instant endDate) {
+                // TODO: Revisit this implementation
                 List<Object[]> results = usageRepository.getDailyUsageSummary(
                                 userId, startDate, endDate);
 
@@ -298,13 +283,15 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         @Transactional
         @Override
         public void updateUserTier(Long userId, String newTier, Long newLimit) {
-                UserTokenQuota quota = getOrCreateQuota(userId);
-                quota.setTier(newTier);
+                // TODO: Revisit this implementation- What if tier is changed
+                //  from paid to free
+                UserTokenQuota quota = getCurrentUserQuota(userId);
+                quota.setTier(AccountTier.valueOf(newTier));
                 quota.setMonthlyLimit(newLimit);
                 quota.setUpdatedAt(Instant.now());
                 quotaRepository.save(quota);
 
-                log.info("Updated user tier: userId={}, tier={}, limit={}",
+                log.debug("Updated user tier: userId={}, tier={}, limit={}",
                                 userId, newTier, newLimit);
         }
 
@@ -314,7 +301,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         @Override
         public UsageBreakdown getUsageBreakdown(Long userId) {
                 log.debug("Fetching usage breakdown for userId: {}", userId);
-
+                // TODO: Use projection
                 List<Object[]> results = usageRepository.getUsageBreakdownByOperationType(userId);
 
                 return buildUsageBreakdown(results);
@@ -330,7 +317,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                         Instant endDate) {
                 log.debug("Fetching usage breakdown for userId: {} between {} and {}",
                                 userId, startDate, endDate);
-
+                // TODO: Add projection
                 List<Object[]> results = usageRepository.getUsageBreakdownByOperationTypeAndDateRange(
                                 userId, startDate, endDate);
 
@@ -341,17 +328,17 @@ public class TokenUsageServiceImpl implements TokenUsageService {
          * Build UsageBreakdown DTO from query results
          */
         private UsageBreakdown buildUsageBreakdown(List<Object[]> results) {
-                Long chatTokens = 0L;
-                Long embeddingTokens = 0L;
+                long chatTokens = 0L;
+                long embeddingTokens = 0L;
                 BigDecimal chatCost = BigDecimal.ZERO;
                 BigDecimal embeddingCost = BigDecimal.ZERO;
-                Integer chatRequestCount = 0;
-                Integer embeddingRequestCount = 0;
+                int chatRequestCount = 0;
+                int embeddingRequestCount = 0;
 
                 for (Object[] row : results) {
                         String operationType = (String) row[0];
-                        Integer requestCount = ((Number) row[1]).intValue();
-                        Long tokens = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+                        int requestCount = ((Number) row[1]).intValue();
+                        long tokens = row[2] != null ? ((Number) row[2]).longValue() : 0L;
                         BigDecimal cost = row[3] != null ? (BigDecimal) row[3] : BigDecimal.ZERO;
 
                         // Categorize by operation type
@@ -401,6 +388,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                 if (operationType == null) {
                         return false;
                 }
-                return operationType.toLowerCase().equals("embedding");
+                return operationType.equalsIgnoreCase("embedding");
         }
 }

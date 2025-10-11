@@ -18,11 +18,13 @@ public interface TokenUsageService {
 
         void recordTokenUsage(TokenUsageDto usageDTO);
 
+        UserTokenQuota createDefaultQuota(Long userId);
+
         void checkAndEnforceQuota(Long userId, Long tokensToUse);
 
         void updateUserQuota(Long userId, Long tokensUsed);
 
-        UserTokenQuota getOrCreateQuota(Long userId);
+        UserTokenQuota getCurrentUserQuota(Long userId);
 
         void resetQuota(UserTokenQuota quota);
 

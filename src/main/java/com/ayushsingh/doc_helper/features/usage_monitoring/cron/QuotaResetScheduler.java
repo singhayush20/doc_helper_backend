@@ -1,18 +1,16 @@
 package com.ayushsingh.doc_helper.features.usage_monitoring.cron;
 
-import java.time.Instant;
-import java.util.List;
-
+import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
+import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
-import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;
-import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Instant;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -26,13 +24,14 @@ public class QuotaResetScheduler {
      * Reset quotas for users whose reset date has passed
      * Runs every day at 12:01 AM IST
      */
-    @Scheduled(cron = "0 1 0 * * ?", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 1 0 * * ?", zone = "${monetization.billing.timezone}")
     @Transactional
     public void resetExpiredQuotas() {
         log.info("Starting quota reset job");
 
         Instant now = Instant.now();
-        List<UserTokenQuota> quotasToReset = quotaRepository.findQuotasToReset(now);
+        List<UserTokenQuota> quotasToReset = quotaRepository.findQuotasToReset(
+                now);
 
         log.info("Found {} quotas to reset", quotasToReset.size());
 
@@ -46,6 +45,7 @@ public class QuotaResetScheduler {
             }
         }
 
-        log.info("Quota reset job completed. Reset {} quotas", quotasToReset.size());
+        log.info("Quota reset job completed. Reset {} quotas",
+                quotasToReset.size());
     }
 }

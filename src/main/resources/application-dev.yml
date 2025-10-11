@@ -102,3 +102,33 @@ server:
 
 storage:
   location: uploads
+
+monetization:
+  billing:
+    timezone: Asia/Kolkata
+    default-monthly-limit: 100000
+    currency: INR
+
+  pricing:
+    models:
+      gpt-4:
+        input-cost-per1k: 0.03
+        output-cost-per1k: 0.06
+      gpt-4-turbo:
+        input-cost-per1k: 0.01
+        output-cost-per1k: 0.03
+      gpt-3.5-turbo:
+        input-cost-per1k: 0.0015
+        output-cost-per1k: 0.002
+      llama-3.1:
+        input-cost-per1k: 0.001
+        output-cost-per1k: 0.002
+      nomic-embed-text:
+        input-cost-per1k: 0.0
+        output-cost-per1k: 0.0
+      text-embedding-ada-002:
+        input-cost-per1k: 0.0001
+        output-cost-per1k: 0.0
+      default:
+        input-cost-per1k: 0.01
+        output-cost-per1k: 0.02

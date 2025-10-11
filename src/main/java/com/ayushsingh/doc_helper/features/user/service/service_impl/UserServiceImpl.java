@@ -3,6 +3,7 @@ package com.ayushsingh.doc_helper.features.user.service.service_impl;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,13 +31,15 @@ public class UserServiceImpl implements UserService {
     private final ModelMapper modelMapper;
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
+    private final TokenUsageService tokenUsageService;
 
     public UserServiceImpl(UserRepository userRepository, RoleService roleService, ModelMapper modelMapper,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder, TokenUsageService tokenUsageService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
+        this.tokenUsageService = tokenUsageService;
     }
 
     @Override
@@ -71,6 +74,7 @@ public class UserServiceImpl implements UserService {
         user.setUserRoles(userRoles);
         user.setPassword(this.passwordEncoder.encode(userCreateDto.getPassword()));
         var savedUser = this.userRepository.save(user);
+        this.tokenUsageService.createDefaultQuota(savedUser.getId());
         log.info("User created ...");
 
         return this.modelMapper.map(savedUser, UserDetailsDto.class);
