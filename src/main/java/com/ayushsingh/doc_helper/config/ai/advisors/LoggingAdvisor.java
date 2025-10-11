@@ -1,6 +1,10 @@
 package com.ayushsingh.doc_helper.config.ai.advisors;
 
-import lombok.extern.slf4j.Slf4j;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
@@ -11,12 +15,9 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 @Component
@@ -85,7 +86,16 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
 
         return streamAdvisorChain.nextStream(chatClientRequest)
                 .doOnNext(response -> {
-                    // TODO: Perform logging for each chunk if required
+                    // Capture each chunk
+                    lastResponse.set(response);
+                    chunkCount.incrementAndGet();
+
+                    ChatResponse chatResponse = response.chatResponse();
+                    if (chatResponse != null && chatResponse.getMetadata() != null
+                            && chatResponse.getMetadata().getModel() != null) {
+                        log.debug("Chunk {} model: {}", chunkCount.get(), chatResponse.getMetadata().getModel());
+                    }
+                    logResponseDetails(chatResponse);
                 })
                 .doOnComplete(() -> {
                     Instant endTime = Instant.now();
@@ -100,7 +110,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                     // Log final usage from the last response
                     ChatClientResponse finalResponse = lastResponse.get();
                     if (finalResponse != null &&
-                        finalResponse.chatResponse() != null) {
+                            finalResponse.chatResponse() != null) {
                         logResponseDetails(finalResponse.chatResponse());
                         // TODO: Persist usage data
                     }
@@ -148,7 +158,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                 if (nativeUsage != null) {
                     String nativeStr = nativeUsage.toString();
                     if (nativeStr.contains("promptTokensDetails=") &&
-                        !nativeStr.contains("promptTokensDetails=null")) {
+                            !nativeStr.contains("promptTokensDetails=null")) {
                         log.debug("Additional usage details: {}", nativeUsage);
                     } else {
                         log.debug("Native usage available (no additional details)");
