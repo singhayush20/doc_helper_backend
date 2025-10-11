@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.EmbeddingUsageService;
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
@@ -24,11 +25,15 @@ import lombok.extern.slf4j.Slf4j;
 public class EmbeddingServiceImpl implements EmbeddingService {
     private final VectorStore vectorStore;
     private final UserDocRepository userDocRepository;
+    private final EmbeddingUsageService embeddingUsageService;
+
+    private static final String EMBEDDING_MODEL = "nomic-embed-text";
 
     public EmbeddingServiceImpl(VectorStore vectorStore,
-            UserDocRepository userDocRepository) {
+            UserDocRepository userDocRepository, EmbeddingUsageService embeddingUsageService) {
         this.vectorStore = vectorStore;
         this.userDocRepository = userDocRepository;
+        this.embeddingUsageService = embeddingUsageService;
     }
 
     @Async
@@ -57,6 +62,33 @@ public class EmbeddingServiceImpl implements EmbeddingService {
             TokenTextSplitter textSplitter = new TokenTextSplitter();
             List<Document> chunks = textSplitter.apply(documents);
             log.info("Document split into {} chunks.", chunks.size());
+
+            List<String> chunkTexts = chunks.stream()
+                    .map(Document::getFormattedContent)
+                    .toList();
+
+            // Estimate total tokens
+            Long estimatedTokens = embeddingUsageService.estimateTotalTokens(chunkTexts);
+
+            log.info("Estimated tokens for document {}: {} tokens across {} chunks",
+                    documentId, estimatedTokens, chunks.size());
+
+            // IMPORTANT: Record usage and check quota BEFORE generating embeddings
+            // This will throw BaseException if quota is exceeded
+            try {
+                embeddingUsageService.recordEmbeddingUsage(
+                        userId,
+                        documentId,
+                        EMBEDDING_MODEL,
+                        chunks.size(),
+                        estimatedTokens);
+            } catch (BaseException e) {
+                // Quota exceeded or user inactive
+                log.warn("Cannot process document {}: {}", documentId, e.getMessage());
+                userDoc.setStatus(DocumentStatus.FAILED);
+                userDocRepository.save(userDoc);
+                return; // Exit without generating embeddings
+            }
 
             // Log metadata and content for debugging
             chunks.forEach(chunk -> {

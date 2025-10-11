@@ -74,6 +74,7 @@ logging:
     "[com.ayushsingh]": DEBUG
     "[org.springframework]": WARN
     "[org.springframework.web.client.DefaultRestClient]": WARN
+    "[org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger]": WARN
     "[org.apache.hc.client5.http]": WARN
     "[org.apache]": WARN
     "[ch.qos.logback]": WARN

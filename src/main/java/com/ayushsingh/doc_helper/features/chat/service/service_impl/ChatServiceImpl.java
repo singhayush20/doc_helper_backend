@@ -97,6 +97,10 @@ public class ChatServiceImpl implements ChatService {
                 saveUserMessage(chatThread, userQuestion);
 
                 return chatClient.prompt(prompt)
+                                .advisors(spec -> spec
+                                                .param("documentId", documentId)
+                                                .param("threadId",
+                                                                chatThread.getId()))
                                 .advisors(loggingAdvisor)
                                 .stream()
                                 .content()

@@ -73,6 +73,7 @@ logging:
   level:
     "[com.ayushsingh]": INFO
     "[org.springframework]": WARN
+    "[org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger]": WARN
     "[org.apache]": WARN
     "[ch.qos.logback]": WARN
     "[net.logstash]": WARN

@@ -16,12 +16,21 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
+import com.ayushsingh.doc_helper.config.security.UserContext;
+import com.ayushsingh.doc_helper.features.usage_monitoring.dto.TokenUsageDto;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
+
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
+
+    private final TokenUsageService tokenUsageService;
+
     @Override
     public int getOrder() {
         return 0;
@@ -55,7 +64,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             log.info("Total duration: {} ms", duration.toMillis());
             logResponseDetails(response.chatResponse());
 
-            // TODO: Persist usage metrics
+            persistUsageMetrics(chatClientRequest, response, duration, "CALL");
 
             return response;
         } catch (Exception e) {
@@ -112,7 +121,8 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                     if (finalResponse != null &&
                             finalResponse.chatResponse() != null) {
                         logResponseDetails(finalResponse.chatResponse());
-                        // TODO: Persist usage data
+                        persistUsageMetrics(chatClientRequest,
+                                finalResponse, duration, "STREAM");
                     }
                 })
                 .doOnError(error -> {
@@ -126,6 +136,124 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                             chunkCount.get());
                     log.error("Stream error details: ", error);
                 });
+    }
+
+    private void persistUsageMetrics(
+            ChatClientRequest request,
+            ChatClientResponse response,
+            Duration duration,
+            String operationType) {
+        try {
+            ChatResponse chatResponse = response.chatResponse();
+            if (chatResponse == null || chatResponse.getMetadata() == null) {
+                log.warn("No metadata available to persist usage");
+                return;
+            }
+
+            Usage usage = chatResponse.getMetadata().getUsage();
+            if (usage == null) {
+                log.warn("No usage information available");
+                return;
+            }
+
+            // Extract context from request and security context
+            Long userId = extractUserId();
+            Long documentId = extractDocumentId(request);
+            String threadId = extractThreadId(request);
+            String messageId = extractMessageId(response);
+            String modelName = chatResponse.getMetadata().getModel();
+
+            // Build DTO
+            TokenUsageDto usageDTO = TokenUsageDto.builder()
+                    .userId(userId)
+                    .documentId(documentId)
+                    .threadId(threadId)
+                    .messageId(messageId)
+                    .promptTokens(usage.getPromptTokens().longValue())
+                    .completionTokens(usage.getCompletionTokens().longValue())
+                    .totalTokens(usage.getTotalTokens().longValue())
+                    .modelName(modelName)
+                    .operationType(operationType)
+                    .durationMs(duration.toMillis())
+                    .build();
+
+            // Save to PostgreSQL
+            tokenUsageService.recordTokenUsage(usageDTO);
+
+            log.info("Successfully persisted token usage to PostgreSQL: userId={}, tokens={}",
+                    userId, usage.getTotalTokens());
+
+        } catch (Exception e) {
+            log.error("Failed to persist usage metrics to PostgreSQL", e);
+            // Don't throw - we don't want to fail the request if logging fails
+        }
+    }
+
+    /**
+     * Extract user ID from security context
+     */
+    private Long extractUserId() {
+        try {
+            return UserContext.getCurrentUser().getUser().getId();
+        } catch (Exception e) {
+            log.warn("Could not extract userId from UserContext", e);
+            return null;
+        }
+    }
+
+    /**
+     * Extract document ID from request context
+     */
+    private Long extractDocumentId(ChatClientRequest request) {
+        try {
+            Object docId = request.context().get("documentId");
+            if (docId instanceof Long) {
+                return (Long) docId;
+            } else if (docId instanceof Number) {
+                return ((Number) docId).longValue();
+            } else if (docId instanceof String) {
+                return Long.parseLong((String) docId);
+            }
+        } catch (Exception e) {
+            log.debug("Could not extract documentId from request context", e);
+        }
+        return null;
+    }
+
+    /**
+     * Extract thread ID from request context
+     */
+    private String extractThreadId(ChatClientRequest request) {
+        try {
+            Object threadId = request.context().get("threadId");
+            if (threadId != null) {
+                return threadId.toString();
+            }
+        } catch (Exception e) {
+            log.debug("Could not extract threadId from request context", e);
+        }
+        return null;
+    }
+
+    /**
+     * Extract message ID from response
+     */
+    private String extractMessageId(ChatClientResponse response) {
+        try {
+            if (response.chatResponse() != null &&
+                    response.chatResponse().getResult() != null &&
+                    response.chatResponse().getResult().getMetadata() != null) {
+
+                Object msgId = response.chatResponse().getResult()
+                        .getMetadata().get("messageId");
+                if (msgId != null) {
+                    return msgId.toString();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Could not extract messageId from response", e);
+        }
+        return null;
     }
 
     private void logRequestDetails(ChatClientRequest request) {
