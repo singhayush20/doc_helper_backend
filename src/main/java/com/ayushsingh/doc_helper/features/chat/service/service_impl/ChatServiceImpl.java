@@ -102,8 +102,8 @@ public class ChatServiceImpl implements ChatService {
                                 .content()
                                 .doOnNext(fullResponse::append)
                                 .doFinally(signalType -> {
-                                        if (signalType == SignalType.ON_COMPLETE &&
-                                                        !fullResponse.isEmpty()) {
+                                        if (signalType == SignalType.ON_COMPLETE
+                                                        && !fullResponse.isEmpty()) {
                                                 saveAssistantMessage(chatThread,
                                                                 fullResponse.toString());
                                         }
@@ -117,8 +117,8 @@ public class ChatServiceImpl implements ChatService {
                 SearchRequest request = SearchRequest.builder()
                                 .query(userQuestion)
                                 .topK(4)
-                                .filterExpression("userId == " + userId + " && documentId == " +
-                                                documentId)
+                                .filterExpression("userId == " + userId + " && documentId == "
+                                                + documentId)
                                 .build();
 
                 List<Document> similarDocs = vectorStore.similaritySearch(request);

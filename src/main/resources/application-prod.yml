@@ -53,24 +53,21 @@ spring:
 
   ai:
     openai:
-      base-url: ${OPEN_AI_URL}
-      api-key: ${CHATGROQ_API_KEY}
+      api-key: ${OPENAI_API_KEY}
+      base-url: ${OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai}
+      embedding:
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:gemini-embedding-001}
+          dimensions: ${OPENAI_EMBEDDING_DIMENSIONS:1536}
       chat:
         options:
-          model: llama-3.1-8b-instant
-          temperature: 0.7
-          max-tokens: 1000
-
-    ollama:
-      base-url: ${OLLAMA_BASE_URL}
-      embedding:
-        model: nomic-embed-text
+          model: ${OPENAI_CHAT_MODEL:gemini-2.5-pro}
 
     vectorstore:
       pgvector:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
-        dimensions: 768
+        dimensions: 1536
 
 logging:
   level:
