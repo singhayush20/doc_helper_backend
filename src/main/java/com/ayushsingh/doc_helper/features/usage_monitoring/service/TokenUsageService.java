@@ -2,15 +2,11 @@ package com.ayushsingh.doc_helper.features.usage_monitoring.service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 
+import com.ayushsingh.doc_helper.features.usage_monitoring.dto.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import com.ayushsingh.doc_helper.features.usage_monitoring.dto.DailyUsageSummary;
-import com.ayushsingh.doc_helper.features.usage_monitoring.dto.QuotaInfoResponse;
-import com.ayushsingh.doc_helper.features.usage_monitoring.dto.TokenUsageDto;
-import com.ayushsingh.doc_helper.features.usage_monitoring.dto.UsageBreakdown;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenUsage;
 
@@ -32,13 +28,12 @@ public interface TokenUsageService {
 
         QuotaInfoResponse getUserQuotaInfo(Long userId);
 
-        Page<UserTokenUsage> getUserUsageHistory(Long userId, Pageable pageable);
+        Page<UserTokenUsage> getUserUsageHistory(Pageable pageable);
 
         Page<UserTokenUsage> getDocumentUsageHistory(
-                        Long userId, Long documentId, Pageable pageable);
+                        Long documentId, Pageable pageable);
 
-        List<DailyUsageSummary> getDailyUsageSummary(
-                        Long userId, Instant startDate, Instant endDate);
+        DailyUsageSummaryResponse getDailyUsageSummaryForDays(int days);
 
         BigDecimal getTotalCost(Long userId, Instant startDate);
 

@@ -99,6 +99,7 @@ public class ChatServiceImpl implements ChatService {
                 return chatClient.prompt(prompt)
                                 .advisors(spec -> spec
                                                 .param("documentId", documentId)
+                                                .param("userId", userId)
                                                 .param("threadId",
                                                                 chatThread.getId()))
                                 .advisors(loggingAdvisor)

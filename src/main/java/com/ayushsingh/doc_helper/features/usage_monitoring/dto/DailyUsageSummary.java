@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.usage_monitoring.dto;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 
 import lombok.AllArgsConstructor;
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DailyUsageSummary {
-    private LocalDate date;
+    private Instant date;
     private Long totalTokens;
     private BigDecimal totalCost;
     private Long requestCount;

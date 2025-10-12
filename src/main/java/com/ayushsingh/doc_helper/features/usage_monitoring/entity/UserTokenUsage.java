@@ -12,9 +12,9 @@ import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "user_token_usage", indexes = {
-        @Index(name = "idx_user_timestamp", columnList = "user_id, timestamp"),
+        @Index(name = "idx_user_created_at", columnList = "user_id, created_at"),
         @Index(name = "idx_document_user", columnList = "document_id, user_id"),
-        @Index(name = "idx_timestamp", columnList = "timestamp"),
+        @Index(name = "idx_created_at", columnList = "created_at"),
         @Index(name = "idx_thread_id", columnList = "thread_id")
 })
 @Data
@@ -55,9 +55,6 @@ public class UserTokenUsage {
     @Enumerated(EnumType.STRING)
     private ChatOperationType operationType;
 
-    @Column(name = "embedding_model", length = 100)
-    private String embeddingModel;
-
     @Column(name = "document_chunks")
     private Integer documentChunks;
 
@@ -67,7 +64,7 @@ public class UserTokenUsage {
     @Column(name = "duration_ms")
     private Long durationMs;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;
 }

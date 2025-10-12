@@ -1,9 +1,10 @@
 package com.ayushsingh.doc_helper.features.usage_monitoring.repository;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,34 +16,27 @@ public interface UserTokenQuotaRepository extends JpaRepository<UserTokenQuota, 
 
         Optional<UserTokenQuota> findByUserId(Long userId);
 
-        boolean existsByUserId(Long userId);
+        /**
+         * Find quotas that need to be reset with pagination (better for large datasets)
+         */
+        @Query("SELECT q FROM UserTokenQuota q WHERE q.resetDate <= :now AND q.isActive = true")
+        Page<UserTokenQuota> findQuotasToResetPaginated(@Param("now") Instant now, Pageable pageable);
 
-        // Find all quotas that need to be reset
-        @Query("SELECT q FROM UserTokenQuota q WHERE q.resetDate <= :now")
-        List<UserTokenQuota> findQuotasToReset(@Param("now") Instant now);
-
-        // Update quota usage atomically
         @Modifying
         @Query("UPDATE UserTokenQuota q SET q.currentMonthlyUsage = q.currentMonthlyUsage + :tokens " +
                         "WHERE q.userId = :userId")
-        int incrementUsage(
+        void incrementUsage(
                         @Param("userId") Long userId,
                         @Param("tokens") Long tokens
                 );
 
-        // Reset quota for a specific user
+        /**
+         * Reset quota with atomic update
+         */
         @Modifying
         @Query("UPDATE UserTokenQuota q SET q.currentMonthlyUsage = 0, " +
-                        "q.resetDate = :newResetDate WHERE q.userId = :userId")
-        int resetQuota(
-                        @Param("userId") Long userId,
-                        @Param("newResetDate") Instant newResetDate);
-
-        // Find users by tier
-        List<UserTokenQuota> findByTier(String tier);
-
-        // Find users exceeding a certain usage percentage
-        @Query("SELECT q FROM UserTokenQuota q WHERE " +
-                        "(CAST(q.currentMonthlyUsage AS double) / CAST(q.monthlyLimit AS double)) >= :threshold")
-        List<UserTokenQuota> findUsersExceedingThreshold(@Param("threshold") double threshold);
+               "q.resetDate = :newResetDate WHERE q.userId = :userId")
+        void resetQuota(
+                @Param("userId") Long userId,
+                @Param("newResetDate") Instant newResetDate);
 }
