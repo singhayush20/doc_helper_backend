@@ -14,6 +14,7 @@ import com.ayushsingh.doc_helper.features.chat.entity.MessageRole;
 import com.ayushsingh.doc_helper.features.chat.repository.ChatMessageRepository;
 import com.ayushsingh.doc_helper.features.chat.repository.ChatThreadRepository;
 import com.ayushsingh.doc_helper.features.chat.service.ChatService;
+import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,95 +65,106 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public Flux<String> generateStreamingResponse(ChatRequest chatRequest) {
-        final var documentId = chatRequest.documentId();
-        final var userQuestion = chatRequest.question();
+        log.debug("Generating streaming response for documentId: {}", chatRequest.documentId());
 
-        if (!userDocRepository.existsById(documentId)) {
-            log.error("Document not found for documentId: {}", documentId);
-            throw new BaseException(
-                    "Document not found for documentId: " + documentId,
-                    ExceptionCodes.DOCUMENT_NOT_FOUND);
-        }
+        // Prepare common context
+        ChatContext context = prepareChatContext(chatRequest);
 
-        log.debug("Generating streaming response for documentId: {}",
-                documentId);
+        // Save user message
+        saveUserMessage(context.chatThread(), chatRequest.question());
 
-        final var userId = UserContext.getCurrentUser().getUser().getId();
-        ChatThread chatThread = getOrCreateChatThread(documentId, userId);
-
-        String ragContext = retrieveRagContext(documentId, userId,
-                userQuestion);
-        String historyContext = retrieveHistoryContext(chatThread.getId());
-        String finalPrompt = RAG_PROMPT_TEMPLATE.replace("{context}",
-                ragContext).replace("{chatHistory}", historyContext);
-        SystemMessage systemMessage = new SystemMessage(finalPrompt);
-        UserMessage userMessage = new UserMessage(userQuestion);
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
-
-        ChatClient chatClient = chatClientBuilder.build();
-
+        // Build and execute streaming request
         StringBuilder fullResponse = new StringBuilder();
 
-        saveUserMessage(chatThread, userQuestion);
-
-        return chatClient.prompt(prompt)
-                .advisors(spec -> spec.param("documentId", documentId)
-                        .param("userId", userId)
-                        .param("threadId", chatThread.getId()))
-                .advisors(loggingAdvisor)
+        return buildChatClient(context)
                 .stream()
                 .content()
                 .doOnNext(fullResponse::append)
+                .doOnError(error -> log.error("Error during streaming response for documentId: {}",
+                        chatRequest.documentId(), error))
                 .doFinally(signalType -> {
-                    if (signalType == SignalType.ON_COMPLETE &&
-                        !fullResponse.isEmpty()) {
-                        saveAssistantMessage(chatThread,
-                                fullResponse.toString());
+                    if (signalType == SignalType.ON_COMPLETE && !fullResponse.isEmpty()) {
+                        saveAssistantMessage(context.chatThread(), fullResponse.toString());
+                        log.info("Streaming response completed for threadId: {}",
+                                context.chatThread().getId());
                     }
                 });
     }
 
     @Override
     public ChatCallResponse generateResponse(ChatRequest chatRequest) {
-        final var documentId = chatRequest.documentId();
-        final var userQuestion = chatRequest.question();
+        log.debug("Generating non-streaming response for documentId: {}", chatRequest.documentId());
 
+        ChatContext context = prepareChatContext(chatRequest);
+
+        saveUserMessage(context.chatThread(), chatRequest.question());
+
+        String responseContent = buildChatClient(context)
+                .call()
+                .content();
+
+        saveAssistantMessage(context.chatThread(), responseContent);
+
+        log.debug("Non-streaming response completed for threadId: {}",
+                context.chatThread().getId());
+
+        return ChatCallResponse.builder()
+                .response(responseContent)
+                .build();
+    }
+
+    private ChatContext prepareChatContext(ChatRequest chatRequest) {
+        Long documentId = chatRequest.documentId();
+        String userQuestion = chatRequest.question();
+
+        validateDocumentExists(documentId);
+
+        Long userId = UserContext.getCurrentUser().getUser().getId();
+
+        ChatThread chatThread = getOrCreateChatThread(documentId, userId);
+
+        String ragContext = retrieveRagContext(documentId, userId, userQuestion);
+
+        String historyContext = retrieveHistoryContext(chatThread.getId());
+
+        String finalPrompt = RAG_PROMPT_TEMPLATE
+                .replace("{context}", ragContext)
+                .replace("{chatHistory}", historyContext);
+
+        SystemMessage systemMessage = new SystemMessage(finalPrompt);
+        UserMessage userMessage = new UserMessage(userQuestion);
+        Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
+
+        return new ChatContext(
+                documentId,
+                userId,
+                chatThread,
+                prompt,
+                ragContext,
+                historyContext
+        );
+    }
+
+    private ChatClient.ChatClientRequestSpec buildChatClient(ChatContext context) {
+        ChatClient chatClient = chatClientBuilder.build();
+
+        return chatClient.prompt(context.prompt())
+                .advisors(spec -> spec
+                        .param("documentId", context.documentId())
+                        .param("userId", context.userId())
+                        .param("threadId", context.chatThread().getId()))
+                .advisors(loggingAdvisor);
+    }
+
+    private void validateDocumentExists(Long documentId) {
         if (!userDocRepository.existsById(documentId)) {
             log.error("Document not found for documentId: {}", documentId);
             throw new BaseException(
                     "Document not found for documentId: " + documentId,
                     ExceptionCodes.DOCUMENT_NOT_FOUND);
         }
-
-        log.debug("Generating streaming response for documentId: {}",
-                documentId);
-
-        final var userId = UserContext.getCurrentUser().getUser().getId();
-        ChatThread chatThread = getOrCreateChatThread(documentId, userId);
-
-        String ragContext = retrieveRagContext(documentId, userId,
-                userQuestion);
-        String historyContext = retrieveHistoryContext(chatThread.getId());
-        String finalPrompt = RAG_PROMPT_TEMPLATE.replace("{context}",
-                ragContext).replace("{chatHistory}", historyContext);
-        SystemMessage systemMessage = new SystemMessage(finalPrompt);
-        UserMessage userMessage = new UserMessage(userQuestion);
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
-
-        ChatClient chatClient = chatClientBuilder.build();
-
-        saveUserMessage(chatThread, userQuestion);
-
-        var response = chatClient.prompt(prompt)
-                .advisors(spec -> spec.param("documentId", documentId)
-                        .param("userId", userId)
-                        .param("threadId", chatThread.getId()))
-                .advisors(loggingAdvisor)
-                .call();
-        saveAssistantMessage(chatThread, response.content());
-
-        return ChatCallResponse.builder().response(response.content()).build();
     }
+
 
     private String retrieveRagContext(Long documentId, Long userId,
             String userQuestion) {
