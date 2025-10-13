@@ -24,4 +24,8 @@ public final class ExceptionCodes {
     public static final String UNAUTHORIZED = "E0016";
     public static final String DOCUMENT_NOT_FOUND = "E0017";
     public static final String ERROR_DELETING_VECTORS = "E0018";
+    public static final String QUOTA_EXCEEDED = "E0019";
+    public static final String USER_QUOTA_INACTIVE = "E0020";
+    public static final String QUOTA_NOT_FOUND = "E0021";
+    public static final String ACCOUNT_UPGRADATION_FAILURE = "E0022";
 }

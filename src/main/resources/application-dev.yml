@@ -62,6 +62,7 @@ spring:
       chat:
         options:
           model: ${OPENAI_CHAT_MODEL:gemini-2.5-pro}
+          stream-usage: true
 
     vectorstore:
       pgvector:
@@ -74,6 +75,7 @@ logging:
     "[com.ayushsingh]": DEBUG
     "[org.springframework]": WARN
     "[org.springframework.web.client.DefaultRestClient]": WARN
+    "[org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger]": WARN
     "[org.apache.hc.client5.http]": WARN
     "[org.apache]": WARN
     "[ch.qos.logback]": WARN
@@ -101,3 +103,33 @@ server:
 
 storage:
   location: uploads
+
+monetization:
+  billing:
+    billing-timezone: Asia/Kolkata
+    default-monthly-limit: 100000
+    currency: INR
+
+  pricing:
+    models:
+      gpt-4:
+        input-cost-per1k: 0.03
+        output-cost-per1k: 0.06
+      gpt-4-turbo:
+        input-cost-per1k: 0.01
+        output-cost-per1k: 0.03
+      gpt-3.5-turbo:
+        input-cost-per1k: 0.0015
+        output-cost-per1k: 0.002
+      llama-3.1:
+        input-cost-per1k: 0.001
+        output-cost-per1k: 0.002
+      nomic-embed-text:
+        input-cost-per1k: 0.0
+        output-cost-per1k: 0.0
+      text-embedding-ada-002:
+        input-cost-per1k: 0.0001
+        output-cost-per1k: 0.0
+      default:
+        input-cost-per1k: 0.01
+        output-cost-per1k: 0.02
