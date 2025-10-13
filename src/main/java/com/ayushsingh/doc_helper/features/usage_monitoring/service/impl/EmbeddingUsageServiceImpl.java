@@ -71,33 +71,11 @@ public class EmbeddingUsageServiceImpl implements EmbeddingUsageService {
      * Calculate embedding cost based on model and tokens
      */
     private BigDecimal calculateEmbeddingCost(String modelName, Long tokens) {
-        // For embeddings, only input cost applies (no output)
         BigDecimal costPer1k = pricingConfig.getInputCost(modelName);
 
         return BigDecimal.valueOf(tokens)
                 .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP)
                 .multiply(costPer1k)
                 .setScale(6, RoundingMode.HALF_UP);
-    }
-
-    /**
-     * Estimate tokens for text before embedding
-     * Rough estimate: 1 token ≈ 4 characters for English text
-     */
-    @Override
-    public Long estimateTokensForText(String text) {
-        if (text == null || text.isEmpty()) {
-            return 0L;
-        }
-        // Simple estimation: divide by 4
-        return (long) Math.ceil(text.length() / 4.0);
-    }
-
-    /**
-     * Estimate total tokens for multiple chunks
-     */
-    @Override
-    public Long estimateTotalTokens(java.util.List<String> textChunks) {
-        return textChunks.stream().mapToLong(this::estimateTokensForText).sum();
     }
 }

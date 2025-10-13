@@ -62,6 +62,7 @@ spring:
       chat:
         options:
           model: ${OPENAI_CHAT_MODEL:gemini-2.5-pro}
+          stream-usage: true
 
     vectorstore:
       pgvector:
