@@ -1,8 +1,10 @@
-package com.ayushsingh.doc_helper.features.chat.service.service_impl;
+package com.ayushsingh.doc_helper.features.chat.service.serviceimpl;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.config.ai.advisors.LoggingAdvisor;
+import com.ayushsingh.doc_helper.config.ai.prompts.PromptTemplates;
+import com.ayushsingh.doc_helper.config.ai.tools.websearch.WebSearchTool;
 import com.ayushsingh.doc_helper.config.security.UserContext;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatCallResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatHistoryResponse;
@@ -44,17 +46,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ChatServiceImpl implements ChatService {
 
-    private static final String RAG_PROMPT_TEMPLATE = """
-            You are a helpful assistant for the document.
-            Use the information provided in the "CONTEXT" section and the "CHAT HISTORY" to answer the user's question.
-            If the answer is not available in the context or chat history, say "I do not have information about that."
-            
-            CONTEXT:
-            {context}
-            
-            CHAT HISTORY:
-            {chatHistory}
-            """;
+
     private final ChatClient.Builder chatClientBuilder;
     private final VectorStore vectorStore;
     private final ChatThreadRepository chatThreadRepository;
@@ -62,10 +54,12 @@ public class ChatServiceImpl implements ChatService {
     private final UserDocRepository userDocRepository;
     private final MongoTemplate mongoTemplate;
     private final LoggingAdvisor loggingAdvisor;
+    private final WebSearchTool webSearchTool;
 
     @Override
     public Flux<String> generateStreamingResponse(ChatRequest chatRequest) {
-        log.debug("Generating streaming response for documentId: {}", chatRequest.documentId());
+        log.debug("Generating streaming response for documentId: {}",
+                chatRequest.documentId());
 
         // Prepare common context
         ChatContext context = prepareChatContext(chatRequest);
@@ -76,41 +70,44 @@ public class ChatServiceImpl implements ChatService {
         // Build and execute streaming request
         StringBuilder fullResponse = new StringBuilder();
 
-        return buildChatClient(context)
-                .stream()
+        return buildChatClientSpec(context, false).stream()
                 .content()
                 .doOnNext(fullResponse::append)
-                .doOnError(error -> log.error("Error during streaming response for documentId: {}",
+                .doOnError(error -> log.error(
+                        "Error during streaming response for documentId: {}",
                         chatRequest.documentId(), error))
                 .doFinally(signalType -> {
-                    if (signalType == SignalType.ON_COMPLETE && !fullResponse.isEmpty()) {
-                        saveAssistantMessage(context.chatThread(), fullResponse.toString());
-                        log.info("Streaming response completed for threadId: {}",
+                    if (signalType == SignalType.ON_COMPLETE &&
+                        !fullResponse.isEmpty()) {
+                        saveAssistantMessage(context.chatThread(),
+                                fullResponse.toString());
+                        log.info(
+                                "Streaming response completed for threadId: {}",
                                 context.chatThread().getId());
                     }
                 });
     }
 
     @Override
-    public ChatCallResponse generateResponse(ChatRequest chatRequest) {
-        log.debug("Generating non-streaming response for documentId: {}", chatRequest.documentId());
+    public ChatCallResponse generateResponse(ChatRequest chatRequest,
+            Boolean webSearch) {
+        log.debug("Generating non-streaming response for documentId: {}",
+                chatRequest.documentId());
 
         ChatContext context = prepareChatContext(chatRequest);
 
         saveUserMessage(context.chatThread(), chatRequest.question());
 
-        String responseContent = buildChatClient(context)
-                .call()
+        String responseContent = buildChatClientSpec(context, webSearch).call()
                 .content();
 
         saveAssistantMessage(context.chatThread(), responseContent);
 
         log.debug("Non-streaming response completed for threadId: {}",
                 context.chatThread().getId());
-
-        return ChatCallResponse.builder()
-                .response(responseContent)
-                .build();
+        // TODO: Implement structured output and tool-calling using optional
+        // web search
+        return ChatCallResponse.builder().response(responseContent).build();
     }
 
     private ChatContext prepareChatContext(ChatRequest chatRequest) {
@@ -123,37 +120,37 @@ public class ChatServiceImpl implements ChatService {
 
         ChatThread chatThread = getOrCreateChatThread(documentId, userId);
 
-        String ragContext = retrieveRagContext(documentId, userId, userQuestion);
+        String ragContext = retrieveRagContext(documentId, userId,
+                userQuestion);
 
         String historyContext = retrieveHistoryContext(chatThread.getId());
 
-        String finalPrompt = RAG_PROMPT_TEMPLATE
-                .replace("{context}", ragContext)
-                .replace("{chatHistory}", historyContext);
+        String finalPrompt = PromptTemplates.RAG_PROMPT_TEMPLATE.replace(
+                "{context}",
+                ragContext).replace("{chatHistory}", historyContext);
 
         SystemMessage systemMessage = new SystemMessage(finalPrompt);
         UserMessage userMessage = new UserMessage(userQuestion);
         Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
 
-        return new ChatContext(
-                documentId,
-                userId,
-                chatThread,
-                prompt,
-                ragContext,
-                historyContext
-        );
+        return new ChatContext(documentId, userId, chatThread, prompt,
+                ragContext, historyContext);
     }
 
-    private ChatClient.ChatClientRequestSpec buildChatClient(ChatContext context) {
+    private ChatClient.ChatClientRequestSpec buildChatClientSpec(
+            ChatContext context, Boolean webSearchEnabled) {
         ChatClient chatClient = chatClientBuilder.build();
 
-        return chatClient.prompt(context.prompt())
-                .advisors(spec -> spec
-                        .param("documentId", context.documentId())
+        var chatClientSpec = chatClient.prompt(context.prompt())
+                .advisors(spec -> spec.param("documentId", context.documentId())
                         .param("userId", context.userId())
                         .param("threadId", context.chatThread().getId()))
                 .advisors(loggingAdvisor);
+
+        if (webSearchEnabled) {
+            chatClientSpec.tools(webSearchTool);
+        }
+        return chatClientSpec;
     }
 
     private void validateDocumentExists(Long documentId) {
@@ -164,7 +161,6 @@ public class ChatServiceImpl implements ChatService {
                     ExceptionCodes.DOCUMENT_NOT_FOUND);
         }
     }
-
 
     private String retrieveRagContext(Long documentId, Long userId,
             String userQuestion) {

@@ -8,11 +8,12 @@ import reactor.core.publisher.Flux;
 
 public interface ChatService {
 
-     Flux<String> generateStreamingResponse(ChatRequest chatRequest);
-     ChatCallResponse generateResponse(ChatRequest chatRequest);
+        Flux<String> generateStreamingResponse(ChatRequest chatRequest);
 
-     ChatHistoryResponse fetchChatHistoryForDocument(Long documentId,
-             Integer page);
+        ChatCallResponse generateResponse(ChatRequest chatRequest, Boolean webSearch);
 
-     Boolean deleteChatHistoryForDocument(Long documentId);
+        ChatHistoryResponse fetchChatHistoryForDocument(Long documentId,
+                        Integer page);
+
+        Boolean deleteChatHistoryForDocument(Long documentId);
 }

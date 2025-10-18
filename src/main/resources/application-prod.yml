@@ -69,6 +69,12 @@ spring:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
         dimensions: 1536
+web:
+  search:
+    base-url: ${WEB_SEARCH_BASE_URL}
+    api-key: ${WEB_SEARCH_API_KEY}
+    timeout-seconds: 8
+    default-max-results: 3
 
 logging:
   level:
