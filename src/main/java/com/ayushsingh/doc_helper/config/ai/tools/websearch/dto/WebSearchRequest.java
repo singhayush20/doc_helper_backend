@@ -1,32 +1,71 @@
 package com.ayushsingh.doc_helper.config.ai.tools.websearch.dto;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.Builder;
-import lombok.Value;
-
 import java.util.List;
+public record WebSearchRequest(
+        String query,
+        Integer maxResults,
+        Integer maxSnippetChars,
+        Integer daysBack,
+        List<String> siteAllowList,
+        List<String> siteDenyList) {
+    // Compact constructor with defaults
+    public WebSearchRequest {
+        if (maxResults == null)
+            maxResults = 3;
+        if (maxSnippetChars == null)
+            maxSnippetChars = 600;
+        if (daysBack == null)
+            daysBack = 365;
+    }
 
-@Value
-@Builder
-public class WebSearchRequest {
-    @NotBlank
-    @Size(min = 3, max = 300)
-    String query;
+    // Builder pattern for records (Java 16+)
+    public static Builder builder() {
+        return new Builder();
+    }
 
-    @Min(1) @Max(8)
-    Integer maxResults;
+    public static class Builder {
+        private String query;
+        private Integer maxResults;
+        private Integer maxSnippetChars;
+        private Integer daysBack;
+        private List<String> siteAllowList;
+        private List<String> siteDenyList;
 
-    @Min(80) @Max(1500)
-    Integer maxSnippetChars;
+        public Builder query(String query) {
+            this.query = query;
+            return this;
+        }
 
-    // Recency bias; provider maps 'days' to its time filter
-    @Min(1) @Max(3650)
-    Integer daysBack;
+        public Builder maxResults(Integer maxResults) {
+            this.maxResults = maxResults;
+            return this;
+        }
 
-    // Optional host filters; provider may honor as include/exclude_domains
-    List<@NotBlank String> siteAllowList;
-    List<@NotBlank String> siteDenyList;
+        public Builder maxSnippetChars(Integer maxSnippetChars) {
+            this.maxSnippetChars = maxSnippetChars;
+            return this;
+        }
+
+        public Builder daysBack(Integer daysBack) {
+            this.daysBack = daysBack;
+            return this;
+        }
+
+        public Builder siteAllowList(List<String> siteAllowList) {
+            this.siteAllowList = siteAllowList;
+            return this;
+        }
+
+        public Builder siteDenyList(List<String> siteDenyList) {
+            this.siteDenyList = siteDenyList;
+            return this;
+        }
+
+        public WebSearchRequest build() {
+            return new WebSearchRequest(query, maxResults, maxSnippetChars,
+                    daysBack, siteAllowList, siteDenyList);
+        }
+    }
+
+    
 }

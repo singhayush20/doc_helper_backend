@@ -23,18 +23,20 @@ public class WebSearchTool {
             Use for current events, releases, figures, or facts requiring freshness; return concise, citable results.
             """)
     public WebSearchResult search(@Valid WebSearchRequest request) {
-        String q = request.getQuery() == null ? "" : request.getQuery().strip();
+        String q = request.query() == null ? "" : request.query().strip();
         if (q.length() < 3) {
             return WebSearchResult.failure("Query too short", q);
         }
         try {
-            WebSearchResult out = provider.search(request);
+            log.debug("Using web search provider for {}",request);
+            WebSearchResult webSearchResponse = provider.search(request);
+            log.debug("Web search provider returned {} results", webSearchResponse.results() == null ? 0 : webSearchResponse.results().size());
             int maxResults =
-                    request.getMaxResults() != null ? request.getMaxResults() :
+                    request.maxResults() != null ? request.maxResults() :
                             3;
-            int maxChars = request.getMaxSnippetChars() != null ?
-                    request.getMaxSnippetChars() : 600;
-            return out.truncatedTo(maxResults, maxChars);
+            int maxChars = request.maxSnippetChars() != null ?
+                    request.maxSnippetChars() : 600;
+            return webSearchResponse.truncatedTo(maxResults, maxChars);
         } catch (Exception e) {
             log.warn("Web search tool failed: {}", e.getMessage());
             return WebSearchResult.failure(

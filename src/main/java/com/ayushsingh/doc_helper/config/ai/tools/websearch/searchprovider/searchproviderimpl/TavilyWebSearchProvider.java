@@ -32,31 +32,31 @@ public class TavilyWebSearchProvider implements WebSearchProvider {
     private static final Pattern TAGS = Pattern.compile("<[^>]+>");
 
     @Override
-    @Cacheable(cacheNames = "webSearch",
-            key = "#request.query() + '|' + #request.maxResults() + '|' + #request.daysBack() + '|' + T(java.util.Objects).hash(#request.siteAllowList()) + '|' + T(java.util.Objects).hash(#request.siteDenyList())")
+    @Cacheable(cacheNames = "webSearch", key = "#request.query() + '|' + #request.maxResults() + '|' + #request.daysBack() + '|' + T(java.util.Objects).hash(#request.siteAllowList()) + '|' + T(java.util.Objects).hash(#request.siteDenyList())")
     public WebSearchResult search(WebSearchRequest request) {
+        log.debug("Using tavily search tool for request: {}",request);
         TavilyRequest payload = new TavilyRequest(
-                request.getQuery(),
-                false,                       // auto_parameters
-                "general",                   // topic
-                "basic",                     // search_depth
-                3,                           // chunks_per_source
-                coalesce(request.getMaxResults(), props.defaultMaxResults()),
-                null,                        // time_range
-                coalesce(request.getDaysBack(), 365),
-                true,                        // include_answer
-                true,                        // include_raw_content
-                false,                       // include_images
-                false,                       // include_image_descriptions
-                false,                       // include_favicon
-                request.getSiteAllowList(),
-                request.getSiteDenyList(),
-                null                         // country
+                request.query(),
+                false, // auto_parameters
+                "general", // topic
+                "basic", // search_depth
+                3, // chunks_per_source
+                coalesce(request.maxResults(), props.defaultMaxResults()),
+                null, // time_range
+                coalesce(request.daysBack(), 365),
+                true, // include_answer
+                true, // include_raw_content
+                false, // include_images
+                false, // include_image_descriptions
+                false, // include_favicon
+                request.siteAllowList(),
+                request.siteDenyList(),
+                null // country
         );
 
-        TavilyResponse resp;
+        TavilyResponse tavilyResponse;
         try {
-            resp = tavilyClient.post()
+            tavilyResponse = tavilyClient.post()
                     .uri(props.baseUrl())
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + props.apiKey())
                     .contentType(MediaType.APPLICATION_JSON)
@@ -67,51 +67,56 @@ public class TavilyWebSearchProvider implements WebSearchProvider {
                     .retryWhen(Retry.backoff(2, Duration.ofMillis(300))
                             .filter(this::isRetryable))
                     .block();
+        log.debug("Tavily Search Response: {}", tavilyResponse);
         } catch (Exception e) {
             log.warn("Tavily request failed: {}", e.getMessage());
-            return WebSearchResult.failure("Web search error: " + e.getMessage(), request.getQuery());
+            return WebSearchResult.failure("Web search error: " + e.getMessage(), request.query());
         }
 
-        if (resp == null || resp.results() == null || resp.results().isEmpty()) {
-            return WebSearchResult.failure("No results", request.getQuery());
+        if (tavilyResponse == null || tavilyResponse.results() == null || tavilyResponse.results().isEmpty()) {
+            log.debug("No Response in Tavily Search {}", tavilyResponse);
+            return WebSearchResult.failure("No results", request.query());
         }
 
         // Map, normalize, de-duplicate, sort, and clip
-        List<WebSearchItem> items = resp.results().stream()
+        List<WebSearchItem> items = tavilyResponse.results().stream()
                 .filter(Objects::nonNull)
                 .map(it -> WebSearchItem.builder()
                         .title(nz(it.title()))
                         .url(canonical(it.url()))
                         .snippet(clip(stripHtml(nz(it.content())),
-                                coalesce(request.getMaxSnippetChars(), 600)))
+                                coalesce(request.maxSnippetChars(), 600)))
                         .source(host(it.url()))
                         .publishedAt(nz(it.published_date()))
                         .score(it.score())
                         .build())
-                .filter(i -> i.getUrl() != null && !i.getUrl().isBlank())
-                .distinct() // relies on record equals or implement custom de-duplication by URL
-                .sorted(Comparator.comparing(WebSearchItem::getScore,
+                .filter(i -> i.url() != null && !i.url().isBlank())
+                .distinct()
+                .sorted(Comparator.comparing(WebSearchItem::score,
                         Comparator.nullsLast(Double::compareTo)).reversed())
-                .limit(coalesce(request.getMaxResults(), props.defaultMaxResults()))
+                .limit(coalesce(request.maxResults(), props.defaultMaxResults()))
                 .toList();
 
         return WebSearchResult.builder()
                 .success(true)
                 .message("OK")
-                .query(resp.query())
+                .query(tavilyResponse.query())
                 .retrievedAt(Instant.now())
-                .answer(nz(resp.answer()))
-                .requestId(nz(resp.request_id()))
+                .answer(nz(tavilyResponse.answer()))
+                .requestId(nz(tavilyResponse.request_id()))
                 .results(items)
                 .build();
     }
 
     private boolean isRetryable(Throwable t) {
-        // Retry on transient I/O/timeout; WebClient maps many errors to WebClientRequestException
+        // Retry on transient I/O/timeout; WebClient maps many errors to
+        // WebClientRequestException
         return true;
     }
 
-    private static String nz(String s) { return s == null ? "" : s; }
+    private static String nz(String s) {
+        return s == null ? "" : s;
+    }
 
     private static String stripHtml(String s) {
         // Removes simple tags; preserves text for token-friendly snippets
@@ -119,14 +124,17 @@ public class TavilyWebSearchProvider implements WebSearchProvider {
     }
 
     private static String clip(String s, int max) {
-        if (s == null) return "";
-        if (s.length() <= max) return s;
+        if (s == null)
+            return "";
+        if (s.length() <= max)
+            return s;
         return s.substring(0, Math.max(0, max - 1)) + "…";
     }
 
     private static String canonical(String url) {
         try {
-            if (url == null) return null;
+            if (url == null)
+                return null;
             URI u = URI.create(url);
             String host = u.getHost();
             String path = u.getPath() == null ? "" : u.getPath();
@@ -138,8 +146,14 @@ public class TavilyWebSearchProvider implements WebSearchProvider {
     }
 
     private static String host(String url) {
-        try { return URI.create(url).getHost(); } catch (Exception e) { return null; }
+        try {
+            return URI.create(url).getHost();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
-    private static Integer coalesce(Integer v, Integer d) { return v != null ? v : d; }
+    private static Integer coalesce(Integer v, Integer d) {
+        return v != null ? v : d;
+    }
 }
