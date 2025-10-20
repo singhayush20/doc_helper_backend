@@ -11,7 +11,7 @@ public record WebSearchRequest(
     // Compact constructor with defaults
     public WebSearchRequest {
         if (maxResults == null)
-            maxResults = 3;
+            maxResults = 1;
         if (maxSnippetChars == null)
             maxSnippetChars = 600;
         if (daysBack == null)

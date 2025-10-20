@@ -1,6 +1,5 @@
 package com.ayushsingh.doc_helper.config.ai.tools.websearch.dto;
 
-import java.time.Instant;
 import java.util.List;
 
 public record WebSearchResult(
@@ -9,7 +8,6 @@ public record WebSearchResult(
         String query,
         String answer,
         String requestId,
-        Instant retrievedAt,
         List<WebSearchItem> results) {
     public static WebSearchResult failure(String message, String query) {
         return new WebSearchResult(
@@ -18,7 +16,6 @@ public record WebSearchResult(
                 query,
                 "",
                 "",
-                Instant.now(),
                 List.of());
     }
 
@@ -32,7 +29,7 @@ public record WebSearchResult(
                 .toList();
 
         return new WebSearchResult(
-                success, message, query, answer, requestId, retrievedAt, clipped);
+                success, message, query, answer, requestId, clipped);
     }
 
     public static Builder builder() {
@@ -45,7 +42,6 @@ public record WebSearchResult(
         private String query;
         private String answer;
         private String requestId;
-        private Instant retrievedAt;
         private List<WebSearchItem> results;
 
         public Builder success(boolean success) {
@@ -73,18 +69,13 @@ public record WebSearchResult(
             return this;
         }
 
-        public Builder retrievedAt(Instant retrievedAt) {
-            this.retrievedAt = retrievedAt;
-            return this;
-        }
-
         public Builder results(List<WebSearchItem> results) {
             this.results = results;
             return this;
         }
 
         public WebSearchResult build() {
-            return new WebSearchResult(success, message, query, answer, requestId, retrievedAt, results);
+            return new WebSearchResult(success, message, query, answer, requestId, results);
         }
     }
 }

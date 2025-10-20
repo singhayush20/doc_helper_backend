@@ -29,8 +29,19 @@ public class RedisCacheConfig {
                                                 RedisSerializationContext.SerializationPair.fromSerializer(
                                                                 new GenericJackson2JsonRedisSerializer()));
 
-                Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+                RedisCacheConfiguration webSearchConfig = RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofHours(24)) 
+                                .disableCachingNullValues()
+                                .serializeKeysWith(
+                                                RedisSerializationContext.SerializationPair
+                                                                .fromSerializer(new StringRedisSerializer()))
+                                .serializeValuesWith(
+                                                RedisSerializationContext.SerializationPair.fromSerializer(
+                                                                new GenericJackson2JsonRedisSerializer()));
 
+                // Map cache names to configurations
+                Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+                cacheConfigurations.put("webSearch", webSearchConfig);
                 return RedisCacheManager.builder(connectionFactory)
                                 .cacheDefaults(defaultConfig)
                                 .withInitialCacheConfigurations(cacheConfigurations)

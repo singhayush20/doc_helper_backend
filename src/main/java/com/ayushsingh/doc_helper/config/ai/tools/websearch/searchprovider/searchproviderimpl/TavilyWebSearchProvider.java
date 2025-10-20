@@ -101,7 +101,6 @@ public class TavilyWebSearchProvider implements WebSearchProvider {
                 .success(true)
                 .message("OK")
                 .query(tavilyResponse.query())
-                .retrievedAt(Instant.now())
                 .answer(nz(tavilyResponse.answer()))
                 .requestId(nz(tavilyResponse.request_id()))
                 .results(items)
