@@ -23,9 +23,10 @@ public class WebSearchTool {
             Use for current events, releases, figures, or facts requiring freshness; return concise, citable results.
             """)
     public WebSearchResult search(@Valid WebSearchRequest request) {
-        String q = request.query() == null ? "" : request.query().strip();
-        if (q.length() < 3) {
-            return WebSearchResult.failure("Query too short", q);
+        log.debug("Web search tool invoked with request: {}",request);
+        String query = request.query() == null ? "" : request.query().strip();
+        if (query.length() < 3) {
+            return WebSearchResult.failure("Query too short", query);
         }
         try {
             log.debug("Using web search provider for {}",request);
@@ -40,7 +41,7 @@ public class WebSearchTool {
         } catch (Exception e) {
             log.warn("Web search tool failed: {}", e.getMessage());
             return WebSearchResult.failure(
-                    "Web search error: " + e.getMessage(), q);
+                    "Web search error: " + e.getMessage(), query);
         }
     }
 }

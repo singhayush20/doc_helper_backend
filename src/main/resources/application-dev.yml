@@ -74,8 +74,8 @@ web:
   search:
     base-url: ${WEB_SEARCH_BASE_URL}
     api-key: ${WEB_SEARCH_API_KEY}
-    timeout-seconds: 8
-    default-max-results: 3
+    timeout-seconds: 4
+    default-max-results: 2
 
 logging:
   level:

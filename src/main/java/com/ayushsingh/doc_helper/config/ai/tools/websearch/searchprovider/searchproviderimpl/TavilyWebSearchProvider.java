@@ -14,7 +14,6 @@ import reactor.util.retry.Retry;
 
 import java.net.URI;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -67,7 +66,12 @@ public class TavilyWebSearchProvider implements WebSearchProvider {
                     .retryWhen(Retry.backoff(2, Duration.ofMillis(300))
                             .filter(this::isRetryable))
                     .block();
-        log.debug("Tavily Search Response: {}", tavilyResponse);
+        if(tavilyResponse.results() != null ) {
+            log.debug("Tavily Search Response results length: {}", tavilyResponse.results().size());
+        }
+        else {
+            log.debug("Tavily Search Response results is null");
+        }
         } catch (Exception e) {
             log.warn("Tavily request failed: {}", e.getMessage());
             return WebSearchResult.failure("Web search error: " + e.getMessage(), request.query());
