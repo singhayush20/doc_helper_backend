@@ -17,6 +17,7 @@ import com.ayushsingh.doc_helper.features.chat.repository.ChatMessageRepository;
 import com.ayushsingh.doc_helper.features.chat.repository.ChatThreadRepository;
 import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,245 +47,253 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ChatServiceImpl implements ChatService {
 
+        private final ChatClient.Builder chatClientBuilder;
+        private final VectorStore vectorStore;
+        private final ChatThreadRepository chatThreadRepository;
+        private final ChatMessageRepository chatMessageRepository;
+        private final UserDocRepository userDocRepository;
+        private final MongoTemplate mongoTemplate;
+        private final LoggingAdvisor loggingAdvisor;
+        private final WebSearchTool webSearchTool;
+        private final TokenUsageService tokenUsageService;
+        private final static Long DEFAULT_TOKEN_THRESHOLD = 5000L;
 
-    private final ChatClient.Builder chatClientBuilder;
-    private final VectorStore vectorStore;
-    private final ChatThreadRepository chatThreadRepository;
-    private final ChatMessageRepository chatMessageRepository;
-    private final UserDocRepository userDocRepository;
-    private final MongoTemplate mongoTemplate;
-    private final LoggingAdvisor loggingAdvisor;
-    private final WebSearchTool webSearchTool;
+        @Override
+        public Flux<String> generateStreamingResponse(ChatRequest chatRequest) {
+                log.debug("Generating streaming response for documentId: {}",
+                                chatRequest.documentId());
 
-    @Override
-    public Flux<String> generateStreamingResponse(ChatRequest chatRequest) {
-        log.debug("Generating streaming response for documentId: {}",
-                chatRequest.documentId());
+                Long userId = UserContext.getCurrentUser().getUser().getId();
 
-        // Prepare common context
-        ChatContext context = prepareChatContext(chatRequest);
+                tokenUsageService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
 
-        // Save user message
-        saveUserMessage(context.chatThread(), chatRequest.question());
+                // Prepare common context
+                ChatContext context = prepareChatContext(chatRequest);
 
-        // Build and execute streaming request
-        StringBuilder fullResponse = new StringBuilder();
+                // Save user message
+                saveUserMessage(context.chatThread(), chatRequest.question());
 
-        return buildChatClientSpec(context, false).stream()
-                .content()
-                .doOnNext(fullResponse::append)
-                .doOnError(error -> log.error(
-                        "Error during streaming response for documentId: {}",
-                        chatRequest.documentId(), error))
-                .doFinally(signalType -> {
-                    if (signalType == SignalType.ON_COMPLETE &&
-                        !fullResponse.isEmpty()) {
-                        saveAssistantMessage(context.chatThread(),
-                                fullResponse.toString());
-                        log.info(
-                                "Streaming response completed for threadId: {}",
+                // Build and execute streaming request
+                StringBuilder fullResponse = new StringBuilder();
+
+                return buildChatClientSpec(context, false).stream()
+                                .content()
+                                .doOnNext(fullResponse::append)
+                                .doOnError(error -> log.error(
+                                                "Error during streaming response for documentId: {}",
+                                                chatRequest.documentId(), error))
+                                .doFinally(signalType -> {
+                                        if (signalType == SignalType.ON_COMPLETE &&
+                                                        !fullResponse.isEmpty()) {
+                                                saveAssistantMessage(context.chatThread(),
+                                                                fullResponse.toString());
+                                                log.info(
+                                                                "Streaming response completed for threadId: {}",
+                                                                context.chatThread().getId());
+                                        }
+                                });
+        }
+
+        @Override
+        public ChatCallResponse generateResponse(ChatRequest chatRequest,
+                        Boolean webSearch) {
+                Long userId = UserContext.getCurrentUser().getUser().getId();
+
+                tokenUsageService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
+
+                log.debug("Generating non-streaming response for documentId: {}",
+                                chatRequest.documentId());
+
+                ChatContext context = prepareChatContext(chatRequest);
+
+                saveUserMessage(context.chatThread(), chatRequest.question());
+
+                String responseContent = buildChatClientSpec(context, webSearch).call()
+                                .content();
+
+                saveAssistantMessage(context.chatThread(), responseContent);
+
+                log.debug("Non-streaming response completed for threadId: {}",
                                 context.chatThread().getId());
-                    }
-                });
-    }
-
-    @Override
-    public ChatCallResponse generateResponse(ChatRequest chatRequest,
-            Boolean webSearch) {
-        log.debug("Generating non-streaming response for documentId: {}",
-                chatRequest.documentId());
-
-        ChatContext context = prepareChatContext(chatRequest);
-
-        saveUserMessage(context.chatThread(), chatRequest.question());
-
-        String responseContent = buildChatClientSpec(context, webSearch).call()
-                .content();
-
-        saveAssistantMessage(context.chatThread(), responseContent);
-
-        log.debug("Non-streaming response completed for threadId: {}",
-                context.chatThread().getId());
-        // TODO: Implement structured output and tool-calling using optional
-        // web search
-        return ChatCallResponse.builder().response(responseContent).build();
-    }
-
-    private ChatContext prepareChatContext(ChatRequest chatRequest) {
-        Long documentId = chatRequest.documentId();
-        String userQuestion = chatRequest.question();
-
-        validateDocumentExists(documentId);
-
-        Long userId = UserContext.getCurrentUser().getUser().getId();
-
-        ChatThread chatThread = getOrCreateChatThread(documentId, userId);
-
-        String ragContext = retrieveRagContext(documentId, userId,
-                userQuestion);
-
-        String historyContext = retrieveHistoryContext(chatThread.getId());
-
-        String finalPrompt = PromptTemplates.RAG_PROMPT_TEMPLATE.replace(
-                "{context}",
-                ragContext).replace("{chatHistory}", historyContext);
-
-        SystemMessage systemMessage = new SystemMessage(finalPrompt);
-        UserMessage userMessage = new UserMessage(userQuestion);
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
-
-        return new ChatContext(documentId, userId, chatThread, prompt,
-                ragContext, historyContext);
-    }
-
-    private ChatClient.ChatClientRequestSpec buildChatClientSpec(
-            ChatContext context, Boolean webSearchEnabled) {
-        ChatClient chatClient = chatClientBuilder.build();
-
-        var chatClientSpec = chatClient.prompt(context.prompt())
-                .advisors(spec -> spec.param("documentId", context.documentId())
-                        .param("userId", context.userId())
-                        .param("threadId", context.chatThread().getId()))
-                .advisors(loggingAdvisor);
-
-        if (webSearchEnabled) {
-            chatClientSpec.tools(webSearchTool);
-        }
-        return chatClientSpec;
-    }
-
-    private void validateDocumentExists(Long documentId) {
-        if (!userDocRepository.existsById(documentId)) {
-            log.error("Document not found for documentId: {}", documentId);
-            throw new BaseException(
-                    "Document not found for documentId: " + documentId,
-                    ExceptionCodes.DOCUMENT_NOT_FOUND);
-        }
-    }
-
-    private String retrieveRagContext(Long documentId, Long userId,
-            String userQuestion) {
-        log.debug("Retrieving RAG context for documentId: {} and userId: {}",
-                documentId, userId);
-        SearchRequest request = SearchRequest.builder()
-                .query(userQuestion)
-                .topK(4)
-                .filterExpression("userId == " + userId + " && documentId == " +
-                                  documentId)
-                .build();
-
-        List<Document> similarDocs = vectorStore.similaritySearch(request);
-
-        if (similarDocs != null && !similarDocs.isEmpty()) {
-            return similarDocs.stream()
-                    .map(Document::getFormattedContent)
-                    .collect(Collectors.joining("\n---\n"));
-        } else {
-            return "";
-        }
-    }
-
-    private String retrieveHistoryContext(String threadId) {
-        log.debug("Retrieving history context for threadId: {}", threadId);
-        PageRequest pageRequest = PageRequest.of(0, 10,
-                Sort.by(Sort.Direction.DESC, "timestamp"));
-        List<ChatMessage> recentMessages = chatMessageRepository.findByThreadId(
-                threadId, pageRequest);
-
-        return recentMessages.stream()
-                .map(msg -> msg.getRole().getValue() + ": " + msg.getContent())
-                .collect(Collectors.joining("\n"));
-    }
-
-    private void saveUserMessage(ChatThread thread, String userQuestion) {
-        log.debug("Saving user message for threadId: {}", thread.getId());
-        ChatMessage userMessage = new ChatMessage();
-        userMessage.setThreadId(thread.getId());
-        userMessage.setRole(MessageRole.USER);
-        userMessage.setContent(userQuestion);
-        userMessage.setTimestamp(Instant.now());
-        chatMessageRepository.save(userMessage);
-
-        thread.setLastMessageSnippet(userQuestion.length() > 50 ?
-                userQuestion.substring(0, 50) + "..." : userQuestion);
-        chatThreadRepository.save(thread);
-    }
-
-    private void saveAssistantMessage(ChatThread thread, String aiResponse) {
-        log.debug("Saving assistant message for threadId: {}", thread.getId());
-        ChatMessage assistantMessage = new ChatMessage();
-        assistantMessage.setThreadId(thread.getId());
-        assistantMessage.setRole(MessageRole.ASSISTANT);
-        assistantMessage.setContent(aiResponse);
-        assistantMessage.setTimestamp(Instant.now());
-        chatMessageRepository.save(assistantMessage);
-    }
-
-    @Override
-    public ChatHistoryResponse fetchChatHistoryForDocument(Long documentId,
-            Integer page) {
-        Long userId = UserContext.getCurrentUser().getUser().getId();
-        var chatThread = chatThreadRepository.findByDocumentIdAndUserId(
-                documentId, userId);
-        if (chatThread.isPresent()) {
-            PageRequest pageRequest = PageRequest.of(page, 10,
-                    Sort.by(Sort.Direction.DESC, "timestamp"));
-            List<ChatMessage> recentMessages = chatMessageRepository.findByThreadId(
-                    chatThread.get().getId(), pageRequest);
-
-            List<ChatMessageResponse> messageResponses = recentMessages.stream()
-                    .map(msg -> new ChatMessageResponse(msg.getId(),
-                            msg.getContent(), msg.getRole(),
-                            msg.getTimestamp()))
-                    .collect(Collectors.toList());
-
-            String threadId = recentMessages.isEmpty() ? null :
-                    recentMessages.getFirst().getThreadId();
-
-            return new ChatHistoryResponse(threadId, messageResponses);
-        } else {
-            return new ChatHistoryResponse();
-        }
-    }
-
-    @Override
-    public Boolean deleteChatHistoryForDocument(Long documentId) {
-        var query = new Query();
-        var userId = UserContext.getCurrentUser().getUser().getId();
-        var chatThread = chatThreadRepository.findByDocumentIdAndUserId(
-                documentId, userId);
-        query.addCriteria(Criteria.where("documentId")
-                .is(documentId)
-                .and("userId")
-                .is(userId));
-
-        var result = mongoTemplate.remove(query, ChatThread.class);
-
-        if (result.getDeletedCount() > 0) {
-            if (chatThread.isPresent()) {
-                var threadQuery = new Query();
-                threadQuery.addCriteria(Criteria.where("threadId")
-                        .is(chatThread.get().getId()));
-                mongoTemplate.remove(threadQuery, ChatMessage.class);
-            }
+                // TODO: Implement structured output and tool-calling using optional
+                // web search
+                return ChatCallResponse.builder().response(responseContent).build();
         }
 
-        return true;
-    }
+        private ChatContext prepareChatContext(ChatRequest chatRequest) {
+                Long documentId = chatRequest.documentId();
+                String userQuestion = chatRequest.question();
 
-    private ChatThread getOrCreateChatThread(Long documentId, Long userId) {
-        log.debug("Getting or creating chat thread for documentId: {}",
-                documentId);
-        Query query = new Query(Criteria.where("documentId")
-                .is(documentId)
-                .and("userId")
-                .is(userId));
-        Update update = new Update().setOnInsert("documentId", documentId)
-                .setOnInsert("userId", userId)
-                .setOnInsert("createdAt", Instant.now())
-                .set("updatedAt", Instant.now());
+                validateDocumentExists(documentId);
 
-        mongoTemplate.upsert(query, update, ChatThread.class);
-        return mongoTemplate.findOne(query, ChatThread.class);
-    }
+                Long userId = UserContext.getCurrentUser().getUser().getId();
+
+                ChatThread chatThread = getOrCreateChatThread(documentId, userId);
+
+                String ragContext = retrieveRagContext(documentId, userId,
+                                userQuestion);
+
+                String historyContext = retrieveHistoryContext(chatThread.getId());
+
+                String finalPrompt = PromptTemplates.RAG_PROMPT_TEMPLATE.replace(
+                                "{context}",
+                                ragContext).replace("{chatHistory}", historyContext);
+
+                SystemMessage systemMessage = new SystemMessage(finalPrompt);
+                UserMessage userMessage = new UserMessage(userQuestion);
+                Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
+
+                return new ChatContext(documentId, userId, chatThread, prompt,
+                                ragContext, historyContext);
+        }
+
+        private ChatClient.ChatClientRequestSpec buildChatClientSpec(
+                        ChatContext context, Boolean webSearchEnabled) {
+                ChatClient chatClient = chatClientBuilder.build();
+
+                var chatClientSpec = chatClient.prompt(context.prompt())
+                                .advisors(spec -> spec.param("documentId", context.documentId())
+                                                .param("userId", context.userId())
+                                                .param("threadId", context.chatThread().getId()))
+                                .advisors(loggingAdvisor);
+
+                if (webSearchEnabled) {
+                        chatClientSpec.tools(webSearchTool);
+                }
+                return chatClientSpec;
+        }
+
+        private void validateDocumentExists(Long documentId) {
+                if (!userDocRepository.existsById(documentId)) {
+                        log.error("Document not found for documentId: {}", documentId);
+                        throw new BaseException(
+                                        "Document not found for documentId: " + documentId,
+                                        ExceptionCodes.DOCUMENT_NOT_FOUND);
+                }
+        }
+
+        private String retrieveRagContext(Long documentId, Long userId,
+                        String userQuestion) {
+                log.debug("Retrieving RAG context for documentId: {} and userId: {}",
+                                documentId, userId);
+                SearchRequest request = SearchRequest.builder()
+                                .query(userQuestion)
+                                .topK(4)
+                                .filterExpression("userId == " + userId + " && documentId == " +
+                                                documentId)
+                                .build();
+
+                List<Document> similarDocs = vectorStore.similaritySearch(request);
+
+                if (similarDocs != null && !similarDocs.isEmpty()) {
+                        return similarDocs.stream()
+                                        .map(Document::getFormattedContent)
+                                        .collect(Collectors.joining("\n---\n"));
+                } else {
+                        return "";
+                }
+        }
+
+        private String retrieveHistoryContext(String threadId) {
+                log.debug("Retrieving history context for threadId: {}", threadId);
+                PageRequest pageRequest = PageRequest.of(0, 10,
+                                Sort.by(Sort.Direction.DESC, "timestamp"));
+                List<ChatMessage> recentMessages = chatMessageRepository.findByThreadId(
+                                threadId, pageRequest);
+
+                return recentMessages.stream()
+                                .map(msg -> msg.getRole().getValue() + ": " + msg.getContent())
+                                .collect(Collectors.joining("\n"));
+        }
+
+        private void saveUserMessage(ChatThread thread, String userQuestion) {
+                log.debug("Saving user message for threadId: {}", thread.getId());
+                ChatMessage userMessage = new ChatMessage();
+                userMessage.setThreadId(thread.getId());
+                userMessage.setRole(MessageRole.USER);
+                userMessage.setContent(userQuestion);
+                userMessage.setTimestamp(Instant.now());
+                chatMessageRepository.save(userMessage);
+
+                thread.setLastMessageSnippet(
+                                userQuestion.length() > 50 ? userQuestion.substring(0, 50) + "..." : userQuestion);
+                chatThreadRepository.save(thread);
+        }
+
+        private void saveAssistantMessage(ChatThread thread, String aiResponse) {
+                log.debug("Saving assistant message for threadId: {}", thread.getId());
+                ChatMessage assistantMessage = new ChatMessage();
+                assistantMessage.setThreadId(thread.getId());
+                assistantMessage.setRole(MessageRole.ASSISTANT);
+                assistantMessage.setContent(aiResponse);
+                assistantMessage.setTimestamp(Instant.now());
+                chatMessageRepository.save(assistantMessage);
+        }
+
+        @Override
+        public ChatHistoryResponse fetchChatHistoryForDocument(Long documentId,
+                        Integer page) {
+                Long userId = UserContext.getCurrentUser().getUser().getId();
+                var chatThread = chatThreadRepository.findByDocumentIdAndUserId(
+                                documentId, userId);
+                if (chatThread.isPresent()) {
+                        PageRequest pageRequest = PageRequest.of(page, 10,
+                                        Sort.by(Sort.Direction.DESC, "timestamp"));
+                        List<ChatMessage> recentMessages = chatMessageRepository.findByThreadId(
+                                        chatThread.get().getId(), pageRequest);
+
+                        List<ChatMessageResponse> messageResponses = recentMessages.stream()
+                                        .map(msg -> new ChatMessageResponse(msg.getId(),
+                                                        msg.getContent(), msg.getRole(),
+                                                        msg.getTimestamp()))
+                                        .collect(Collectors.toList());
+
+                        String threadId = recentMessages.isEmpty() ? null : recentMessages.getFirst().getThreadId();
+
+                        return new ChatHistoryResponse(threadId, messageResponses);
+                } else {
+                        return new ChatHistoryResponse();
+                }
+        }
+
+        @Override
+        public Boolean deleteChatHistoryForDocument(Long documentId) {
+                var query = new Query();
+                var userId = UserContext.getCurrentUser().getUser().getId();
+                var chatThread = chatThreadRepository.findByDocumentIdAndUserId(
+                                documentId, userId);
+                query.addCriteria(Criteria.where("documentId")
+                                .is(documentId)
+                                .and("userId")
+                                .is(userId));
+
+                var result = mongoTemplate.remove(query, ChatThread.class);
+
+                if (result.getDeletedCount() > 0) {
+                        if (chatThread.isPresent()) {
+                                var threadQuery = new Query();
+                                threadQuery.addCriteria(Criteria.where("threadId")
+                                                .is(chatThread.get().getId()));
+                                mongoTemplate.remove(threadQuery, ChatMessage.class);
+                        }
+                }
+
+                return true;
+        }
+
+        private ChatThread getOrCreateChatThread(Long documentId, Long userId) {
+                log.debug("Getting or creating chat thread for documentId: {}",
+                                documentId);
+                Query query = new Query(Criteria.where("documentId")
+                                .is(documentId)
+                                .and("userId")
+                                .is(userId));
+                Update update = new Update().setOnInsert("documentId", documentId)
+                                .setOnInsert("userId", userId)
+                                .setOnInsert("createdAt", Instant.now())
+                                .set("updatedAt", Instant.now());
+
+                mongoTemplate.upsert(query, update, ChatThread.class);
+                return mongoTemplate.findOne(query, ChatThread.class);
+        }
 }
