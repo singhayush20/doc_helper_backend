@@ -17,12 +17,14 @@ import org.springframework.validation.annotation.Validated;
 public class WebSearchTool {
 
     private final WebSearchProvider provider;
+    private final WebSearchConfig webSearchConfig;
 
     @Tool(name = "web_search", description = """
             Search the public web for recent or external information not present in the document.
             Use for current events, releases, figures, or facts requiring freshness; return concise, citable results.
             """)
     public WebSearchResult search(@Valid WebSearchRequest request) {
+        // TODO: Check the request object to limit large max-results or max-chars in request by LLM
         log.debug("Web search tool invoked with request: {}",request);
         String query = request.query() == null ? "" : request.query().strip();
         if (query.length() < 3) {
@@ -34,7 +36,7 @@ public class WebSearchTool {
             log.debug("Web search provider returned {} results", webSearchResponse.results() == null ? 0 : webSearchResponse.results().size());
             int maxResults =
                     request.maxResults() != null ? request.maxResults() :
-                            3;
+                            webSearchConfig.defaultMaxResults();
             int maxChars = request.maxSnippetChars() != null ?
                     request.maxSnippetChars() : 600;
             return webSearchResponse.truncatedTo(maxResults, maxChars);

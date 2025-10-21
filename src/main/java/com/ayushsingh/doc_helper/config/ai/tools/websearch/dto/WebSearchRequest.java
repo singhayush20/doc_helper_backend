@@ -10,10 +10,6 @@ public record WebSearchRequest(
         List<String> siteDenyList) {
     // Compact constructor with defaults
     public WebSearchRequest {
-        if (maxResults == null)
-            maxResults = 1;
-        if (maxSnippetChars == null)
-            maxSnippetChars = 600;
         if (daysBack == null)
             daysBack = 365;
     }
