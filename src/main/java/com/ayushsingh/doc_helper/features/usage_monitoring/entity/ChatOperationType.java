@@ -4,4 +4,5 @@ public enum ChatOperationType {
     CHAT_CALL,
     CHAT_STREAM,
     EMBEDDING_GENERATION,
+    TOOL_CALL
 }

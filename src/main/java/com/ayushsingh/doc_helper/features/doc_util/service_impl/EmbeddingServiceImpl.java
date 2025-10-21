@@ -7,6 +7,7 @@ import com.ayushsingh.doc_helper.features.usage_monitoring.service.EmbeddingUsag
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
