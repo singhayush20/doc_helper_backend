@@ -32,7 +32,7 @@ public class ChatController {
 
     @PostMapping(path = "/doc-question")
     public ResponseEntity<ChatCallResponse> getCallResponse(
-            @RequestParam(name = "web_search", defaultValue = "false") Boolean webSearch,
+            @RequestParam(name = "webSearch", defaultValue = "false") Boolean webSearch,
             @RequestBody ChatRequest request) {
         return ResponseEntity.ok(chatService.generateResponse(request, webSearch));
     }

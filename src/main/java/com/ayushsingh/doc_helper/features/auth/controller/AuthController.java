@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationRequestDto;
-import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationResponseDto;
+import com.ayushsingh.doc_helper.features.auth.dto.VerificationResponseDto;
 import com.ayushsingh.doc_helper.features.auth.dto.PasswordResetRequestDto;
 import com.ayushsingh.doc_helper.features.auth.service.AuthService;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
@@ -36,7 +36,7 @@ public class AuthController {
     }
 
     @PostMapping("/email/verify-otp")
-    public ResponseEntity<EmailVerificationResponseDto> verifyEmailOtp(
+    public ResponseEntity<VerificationResponseDto> verifyEmailOtp(
             @RequestBody EmailVerificationRequestDto emailDto) {
         var response = authService.verifyEmailOtp(emailDto);
         return ResponseEntity.ok(response);
@@ -49,7 +49,7 @@ public class AuthController {
     }
 
     @PostMapping("/password/reset")
-    public ResponseEntity<EmailVerificationResponseDto> resetPassword(
+    public ResponseEntity<VerificationResponseDto> resetPassword(
             @RequestBody PasswordResetRequestDto passwordDto) {
         var response = authService.resetPassword(passwordDto);
         return ResponseEntity.ok(response);

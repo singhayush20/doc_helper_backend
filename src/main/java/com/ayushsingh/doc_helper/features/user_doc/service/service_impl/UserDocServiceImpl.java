@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.doc_util.DocService;
+import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
@@ -73,17 +74,17 @@ public class UserDocServiceImpl implements UserDocService {
 
     @Override
     @Transactional
-    public Boolean deleteDocument(Long documentId) {
+    public FileDeletionVerificationResponse deleteDocument(Long documentId) {
         final var authUser = UserContext.getCurrentUser();
         final var sourcePath = userDocRepository.findFileNameById(documentId);
         final var affectedRows = userDocRepository.deleteDocument(documentId,
                 authUser.getUser().getId());
-        if(affectedRows!=0) {
+        if (affectedRows != 0) {
             chatService.deleteChatHistoryForDocument(documentId);
             embeddingService.deleteEmbeddingsByDocumentId(documentId);
             sourcePath.ifPresent(docService::deleteFile);
         }
 
-        return affectedRows>0;
+        return new FileDeletionVerificationResponse(affectedRows != 0);
     }
 }

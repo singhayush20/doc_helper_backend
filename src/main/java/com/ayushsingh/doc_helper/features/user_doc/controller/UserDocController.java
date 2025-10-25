@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
 import com.ayushsingh.doc_helper.features.user_doc.entity.SortField;
 import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
@@ -53,10 +54,10 @@ public class UserDocController {
     }
 
     @DeleteMapping("/{documentId}")
-    public ResponseEntity<Map<String,Boolean>> deleteDocument(
+    public ResponseEntity<FileDeletionVerificationResponse> deleteDocument(
             @PathVariable Long documentId
     ) {
-        var isDeleted = userDocService.deleteDocument(documentId);
-        return ResponseEntity.ok(Map.of("isDeleted", isDeleted));
+        var deletionResponse = userDocService.deleteDocument(documentId);
+        return ResponseEntity.ok(deletionResponse);
     }
 }

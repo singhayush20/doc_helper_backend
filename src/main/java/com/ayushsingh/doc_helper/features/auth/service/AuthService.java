@@ -1,6 +1,6 @@
 package com.ayushsingh.doc_helper.features.auth.service;
 
-import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationResponseDto;
+import com.ayushsingh.doc_helper.features.auth.dto.VerificationResponseDto;
 import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationRequestDto;
 import com.ayushsingh.doc_helper.features.auth.dto.PasswordResetRequestDto;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
@@ -11,9 +11,9 @@ public interface AuthService {
 
     void sendEmailVerificationOtp(EmailVerificationRequestDto emailDto);
 
-    EmailVerificationResponseDto verifyEmailOtp(EmailVerificationRequestDto emailDto);
+    VerificationResponseDto verifyEmailOtp(EmailVerificationRequestDto emailDto);
 
     void sendPasswordResetOtp(EmailVerificationRequestDto emailDto);
 
-    EmailVerificationResponseDto resetPassword(PasswordResetRequestDto emailDto);
+    VerificationResponseDto resetPassword(PasswordResetRequestDto emailDto);
 }

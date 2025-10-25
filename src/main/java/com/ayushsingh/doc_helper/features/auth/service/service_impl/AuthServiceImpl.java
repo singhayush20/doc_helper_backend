@@ -11,7 +11,7 @@ import com.ayushsingh.doc_helper.commons.email_handling.EmailService;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationRequestDto;
-import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationResponseDto;
+import com.ayushsingh.doc_helper.features.auth.dto.VerificationResponseDto;
 import com.ayushsingh.doc_helper.features.auth.dto.PasswordResetRequestDto;
 import com.ayushsingh.doc_helper.features.auth.service.AuthService;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
@@ -92,7 +92,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public EmailVerificationResponseDto verifyEmailOtp(EmailVerificationRequestDto emailDto) {
+    public VerificationResponseDto verifyEmailOtp(EmailVerificationRequestDto emailDto) {
         final var email = emailDto.getEmail();
         final String otp = emailDto.getOtp();
         String key = "otp:" + email;
@@ -103,7 +103,7 @@ public class AuthServiceImpl implements AuthService {
 
             var isUpdated = userService.updateUserVerifiedStatus(email, true);
 
-            return new EmailVerificationResponseDto(isUpdated, email);
+            return new VerificationResponseDto(isUpdated, email);
         } else {
             throw new BaseException("Invalid or expired OTP", ExceptionCodes.INVALID_OTP);
         }
@@ -136,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public EmailVerificationResponseDto resetPassword(PasswordResetRequestDto emailDto) {
+    public VerificationResponseDto resetPassword(PasswordResetRequestDto emailDto) {
         final var email = emailDto.getEmail();
         final String otp = emailDto.getOtp();
         final String newPassword = emailDto.getNewPassword();
@@ -155,7 +155,7 @@ public class AuthServiceImpl implements AuthService {
 
                     redisTemplate.delete(key);
 
-                    return new EmailVerificationResponseDto(true, email);
+                    return new VerificationResponseDto(true, email);
                 } else {
                     throw new BaseException("Failed to update password: " + email,
                             ExceptionCodes.PASSWORD_UPDATION_EXCEPTION);
