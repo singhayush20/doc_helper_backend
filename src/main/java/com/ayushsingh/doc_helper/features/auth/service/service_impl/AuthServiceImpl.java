@@ -4,12 +4,12 @@ import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.ayushsingh.doc_helper.commons.email_handling.EmailService;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.commons.utility.EmailUtils;
 import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationRequestDto;
 import com.ayushsingh.doc_helper.features.auth.dto.VerificationResponseDto;
 import com.ayushsingh.doc_helper.features.auth.dto.PasswordResetRequestDto;
@@ -46,10 +46,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public UserDetailsDto signUp(UserCreateDto userCreateDto) {
-
-        if (!userService.existsByEmail(userCreateDto.getEmail())) {
+        String normalizedEmail = EmailUtils.normalizeAndValidateEmail(userCreateDto.getEmail());
+        
+        if (!userService.existsByEmail(normalizedEmail)) {
             var createRequest = new UserRecord.CreateRequest()
-                    .setEmail(userCreateDto.getEmail())
+                    .setEmail(normalizedEmail)
                     .setPassword(userCreateDto.getPassword())
                     .setDisplayName(userCreateDto.getFirstName() + " " + userCreateDto.getLastName());
             try {
@@ -62,18 +63,20 @@ public class AuthServiceImpl implements AuthService {
                         ExceptionCodes.FIREBASE_AUTH_EXCEPTION);
             }
         }
-        throw new BaseException("User already exists with email: " + userCreateDto.getEmail(),
+        throw new BaseException("User already exists with email: " + normalizedEmail,
                 ExceptionCodes.DUPLICATE_USER_FOUND);
     }
 
     @Override
     public void sendEmailVerificationOtp(EmailVerificationRequestDto emailDto) {
-        if(!userService.existsByEmail(emailDto.getEmail())) {
-            throw new BaseException("User not found with email: " + emailDto.getEmail(),
+        String normalizedEmail = EmailUtils.normalizeAndValidateEmail(emailDto.getEmail());
+        
+        if(!userService.existsByEmail(normalizedEmail)) {
+            throw new BaseException("User not found with email: " + normalizedEmail,
                     ExceptionCodes.USER_NOT_FOUND);
         }
 
-        final var email = emailDto.getEmail();
+        final var email = normalizedEmail;
         var otp = String.format("%06d", secureRandom.nextInt(1_000_000));
 
         var key = "otp:" + email;
@@ -97,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public VerificationResponseDto verifyEmailOtp(EmailVerificationRequestDto emailDto) {
-        final var email = emailDto.getEmail();
+        final var email = EmailUtils.normalizeAndValidateEmail(emailDto.getEmail());
         final String otp = emailDto.getOtp();
         String key = "otp:" + email;
         String storedOtp = redisTemplate.opsForValue().get(key);
@@ -115,10 +118,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendPasswordResetOtp(EmailVerificationRequestDto emailDto) {
-        final var email = emailDto.getEmail();
+        final var email = EmailUtils.normalizeAndValidateEmail(emailDto.getEmail());
 
         if (!userService.existsByEmail(email)) {
-            throw new BaseException("User not found with email: " + emailDto.getEmail(),
+            throw new BaseException("User not found with email: " + email,
                     ExceptionCodes.USER_NOT_FOUND);
         }
 
@@ -146,7 +149,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public VerificationResponseDto resetPassword(PasswordResetRequestDto emailDto) {
-        final var email = emailDto.getEmail();
+        final var email = EmailUtils.normalizeAndValidateEmail(emailDto.getEmail());
         final String otp = emailDto.getOtp();
         final String newPassword = emailDto.getNewPassword();
         String key = "otp:reset:" + email;

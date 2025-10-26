@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.commons.utility.EmailUtils;
 import com.ayushsingh.doc_helper.features.user.domain.Role;
 import com.ayushsingh.doc_helper.features.user.domain.RoleTypes;
 import com.ayushsingh.doc_helper.features.user.domain.User;
@@ -60,7 +61,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = new User();
-        user.setEmail(userCreateDto.getEmail());
+        user.setEmail(EmailUtils.normalizeAndValidateEmail(userCreateDto.getEmail()));
         user.setFirstName(userCreateDto.getFirstName());
         user.setLastName(userCreateDto.getLastName());
         user.setFirebaseUid(firebaseUid);
@@ -83,20 +84,23 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @Override
     public Boolean updateUserVerifiedStatus(String email, Boolean isVerified) {
-        userRepository.updateUserVerifiedStatus(email,isVerified);
+        String normalizedEmail = EmailUtils.normalizeAndValidateEmail(email);
+        userRepository.updateUserVerifiedStatus(normalizedEmail, isVerified);
         return true;
     }
 
     @Transactional
     @Override
     public Boolean updateUserPassword(String email, String newPassword) {
-        userRepository.updateUserPassword(email,passwordEncoder.encode(newPassword));
+        String normalizedEmail = EmailUtils.normalizeAndValidateEmail(email);
+        userRepository.updateUserPassword(normalizedEmail, passwordEncoder.encode(newPassword));
         return true;
     }
 
     @Override
     public Boolean existsByEmail(String email) {
-        return this.userRepository.existsByEmail(email);
+        String normalizedEmail = EmailUtils.normalizeAndValidateEmail(email);
+        return this.userRepository.existsByEmail(normalizedEmail);
     }
 
 }
