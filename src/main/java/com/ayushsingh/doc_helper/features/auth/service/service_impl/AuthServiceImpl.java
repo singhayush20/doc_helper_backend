@@ -66,9 +66,13 @@ public class AuthServiceImpl implements AuthService {
                 ExceptionCodes.DUPLICATE_USER_FOUND);
     }
 
-    @Async
     @Override
     public void sendEmailVerificationOtp(EmailVerificationRequestDto emailDto) {
+        if(!userService.existsByEmail(emailDto.getEmail())) {
+            throw new BaseException("User not found with email: " + emailDto.getEmail(),
+                    ExceptionCodes.USER_NOT_FOUND);
+        }
+
         final var email = emailDto.getEmail();
         var otp = String.format("%06d", secureRandom.nextInt(1_000_000));
 
@@ -110,9 +114,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Async
     public void sendPasswordResetOtp(EmailVerificationRequestDto emailDto) {
         final var email = emailDto.getEmail();
+
+        if (!userService.existsByEmail(email)) {
+            throw new BaseException("User not found with email: " + emailDto.getEmail(),
+                    ExceptionCodes.USER_NOT_FOUND);
+        }
+
         var otp = String.format("%06d", secureRandom.nextInt(1_000_000));
 
         var key = "otp:reset:" + email;

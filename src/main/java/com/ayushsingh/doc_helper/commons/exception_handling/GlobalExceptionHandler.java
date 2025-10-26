@@ -4,6 +4,7 @@ import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseExcep
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -13,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GlobalExceptionHandler {
 
-        private ResponseEntity<ErrorResponse> buildResponse(RuntimeException e,
+        private ResponseEntity<ErrorResponse> buildResponse(Exception e,
                         HttpStatus status) {
 
                 log.error("Exception caught: {}", e.getMessage(), e);
@@ -30,6 +31,22 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(BaseException.class)
         public ResponseEntity<ErrorResponse> handleBaseException(BaseException e) {
                 return buildResponse(e, getHttpStatus(e));
+        }
+
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<ErrorResponse> handleValidationException(
+                        MethodArgumentNotValidException e) {
+                StringBuilder message = new StringBuilder();
+                e.getBindingResult().getFieldErrors().forEach(error -> 
+                    message.append(error.getField())
+                          .append(": ")
+                          .append(error.getDefaultMessage())
+                          .append("; ")
+                );
+                return new ResponseEntity<>(
+                    new ErrorResponse("VALIDATION_ERROR", message.toString().trim()),
+                    HttpStatus.BAD_REQUEST
+                );
         }
 
         private HttpStatus getHttpStatus(BaseException e) {

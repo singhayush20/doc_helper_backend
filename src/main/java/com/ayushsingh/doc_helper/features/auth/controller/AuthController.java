@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
 
 import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationRequestDto;
 import com.ayushsingh.doc_helper.features.auth.dto.VerificationResponseDto;
@@ -43,7 +44,7 @@ public class AuthController {
     }
 
     @PostMapping("/password/otp")
-    public ResponseEntity<Void> postMethodName(@RequestBody EmailVerificationRequestDto emailDto) {
+    public ResponseEntity<Void> sendPasswordResetOtp(@Valid @RequestBody EmailVerificationRequestDto emailDto) {
         authService.sendPasswordResetOtp(emailDto);
         return ResponseEntity.ok().build();
     }

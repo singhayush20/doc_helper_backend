@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
@@ -26,6 +27,7 @@ public class GmailServiceImpl implements EmailService {
     }
 
     @Override
+    @Async
     public void sendEmail(String to, String subject, String body, boolean isHtml) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
