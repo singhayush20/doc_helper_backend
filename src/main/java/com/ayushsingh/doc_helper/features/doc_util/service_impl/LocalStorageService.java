@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.doc_util.DocService;
+import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
 
 @Service
 @Slf4j
@@ -38,7 +39,7 @@ public class LocalStorageService implements DocService {
     }
 
     @Override
-    public String saveFile(MultipartFile file) {
+    public DocSaveResponse saveFile(MultipartFile file) {
         if (file.isEmpty()) {
             log.error("File is empty.");
             throw new BaseException("File is empty.", ExceptionCodes.EMPTY_FILE);
@@ -70,7 +71,7 @@ public class LocalStorageService implements DocService {
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
             }
 
-            return uniqueFilename;
+            return new DocSaveResponse(originalFilename,uniqueFilename);
         } catch (IOException e) {
             log.error("File path error {}", e.getMessage());
             throw new BaseException("File path error.", ExceptionCodes.FILE_IO_ERROR);

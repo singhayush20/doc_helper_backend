@@ -17,6 +17,7 @@ public interface UserDocRepository extends JpaRepository<UserDoc, Long> {
                 SELECT new com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails(
                     d.id,
                     d.fileName,
+                    d.originalFilename,
                     d.status
                 )
                 FROM UserDoc d

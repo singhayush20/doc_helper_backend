@@ -1,6 +1,5 @@
 package com.ayushsingh.doc_helper.features.user_doc.controller;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -12,8 +11,8 @@ import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
+import com.ayushsingh.doc_helper.features.user_doc.dto.UserDocDetailsListDto;
 import com.ayushsingh.doc_helper.features.user_doc.entity.SortField;
-import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
 import com.ayushsingh.doc_helper.features.user_doc.service.UserDocService;
 
 @RestController
@@ -33,7 +32,7 @@ public class UserDocController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<Page<UserDocDetails>> getUserDocs(
+    public ResponseEntity<UserDocDetailsListDto> getUserDocs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "CREATED_AT") SortField sortField,

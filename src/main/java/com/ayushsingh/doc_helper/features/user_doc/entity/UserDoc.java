@@ -39,6 +39,9 @@ public class UserDoc {
     @Column(name = "file_name", nullable = false, length = 1024)
     private String fileName;
 
+    @Column(name = "original_file_name", nullable = false, length = 1024)
+    private String originalFilename;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DocumentStatus status;

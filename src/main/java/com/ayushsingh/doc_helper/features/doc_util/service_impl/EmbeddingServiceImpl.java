@@ -53,7 +53,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
 
         UserDoc userDoc = userDocRepository.findById(documentId)
                 .orElseThrow(() -> new BaseException(
-                        "Document not found for embedding: " + documentId,
+                        "Document not found for id: " + documentId,
                         ExceptionCodes.DOCUMENT_NOT_FOUND));
 
         if (userDoc.getStatus() != DocumentStatus.UPLOADED) {
