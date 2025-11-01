@@ -29,4 +29,5 @@ public final class ExceptionCodes {
     public static final String QUOTA_NOT_FOUND = "E0021";
     public static final String ACCOUNT_UPGRADATION_FAILURE = "E0022";
     public static final String EMAIL_FAILURE = "E0023";
+    public static final String EMAIL_NOT_VERIFIED = "E0024";
 }

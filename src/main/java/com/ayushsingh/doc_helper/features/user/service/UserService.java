@@ -13,6 +13,8 @@ public interface UserService {
 
     Boolean existsByEmail(String email);
 
+    User findByEmail(String email);
+
     Boolean updateUserPassword(String email, String newPassword);
 
     UserDetailsDto getUserDetails();

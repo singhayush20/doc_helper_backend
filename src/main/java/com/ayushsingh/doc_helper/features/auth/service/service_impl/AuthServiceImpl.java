@@ -10,16 +10,19 @@ import com.ayushsingh.doc_helper.commons.email_handling.EmailService;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.commons.utility.EmailUtils;
+import com.ayushsingh.doc_helper.config.security.UserContext;
 import com.ayushsingh.doc_helper.features.auth.dto.EmailVerificationRequestDto;
 import com.ayushsingh.doc_helper.features.auth.dto.VerificationResponseDto;
 import com.ayushsingh.doc_helper.features.auth.dto.PasswordResetRequestDto;
 import com.ayushsingh.doc_helper.features.auth.service.AuthService;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
 import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
+import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user.service.UserService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
+import com.google.firebase.auth.UserRecord.UpdateRequest;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public UserDetailsDto signUp(UserCreateDto userCreateDto) {
         String normalizedEmail = EmailUtils.normalizeAndValidateEmail(userCreateDto.getEmail());
-        
+
         if (!userService.existsByEmail(normalizedEmail)) {
             var createRequest = new UserRecord.CreateRequest()
                     .setEmail(normalizedEmail)
@@ -70,8 +73,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void sendEmailVerificationOtp(EmailVerificationRequestDto emailDto) {
         String normalizedEmail = EmailUtils.normalizeAndValidateEmail(emailDto.getEmail());
-        
-        if(!userService.existsByEmail(normalizedEmail)) {
+
+        if (!userService.existsByEmail(normalizedEmail)) {
             throw new BaseException("User not found with email: " + normalizedEmail,
                     ExceptionCodes.USER_NOT_FOUND);
         }
@@ -109,6 +112,25 @@ public class AuthServiceImpl implements AuthService {
             redisTemplate.delete(key);
 
             var isUpdated = userService.updateUserVerifiedStatus(email, true);
+
+            var authUser = UserContext.getCurrentUser();
+            User user = null;
+            if(authUser == null) {
+                user = userService.findByEmail(email);
+            }
+            else {
+                user = authUser.getUser();
+            }
+
+            try {
+                UpdateRequest request = new UpdateRequest(user.getFirebaseUid())
+                        .setEmailVerified(true);
+                firebaseAuth.updateUser(request);
+            } catch (FirebaseAuthException e) {
+                log.error("Failed to update Firebase user: {}", e.getMessage());
+                throw new BaseException("Failed to update Firebase user: " + e.getMessage(),
+                        ExceptionCodes.FIREBASE_AUTH_EXCEPTION);
+            }
 
             return new VerificationResponseDto(isUpdated, email);
         } else {

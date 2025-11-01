@@ -52,6 +52,12 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                 FirebaseToken decodedToken = firebaseAuth.verifyIdToken(token);
                 String firebaseUid = decodedToken.getUid();
                 User user = userService.findByFirebaseUid(firebaseUid);
+                boolean emailVerified = decodedToken.isEmailVerified();
+                if (!emailVerified) {
+                    exceptionResolver.resolveException(request, response, null, new BaseException("Email not verified",
+                            ExceptionCodes.EMAIL_NOT_VERIFIED));
+                    return;
+                }
 
                 if (user != null) {
                     AuthUser authUser = new AuthUser(user);
@@ -94,20 +100,20 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
 
         // Return true if route is NOT in the public/permitted routes
         boolean isPublicRoute = (path.startsWith(AuthConstants.AUTH_API_PREFIX) && "POST".equals(method))
-                                || path.startsWith("/swagger-ui")
-                                || path.startsWith("/swagger-resources")
-                                || path.startsWith("/v3/api-docs")
-                                || path.startsWith("/webjars/")
-                                || path.equals("/swagger-ui/index.html")
-                                || path.endsWith(".js")
-                                || path.endsWith(".css")
-                                || path.endsWith(".html")
-                                || path.endsWith(".png")
-                                || path.endsWith(".ico")
-                                || path.endsWith(".map")
-                                || path.startsWith("/api/public/")
-                                || path.startsWith("/api/v1/auth/")
-                                || path.equals("/error");
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/swagger-resources")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/webjars/")
+                || path.equals("/swagger-ui/index.html")
+                || path.endsWith(".js")
+                || path.endsWith(".css")
+                || path.endsWith(".html")
+                || path.endsWith(".png")
+                || path.endsWith(".ico")
+                || path.endsWith(".map")
+                || path.startsWith("/api/public/")
+                || path.startsWith("/api/v1/auth/")
+                || path.equals("/error");
 
         return !isPublicRoute; // Protected if NOT public
     }
@@ -126,17 +132,17 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         String method = request.getMethod();
 
         return (path.startsWith(AuthConstants.AUTH_API_PREFIX) && "POST".equals(method))
-               || path.startsWith("/swagger-ui")
-               || path.startsWith("/swagger-resources")
-               || path.startsWith("/v3/api-docs")
-               || path.startsWith("/webjars/")
-               || path.equals("/swagger-ui/index.html")
-               || path.endsWith(".js")
-               || path.endsWith(".css")
-               || path.endsWith(".html")
-               || path.endsWith(".png")
-               || path.endsWith(".ico")
-               || path.endsWith(".map")
-               || path.startsWith("/api/public/");
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/swagger-resources")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/webjars/")
+                || path.equals("/swagger-ui/index.html")
+                || path.endsWith(".js")
+                || path.endsWith(".css")
+                || path.endsWith(".html")
+                || path.endsWith(".png")
+                || path.endsWith(".ico")
+                || path.endsWith(".map")
+                || path.startsWith("/api/public/");
     }
 }

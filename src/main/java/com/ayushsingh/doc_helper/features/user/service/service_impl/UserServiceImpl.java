@@ -111,4 +111,12 @@ public class UserServiceImpl implements UserService {
         return this.modelMapper.map(authUser.getUser(), UserDetailsDto.class);
     }
 
+    @Override
+    public User findByEmail(String email) {
+        String normalizedEmail = EmailUtils.normalizeAndValidateEmail(email);
+        return this.userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new BaseException("User not found with email: " + normalizedEmail,
+                        ExceptionCodes.USER_NOT_FOUND));
+    }
+
 }
