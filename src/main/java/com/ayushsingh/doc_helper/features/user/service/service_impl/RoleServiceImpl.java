@@ -1,6 +1,6 @@
 package com.ayushsingh.doc_helper.features.user.service.service_impl;
 
-import com.ayushsingh.doc_helper.features.user.domain.Role;
+import com.ayushsingh.doc_helper.features.user.entity.Role;
 import com.ayushsingh.doc_helper.features.user.repository.RoleRepository;
 import com.ayushsingh.doc_helper.features.user.service.RoleService;
 import org.springframework.stereotype.Service;

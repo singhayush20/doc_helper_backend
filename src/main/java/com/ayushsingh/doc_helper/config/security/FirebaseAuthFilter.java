@@ -13,7 +13,7 @@ import com.ayushsingh.doc_helper.commons.constants.AuthConstants;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.auth.domain.AuthUser;
-import com.ayushsingh.doc_helper.features.user.domain.User;
+import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user.service.UserService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;

@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.ayushsingh.doc_helper.features.user.domain.User;
+import com.ayushsingh.doc_helper.features.user.entity.User;
 
 public class AuthUser implements UserDetails {
 

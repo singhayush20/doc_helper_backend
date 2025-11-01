@@ -12,12 +12,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.commons.utility.EmailUtils;
-import com.ayushsingh.doc_helper.features.user.domain.Role;
-import com.ayushsingh.doc_helper.features.user.domain.RoleTypes;
-import com.ayushsingh.doc_helper.features.user.domain.User;
-import com.ayushsingh.doc_helper.features.user.domain.UserRole;
+import com.ayushsingh.doc_helper.config.security.UserContext;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
 import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
+import com.ayushsingh.doc_helper.features.user.entity.Role;
+import com.ayushsingh.doc_helper.features.user.entity.RoleTypes;
+import com.ayushsingh.doc_helper.features.user.entity.User;
+import com.ayushsingh.doc_helper.features.user.entity.UserRole;
 import com.ayushsingh.doc_helper.features.user.repository.UserRepository;
 import com.ayushsingh.doc_helper.features.user.service.RoleService;
 import com.ayushsingh.doc_helper.features.user.service.UserService;
@@ -101,6 +102,13 @@ public class UserServiceImpl implements UserService {
     public Boolean existsByEmail(String email) {
         String normalizedEmail = EmailUtils.normalizeAndValidateEmail(email);
         return this.userRepository.existsByEmail(normalizedEmail);
+    }
+
+    @Override
+    public UserDetailsDto getUserDetails() {
+        var user = UserContext.getCurrentUser();
+
+        return this.modelMapper.map(user, UserDetailsDto.class);
     }
 
 }

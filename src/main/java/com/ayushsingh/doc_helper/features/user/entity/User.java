@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.user.domain;
+package com.ayushsingh.doc_helper.features.user.entity;
 
 import java.time.Instant;
 import java.util.HashSet;
