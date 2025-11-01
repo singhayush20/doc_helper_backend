@@ -19,6 +19,7 @@ public class UserController {
 
     @GetMapping("/user-info")
     public ResponseEntity<UserDetailsDto> getUserInfo() {
-        return ResponseEntity.ok(userService.getUserDetails());
+        var userDetailsDto = userService.getUserDetails();
+        return ResponseEntity.ok(userDetailsDto);
     }
 }

@@ -16,8 +16,6 @@ import com.ayushsingh.doc_helper.features.user_doc.entity.SortField;
 import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
 import com.ayushsingh.doc_helper.features.user_doc.service.UserDocService;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/v1/user-docs")
 public class UserDocController {

@@ -69,7 +69,7 @@ public class User {
     private Boolean isVerified = false;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval =
-            true, fetch = FetchType.EAGER)
+        true, fetch = FetchType.LAZY)
     private Set<UserRole> userRoles = new HashSet<>();
 
     public String getFullName() {

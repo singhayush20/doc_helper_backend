@@ -106,9 +106,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDetailsDto getUserDetails() {
-        var user = UserContext.getCurrentUser();
+        var authUser = UserContext.getCurrentUser();
 
-        return this.modelMapper.map(user, UserDetailsDto.class);
+        return this.modelMapper.map(authUser.getUser(), UserDetailsDto.class);
     }
 
 }

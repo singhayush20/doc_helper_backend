@@ -18,7 +18,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString
+@ToString(exclude = "userRoles")
 public class Role implements GrantedAuthority {
 
     @Id
@@ -38,7 +38,7 @@ public class Role implements GrantedAuthority {
     private Instant updatedAt;
 
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval =
-            true, fetch = FetchType.EAGER)
+            true, fetch = FetchType.LAZY)
     private Set<UserRole> userRoles = new HashSet<>();
 
     public Role(String name, String description) {
