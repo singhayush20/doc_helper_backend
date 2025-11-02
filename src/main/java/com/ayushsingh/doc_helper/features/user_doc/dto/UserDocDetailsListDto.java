@@ -18,6 +18,6 @@ public class UserDocDetailsListDto {
     private List<UserDocDetails> userDocs;
     private Long currentPageNumber;
     private Long currentPageSize;
-    private boolean isFirst;
-    private boolean isLast;
+    private boolean first;
+    private boolean last;
 }
