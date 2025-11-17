@@ -52,9 +52,16 @@ public class UserDocController {
 
     @DeleteMapping("/{documentId}")
     public ResponseEntity<FileDeletionVerificationResponse> deleteDocument(
-            @PathVariable Long documentId
-    ) {
+            @PathVariable Long documentId) {
         var deletionResponse = userDocService.deleteDocument(documentId);
         return ResponseEntity.ok(deletionResponse);
+    }
+
+    @GetMapping("/search")
+    public UserDocDetailsListDto searchDocs(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return userDocService.searchUserDocuments(query, PageRequest.of(page, size));
     }
 }

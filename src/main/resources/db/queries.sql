@@ -74,3 +74,11 @@ CREATE UNIQUE INDEX idx_monthly_summary_user_month ON monthly_usage_summary(user
 CREATE OR REPLACE FUNCTION refresh_monthly_summary() RETURNS void AS $$ BEGIN REFRESH MATERIALIZED VIEW CONCURRENTLY monthly_usage_summary;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Enable pg_trgm extension for substring/fuzzy search
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Create GIN index on original_file_name for fast substring and fuzzy match
+CREATE INDEX IF NOT EXISTS idx_documents_originalfilename_trgm ON documents USING gin (
+    original_file_name gin_trgm_ops
+);

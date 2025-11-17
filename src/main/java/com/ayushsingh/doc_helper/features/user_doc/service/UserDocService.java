@@ -14,4 +14,6 @@ public interface UserDocService {
     UserDocDetailsListDto getUserDocuments(Pageable pageable);
 
     FileDeletionVerificationResponse deleteDocument(Long documentId);
+
+    UserDocDetailsListDto searchUserDocuments(String query, Pageable pageable);
 }
