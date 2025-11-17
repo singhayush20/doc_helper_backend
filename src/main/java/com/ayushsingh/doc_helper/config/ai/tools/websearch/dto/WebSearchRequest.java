@@ -8,13 +8,11 @@ public record WebSearchRequest(
         Integer daysBack,
         List<String> siteAllowList,
         List<String> siteDenyList) {
-    // Compact constructor with defaults
     public WebSearchRequest {
         if (daysBack == null)
             daysBack = 365;
     }
 
-    // Builder pattern for records (Java 16+)
     public static Builder builder() {
         return new Builder();
     }
