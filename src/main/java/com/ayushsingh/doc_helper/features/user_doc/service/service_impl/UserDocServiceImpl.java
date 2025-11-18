@@ -26,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
+import java.util.Set;
+
 import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
 
 @Slf4j
@@ -37,6 +39,11 @@ public class UserDocServiceImpl implements UserDocService {
     private final EmbeddingService embeddingService;
     private final ChatService chatService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+            "application/pdf",
+            "text/plain",
+            "application/octet-stream"
+    );
 
     private static final Duration SEARCH_CACHE_TTL = Duration.ofMinutes(2);
 
@@ -62,7 +69,6 @@ public class UserDocServiceImpl implements UserDocService {
         Resource resource = docService.loadFileAsResource(savedFileInfo.storedFileName());
         embeddingService.generateAndStoreEmbeddings(savedFile.getId(), authUser.getUser().getId(), resource);
 
-        // Invalidate user's search cache since a new file was uploaded
         clearUserSearchCache(authUser.getUser().getId());
 
         return new FileUploadResponse(savedFile.getFileName(), savedFile.getFileName());
@@ -70,13 +76,41 @@ public class UserDocServiceImpl implements UserDocService {
 
     private DocSaveResponse saveFile(MultipartFile file) {
         String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equals("application/pdf") && !contentType.equals("text/plain"))) {
-            log.error("Wrong file format! Only .pdf and .txt are allowed.");
-            throw new BaseException("Wrong file format! Only .pdf and .txt are allowed.",
+        String originalFilename = file.getOriginalFilename();
+
+        if (originalFilename == null || originalFilename.isBlank()) {
+            log.error("Missing filename in upload");
+            throw new BaseException(
+                    "Missing filename",
                     ExceptionCodes.WRONG_FILE_FORMAT);
         }
-        final var savedFileInfo = docService.saveFile(file);
-        log.info("File uploaded successfully...");
+
+        String lowerName = originalFilename.toLowerCase();
+
+        boolean hasValidExtension = lowerName.endsWith(".pdf") || lowerName.endsWith(".txt");
+
+        if (contentType == null) {
+            log.error("Missing content type for uploaded file");
+            throw new BaseException(
+                    "Wrong file format! Only .pdf and .txt are allowed.",
+                    ExceptionCodes.WRONG_FILE_FORMAT);
+        }
+
+        boolean allowedContentType = ALLOWED_CONTENT_TYPES.contains(contentType);
+
+        if (!allowedContentType || !hasValidExtension) {
+            log.error(
+                    "Wrong file format! Only .pdf and .txt are allowed. " +
+                            "Received contentType={}, filename={}",
+                    contentType,
+                    originalFilename);
+            throw new BaseException(
+                    "Wrong file format! Only .pdf and .txt are allowed.",
+                    ExceptionCodes.WRONG_FILE_FORMAT);
+        }
+
+        DocSaveResponse savedFileInfo = docService.saveFile(file);
+        log.info("File uploaded successfully: {}", originalFilename);
         return savedFileInfo;
     }
 
