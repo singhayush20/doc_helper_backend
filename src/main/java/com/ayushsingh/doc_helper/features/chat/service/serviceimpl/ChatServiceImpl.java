@@ -59,7 +59,7 @@ public class ChatServiceImpl implements ChatService {
         private final static Long DEFAULT_TOKEN_THRESHOLD = 5000L;
 
         @Override
-        public Flux<String> generateStreamingResponse(ChatRequest chatRequest) {
+        public Flux<String> generateStreamingResponse(ChatRequest chatRequest, Boolean webSearch) {
                 log.debug("Generating streaming response for documentId: {}",
                                 chatRequest.documentId());
 
@@ -76,7 +76,7 @@ public class ChatServiceImpl implements ChatService {
                 // Build and execute streaming request
                 StringBuilder fullResponse = new StringBuilder();
 
-                return buildChatClientSpec(context, false).stream()
+                return buildChatClientSpec(context, webSearch).stream()
                                 .content()
                                 .doOnNext(fullResponse::append)
                                 .doOnError(error -> log.error(
@@ -115,9 +115,7 @@ public class ChatServiceImpl implements ChatService {
 
                 log.debug("Non-streaming response completed for threadId: {}",
                                 context.chatThread().getId());
-                // TODO: Implement structured output and tool-calling using optional
-                // web search
-                return ChatCallResponse.builder().response(responseContent).build();
+                return ChatCallResponse.builder().message(responseContent).build();
         }
 
         private ChatContext prepareChatContext(ChatRequest chatRequest) {

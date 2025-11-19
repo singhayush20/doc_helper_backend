@@ -98,6 +98,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
 
         return streamAdvisorChain.nextStream(chatClientRequest)
                 .doOnNext(response -> {
+                    System.out.println("New response: "+response.chatResponse().getResult().getOutput());
                     lastResponse.set(response);
                     int currentChunk = chunkCount.incrementAndGet();
 

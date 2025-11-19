@@ -1,7 +1,10 @@
 package com.ayushsingh.doc_helper.features.chat.controller;
 
+import java.util.UUID;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,8 +29,35 @@ public class ChatController {
     }
 
     @PostMapping(path = "/doc-question/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> getStreamResponse(@RequestBody ChatRequest request) {
-        return chatService.generateStreamingResponse(request);
+    public Flux<ServerSentEvent<ChatCallResponse>> getStreamResponse(
+            @RequestParam(name = "webSearch", defaultValue = "false") Boolean webSearch,
+            @RequestBody ChatRequest request) {
+
+        Flux<ServerSentEvent<ChatCallResponse>> messageEvents = chatService.generateStreamingResponse(request,
+                webSearch)
+                .map(chunk -> ServerSentEvent.<ChatCallResponse>builder()
+                        .id(UUID.randomUUID().toString())
+                        .event("MESSAGE")
+                        .data(new ChatCallResponse(
+                                chunk))
+                        .build());
+
+        ServerSentEvent<ChatCallResponse> doneEvent = ServerSentEvent.<ChatCallResponse>builder()
+                .id(UUID.randomUUID().toString())
+                .event("DONE")
+                .data(new ChatCallResponse())
+                .build();
+
+        return messageEvents
+                .onErrorResume(ex -> {
+                    ServerSentEvent<ChatCallResponse> errorEvent = ServerSentEvent.<ChatCallResponse>builder()
+                            .id(UUID.randomUUID().toString())
+                            .event("ERROR")
+                            .data(new ChatCallResponse(ex.getMessage()))
+                            .build();
+                    return Flux.just(errorEvent, doneEvent);
+                })
+                .concatWith(Flux.just(doneEvent));
     }
 
     @PostMapping(path = "/doc-question")

@@ -8,5 +8,5 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class ChatCallResponse {
-    private String response;
+    private String message;
 }

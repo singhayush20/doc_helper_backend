@@ -8,7 +8,7 @@ import reactor.core.publisher.Flux;
 
 public interface ChatService {
 
-        Flux<String> generateStreamingResponse(ChatRequest chatRequest);
+        Flux<String> generateStreamingResponse(ChatRequest chatRequest, Boolean webSearch);
 
         ChatCallResponse generateResponse(ChatRequest chatRequest, Boolean webSearch);
 
