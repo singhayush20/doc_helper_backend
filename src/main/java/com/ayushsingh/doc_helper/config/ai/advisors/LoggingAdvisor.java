@@ -91,14 +91,27 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
         Instant startTime = Instant.now();
         AtomicReference<ChatClientResponse> lastResponse = new AtomicReference<>();
         AtomicInteger chunkCount = new AtomicInteger(0);
+        var generationId = extractGenerationId(chatClientRequest);
 
-        log.info("=== AI Stream Started ===");
-        log.info("Stream request timestamp: {}", startTime);
+        log.info("=== AI Stream Started for generationId: {} ===", generationId);
+        log.info("[ {} ] Stream request timestamp: {}", generationId, startTime);
         logRequestDetails(chatClientRequest);
 
         return streamAdvisorChain.nextStream(chatClientRequest)
+                .doOnCancel(() -> {
+                    Instant cancelTime = Instant.now();
+                    Duration duration = Duration.between(startTime, cancelTime);
+
+                    log.info("=== AI Stream Cancelled for {} ===", generationId);
+                    log.info("[ {} ] Stream cancellation timestamp: {}", generationId, cancelTime);
+                    log.info("[ {} ] Stream duration before cancellation: {} ms", generationId, duration.toMillis());
+                    log.info("[ {} ] Chunks processed before cancellation: {}", generationId, chunkCount.get());
+
+                    lastResponse.set(null);
+                })
                 .doOnNext(response -> {
-                    System.out.println("New response: "+response.chatResponse().getResult().getOutput());
+                    log.debug("[ {} ] Streaming response: " + response.chatResponse().getResult().getOutput(),
+                            generationId);
                     lastResponse.set(response);
                     int currentChunk = chunkCount.incrementAndGet();
 
@@ -111,7 +124,8 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                                     ? usage.getTotalTokens()
                                     : 0L;
 
-                            log.debug("Chunk {} - Model: {}, Total tokens: {} (cumulative)",
+                            log.debug("[ {} ] Chunk {} - Model: {}, Total tokens: {} (cumulative)",
+                                    generationId,
                                     currentChunk,
                                     chatResponse.getMetadata().getModel(),
                                     totalTokens);
@@ -122,10 +136,10 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                     Instant endTime = Instant.now();
                     Duration duration = Duration.between(startTime, endTime);
 
-                    log.debug("=== AI Stream Completed ===");
-                    log.debug("Stream completion timestamp: {}", endTime);
-                    log.debug("Stream total duration: {} ms", duration.toMillis());
-                    log.debug("Total chunks processed: {}", chunkCount.get());
+                    log.debug("=== AI Stream Completed for {} ===", generationId);
+                    log.debug("[ {} ] Stream completion timestamp: {}", generationId, endTime);
+                    log.debug("[ {} ] Stream total duration: {} ms", generationId, duration.toMillis());
+                    log.debug("[ {} ] Total chunks processed: {}", generationId, chunkCount.get());
 
                     ChatClientResponse finalResponse = lastResponse.get();
                     if (finalResponse != null && finalResponse.chatResponse() != null) {
@@ -141,11 +155,11 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                     Instant endTime = Instant.now();
                     Duration duration = Duration.between(startTime, endTime);
 
-                    log.error("=== AI Stream Failed ===");
-                    log.error("Stream error timestamp: {}", endTime);
-                    log.error("Stream duration before failure: {} ms", duration.toMillis());
-                    log.error("Chunks processed before error: {}", chunkCount.get());
-                    log.error("Stream error details: ", error);
+                    log.error("=== AI Stream Failed for {} ===", generationId);
+                    log.error("[ {} ] Stream error timestamp: {}", generationId, endTime);
+                    log.error("[ {} ] Stream duration before failure: {} ms", generationId, duration.toMillis());
+                    log.error("[ {} ] Chunks processed before error: {}", generationId, chunkCount.get());
+                    log.error("[ {} ] Stream error details: ", generationId, error);
 
                     lastResponse.set(null);
                 });
@@ -307,6 +321,16 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             log.debug("Could not extract threadId from request context", e);
         }
         return null;
+    }
+
+    private String extractGenerationId(ChatClientRequest request) {
+        try {
+            Object genId = request.context().get("generationId");
+            return genId != null ? genId.toString() : null;
+        } catch (Exception e) {
+            log.debug("Could not extract generationId from request context", e);
+            return null;
+        }
     }
 
     private void logRequestDetails(ChatClientRequest request) {

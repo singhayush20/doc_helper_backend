@@ -44,8 +44,8 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        "[format_sql]": false  # Disable SQL formatting since we're using JSON format
-        "[trace_level]": OFF  # Disable parameter logging at Hibernate level
+        "[format_sql]": false # Disable SQL formatting since we're using JSON format
+        "[trace_level]": OFF # Disable parameter logging at Hibernate level
 
   servlet:
     multipart:
@@ -80,6 +80,8 @@ web:
 
 logging:
   level:
+    "[org.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/].[dispatcherServlet]]": WARN
+    "[org.springframework.web.servlet.mvc.method.annotation.ReactiveTypeHandler]": INFO
     "[com.ayushsingh]": DEBUG
     "[org.springframework]": WARN
     "[org.springframework.web.client.DefaultRestClient]": WARN

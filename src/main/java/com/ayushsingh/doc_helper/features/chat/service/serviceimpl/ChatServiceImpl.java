@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.chat.service.serviceimpl;
 
 import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.config.ai.ChatCancellationRegistry;
 import com.ayushsingh.doc_helper.config.ai.advisors.LoggingAdvisor;
 import com.ayushsingh.doc_helper.config.ai.prompts.PromptTemplates;
 import com.ayushsingh.doc_helper.config.ai.tools.websearch.WebSearchTool;
@@ -40,6 +41,7 @@ import reactor.core.publisher.SignalType;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,41 +59,92 @@ public class ChatServiceImpl implements ChatService {
         private final WebSearchTool webSearchTool;
         private final TokenUsageService tokenUsageService;
         private final static Long DEFAULT_TOKEN_THRESHOLD = 5000L;
+        private final ChatCancellationRegistry chatCancellationRegistry;
 
         @Override
-        public Flux<String> generateStreamingResponse(ChatRequest chatRequest, Boolean webSearch) {
-                log.debug("Generating streaming response for documentId: {}",
-                                chatRequest.documentId());
+        public Flux<String> generateStreamingResponse(ChatRequest chatRequest,
+                        Boolean webSearch,
+                        String generationId) {
+                log.debug("Generating streaming response for documentId: {}, generationId: {}",
+                                chatRequest.documentId(), generationId);
 
                 Long userId = UserContext.getCurrentUser().getUser().getId();
-
                 tokenUsageService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
 
-                // Prepare common context
                 ChatContext context = prepareChatContext(chatRequest);
 
-                // Save user message
                 saveUserMessage(context.chatThread(), chatRequest.question());
 
-                // Build and execute streaming request
                 StringBuilder fullResponse = new StringBuilder();
 
-                return buildChatClientSpec(context, webSearch).stream()
+                // cancel flux for this generation
+                Flux<Void> cancelFlux = chatCancellationRegistry.getOrCreateCancelFlux(generationId);
+
+                return buildChatClientSpec(context, webSearch, generationId)
+                                .stream()
                                 .content()
+                                .takeUntilOther(cancelFlux)
                                 .doOnNext(fullResponse::append)
                                 .doOnError(error -> log.error(
-                                                "Error during streaming response for documentId: {}",
-                                                chatRequest.documentId(), error))
-                                .doFinally(signalType -> {
-                                        if (signalType == SignalType.ON_COMPLETE &&
-                                                        !fullResponse.isEmpty()) {
-                                                saveAssistantMessage(context.chatThread(),
-                                                                fullResponse.toString());
-                                                log.info(
-                                                                "Streaming response completed for threadId: {}",
-                                                                context.chatThread().getId());
-                                        }
-                                });
+                                                "Error during streaming response for documentId: {}, generationId: {}",
+                                                chatRequest.documentId(), generationId, error))
+                                .doFinally(handleStream(generationId, context, fullResponse));
+        }
+
+        private Consumer<SignalType> handleStream(
+                        String generationId,
+                        ChatContext context,
+                        StringBuilder fullResponse) {
+                return signalType -> {
+                        // TODO: Fix the cancel logic - on manual user cancel, it gives ON_COMPLETE signal
+                        boolean userCancelled = chatCancellationRegistry.isManuallyCancelled(generationId);
+                        chatCancellationRegistry.clear(generationId);
+
+                        if (userCancelled) {
+                                // Treat as user cancel regardless of SignalType (ON_COMPLETE or CANCEL)
+                                handleCancel(generationId, context, fullResponse);
+                                return;
+                        }
+
+                        // Not manually cancelled → use real signalType
+                        switch (signalType) {
+                                case ON_COMPLETE -> handleOnComplete(generationId, context, fullResponse);
+                                case ON_ERROR -> log.warn(
+                                                "Streaming response ended with ERROR for threadId: {}, generationId: {}",
+                                                context.chatThread().getId(), generationId);
+                                case CANCEL -> log.info(
+                                                "Streaming cancelled by downstream (client disconnect?) for threadId: {}, generationId: {}",
+                                                context.chatThread().getId(), generationId);
+                                default -> log.debug(
+                                                "Streaming response finished with signal {} for generationId: {}",
+                                                signalType, generationId);
+                        }
+                };
+        }
+
+        private void handleCancel(
+                        String generationId,
+                        ChatContext context,
+                        StringBuilder fullResponse) {
+                if (!fullResponse.isEmpty()) {
+                        saveAssistantMessage(context.chatThread(), fullResponse.toString());
+                }
+                log.info("Streaming response CANCELLED for threadId: {}, generationId: {}",
+                                context.chatThread().getId(), generationId);
+        }
+
+        private void handleOnComplete(
+                        String generationId,
+                        ChatContext context,
+                        StringBuilder fullResponse) {
+                if (!fullResponse.isEmpty()) {
+                        saveAssistantMessage(context.chatThread(), fullResponse.toString());
+                        log.info("Streaming response completed for threadId: {}, generationId: {}",
+                                        context.chatThread().getId(), generationId);
+                } else {
+                        log.info("Streaming completed with empty response for generationId: {}",
+                                        generationId);
+                }
         }
 
         @Override
@@ -108,7 +161,7 @@ public class ChatServiceImpl implements ChatService {
 
                 saveUserMessage(context.chatThread(), chatRequest.question());
 
-                String responseContent = buildChatClientSpec(context, webSearch).call()
+                String responseContent = buildChatClientSpec(context, webSearch, null).call()
                                 .content();
 
                 saveAssistantMessage(context.chatThread(), responseContent);
@@ -146,13 +199,18 @@ public class ChatServiceImpl implements ChatService {
         }
 
         private ChatClient.ChatClientRequestSpec buildChatClientSpec(
-                        ChatContext context, Boolean webSearchEnabled) {
+                        ChatContext context, Boolean webSearchEnabled, String generationId) {
                 ChatClient chatClient = chatClientBuilder.build();
 
                 var chatClientSpec = chatClient.prompt(context.prompt())
-                                .advisors(spec -> spec.param("documentId", context.documentId())
-                                                .param("userId", context.userId())
-                                                .param("threadId", context.chatThread().getId()))
+                                .advisors(spec -> {
+                                        spec.param("documentId", context.documentId())
+                                                        .param("userId", context.userId())
+                                                        .param("threadId", context.chatThread().getId());
+                                        if (generationId != null) {
+                                                spec.param("generationId", generationId);
+                                        }
+                                })
                                 .advisors(loggingAdvisor);
 
                 if (webSearchEnabled) {
