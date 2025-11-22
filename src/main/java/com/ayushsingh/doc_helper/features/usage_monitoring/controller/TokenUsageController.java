@@ -62,7 +62,7 @@ public class TokenUsageController {
             @RequestParam(defaultValue = "20") int size) {
 
         PageRequest pageRequest = PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "timestamp"));
+                Sort.by(Sort.Direction.DESC, "createdAt"));
 
         Page<UserTokenUsage> usage = tokenUsageService.getDocumentUsageHistory(
                 documentId, pageRequest);
