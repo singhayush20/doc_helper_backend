@@ -1,6 +1,5 @@
 package com.ayushsingh.doc_helper.features.chat.controller;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.http.MediaType;
@@ -19,10 +18,12 @@ import com.ayushsingh.doc_helper.features.chat.dto.ChatHistoryResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatRequest;
 import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @RestController
 @RequestMapping("/api/v1/chatbot")
+@Slf4j
 public class ChatController {
         private final ChatService chatService;
         private final ChatCancellationRegistry chatCancellationRegistry;
@@ -47,7 +48,7 @@ public class ChatController {
                 return messageEvents
                                 .concatWith(Flux.just(doneEvent))
                                 .onErrorResume(ex -> Flux.just(
-                                                buildSse("ERROR", buildSafeErrorResponse(ex))));
+                                                buildSse("ERROR", buildSafeErrorResponse(ex, generationId))));
         }
 
         private ServerSentEvent<ChatCallResponse> buildSse(
@@ -60,9 +61,9 @@ public class ChatController {
                                 .build();
         }
 
-        private ChatCallResponse buildSafeErrorResponse(Throwable ex) {
-                String message = Optional.ofNullable(ex.getMessage())
-                                .orElse("Unexpected error while generating response");
+        private ChatCallResponse buildSafeErrorResponse(Throwable ex, String generationId) {
+                log.error("Error occured in response stream for generation id: {} error: {}",generationId, ex.getMessage());
+                String message = "An error occurred while processing your request.";
                 return ChatCallResponse.builder().message(message).build();
         }
 
