@@ -39,6 +39,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Consumer;
@@ -77,13 +78,13 @@ public class ChatServiceImpl implements ChatService {
 
                 StringBuilder fullResponse = new StringBuilder();
 
-                // cancel flux for this generation
                 Flux<Void> cancelFlux = chatCancellationRegistry.getOrCreateCancelFlux(generationId);
 
                 return buildChatClientSpec(context, webSearch, generationId)
                                 .stream()
                                 .content()
                                 .takeUntilOther(cancelFlux)
+                                .timeout(Duration.ofMinutes(2))
                                 .doOnNext(fullResponse::append)
                                 .doOnError(error -> log.error(
                                                 "Error during streaming response for documentId: {}, generationId: {}",
@@ -96,24 +97,13 @@ public class ChatServiceImpl implements ChatService {
                         ChatContext context,
                         StringBuilder fullResponse) {
                 return signalType -> {
-                        boolean userCancelled = chatCancellationRegistry.isManuallyCancelled(generationId);
-                        chatCancellationRegistry.clear(generationId);
-
-                        if (userCancelled) {
-                                // Treat as user cancel regardless of SignalType (ON_COMPLETE or CANCEL)
-                                handleCancel(generationId, context, fullResponse);
-                                return;
-                        }
-
-                        // Not manually cancelled → use real signalType
+                        System.out.println("## signal type: " + signalType + " for generationId: " + generationId+" fullResponse: "+fullResponse.toString());
                         switch (signalType) {
                                 case ON_COMPLETE -> handleOnComplete(generationId, context, fullResponse);
                                 case ON_ERROR -> log.warn(
                                                 "Streaming response ended with ERROR for threadId: {}, generationId: {}",
                                                 context.chatThread().getId(), generationId);
-                                case CANCEL -> log.info(
-                                                "Streaming cancelled by downstream (client disconnect?) for threadId: {}, generationId: {}",
-                                                context.chatThread().getId(), generationId);
+                                case CANCEL -> handleCancel(generationId, context, fullResponse);
                                 default -> log.debug(
                                                 "Streaming response finished with signal {} for generationId: {}",
                                                 signalType, generationId);

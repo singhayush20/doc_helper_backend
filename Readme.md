@@ -51,3 +51,5 @@ Multiple assistant responses for the same message.
 “Race finish” issues where smaller response gets saved last.
 
 Thread snippet inconsistent with last message.
+
+**Cancellation registry using Redis - Needs fixes**

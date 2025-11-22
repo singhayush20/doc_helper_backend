@@ -1,40 +1,19 @@
 package com.ayushsingh.doc_helper.config.ai;
 
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
 
-import java.util.concurrent.ConcurrentHashMap;
+import reactor.core.publisher.Mono;
 
-@Component
-public class ChatCancellationRegistry {
+public interface ChatCancellationRegistry {
 
-    private final ConcurrentHashMap<String, Sinks.Many<Void>> sinks = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Boolean> manuallyCancelled = new ConcurrentHashMap<>();
+    /**
+     * Returns a Flux that completes when a cancel signal is received for this
+     * generationId.
+     */
+    Flux<Void> getOrCreateCancelFlux(String generationId);
 
-    public Flux<Void> getOrCreateCancelFlux(String generationId) {
-        return sinks
-                .computeIfAbsent(generationId,
-                        id -> Sinks.many().unicast().onBackpressureBuffer())
-                .asFlux();
-    }
-
-    public void cancel(String generationId) {
-        // mark as user-cancelled
-        manuallyCancelled.put(generationId, true);
-
-        Sinks.Many<Void> sink = sinks.remove(generationId);
-        if (sink != null) {
-            sink.tryEmitComplete(); // triggers takeUntilOther termination
-        }
-    }
-
-    public boolean isManuallyCancelled(String generationId) {
-        return manuallyCancelled.getOrDefault(generationId, false);
-    }
-
-    public void clear(String generationId) {
-        sinks.remove(generationId);
-        manuallyCancelled.remove(generationId);
-    }
+    /**
+     * Sends a cancel signal for the given generationId.
+     */
+    Mono<Void> cancel(String generationId);
 }

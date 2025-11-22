@@ -69,7 +69,8 @@ public class ChatController {
         @PostMapping(path = "/doc-question/stream/cancel")
         public ResponseEntity<Void> cancelStream(
                         @RequestParam("generationId") String generationId) {
-                chatCancellationRegistry.cancel(generationId);
+                System.out.println("## Cancel request received for generationId: " + generationId);
+                chatCancellationRegistry.cancel(generationId).subscribe();
                 return ResponseEntity.accepted().build();
         }
 

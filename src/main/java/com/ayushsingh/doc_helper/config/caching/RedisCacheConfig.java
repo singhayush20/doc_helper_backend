@@ -4,7 +4,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
@@ -59,6 +61,23 @@ public class RedisCacheConfig {
                 template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
                 template.afterPropertiesSet();
                 return template;
+        }
+
+        @Bean
+        public ReactiveRedisTemplate<String, String> reactiveRedisTemplate(
+                        ReactiveRedisConnectionFactory connectionFactory) {
+
+                StringRedisSerializer stringSerializer = new StringRedisSerializer();
+
+                RedisSerializationContext<String, String> context = RedisSerializationContext
+                                .<String, String>newSerializationContext(stringSerializer)
+                                .key(stringSerializer)
+                                .value(stringSerializer)
+                                .hashKey(stringSerializer)
+                                .hashValue(stringSerializer)
+                                .build();
+
+                return new ReactiveRedisTemplate<>(connectionFactory, context);
         }
 
 }
