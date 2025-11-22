@@ -96,8 +96,6 @@ public class ChatServiceImpl implements ChatService {
                         ChatContext context,
                         StringBuilder fullResponse) {
                 return signalType -> {
-                        // TODO: Fix the cancel logic - on manual user cancel, it gives ON_COMPLETE
-                        // signal
                         boolean userCancelled = chatCancellationRegistry.isManuallyCancelled(generationId);
                         chatCancellationRegistry.clear(generationId);
 
