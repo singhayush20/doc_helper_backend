@@ -39,6 +39,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Consumer;
@@ -84,6 +85,7 @@ public class ChatServiceImpl implements ChatService {
                                 .stream()
                                 .content()
                                 .takeUntilOther(cancelFlux)
+                                .timeout(Duration.ofMinutes(2))
                                 .doOnNext(fullResponse::append)
                                 .doOnError(error -> log.error(
                                                 "Error during streaming response for documentId: {}, generationId: {}",
