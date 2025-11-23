@@ -62,7 +62,8 @@ public class ChatController {
         }
 
         private ChatCallResponse buildSafeErrorResponse(Throwable ex, String generationId) {
-                log.error("Error occured in response stream for generation id: {} error: {}",generationId, ex.getMessage());
+                log.error("Error occured in response stream for generation id: {} error: {}", generationId,
+                                ex.getMessage());
                 String message = "An error occurred while processing your request.";
                 return ChatCallResponse.builder().message(message).build();
         }
