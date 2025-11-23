@@ -14,9 +14,11 @@ import com.ayushsingh.doc_helper.features.chat.dto.ChatRequest;
 import com.ayushsingh.doc_helper.features.chat.entity.ChatMessage;
 import com.ayushsingh.doc_helper.features.chat.entity.ChatThread;
 import com.ayushsingh.doc_helper.features.chat.entity.MessageRole;
+import com.ayushsingh.doc_helper.features.chat.entity.TurnReservation;
 import com.ayushsingh.doc_helper.features.chat.repository.ChatMessageRepository;
 import com.ayushsingh.doc_helper.features.chat.repository.ChatThreadRepository;
 import com.ayushsingh.doc_helper.features.chat.service.ChatService;
+import com.ayushsingh.doc_helper.features.chat.service.ThreadTurnService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
@@ -39,10 +41,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,6 +61,7 @@ public class ChatServiceImpl implements ChatService {
         private final TokenUsageService tokenUsageService;
         private final static Long DEFAULT_TOKEN_THRESHOLD = 5000L;
         private final ChatCancellationRegistry chatCancellationRegistry;
+        private final ThreadTurnService threadTurnService;
 
         @Override
         public Flux<String> generateStreamingResponse(ChatRequest chatRequest,
@@ -73,63 +74,74 @@ public class ChatServiceImpl implements ChatService {
                 tokenUsageService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
 
                 ChatContext context = prepareChatContext(chatRequest);
+                ChatThread thread = context.chatThread();
+                String threadId = thread.getId();
 
-                saveUserMessage(context.chatThread(), chatRequest.question());
+                TurnReservation reservation = threadTurnService.reserveTurn(threadId);
+                Long turnNumber = reservation.turnNumber();
+
+                saveUserMessage(thread, turnNumber, chatRequest.question());
 
                 StringBuilder fullResponse = new StringBuilder();
-
-                // cancel flux for this generation
                 Flux<Void> cancelFlux = chatCancellationRegistry.getOrCreateCancelFlux(generationId);
 
                 return buildChatClientSpec(context, webSearch, generationId)
                                 .stream()
                                 .content()
                                 .takeUntilOther(cancelFlux)
-                                .timeout(Duration.ofMinutes(2))
                                 .doOnNext(fullResponse::append)
                                 .doOnError(error -> log.error(
                                                 "Error during streaming response for documentId: {}, generationId: {}",
                                                 chatRequest.documentId(), generationId, error))
-                                .doFinally(handleStream(generationId, context, fullResponse));
+                                .doFinally(signalType -> handleStream(
+                                                signalType,
+                                                generationId,
+                                                context,
+                                                fullResponse,
+                                                turnNumber));
         }
 
-        private Consumer<SignalType> handleStream(
+        private void handleStream(SignalType signalType,
                         String generationId,
                         ChatContext context,
-                        StringBuilder fullResponse) {
-                return signalType -> {
-                        boolean userCancelled = chatCancellationRegistry.isManuallyCancelled(generationId);
-                        chatCancellationRegistry.clear(generationId);
+                        StringBuilder fullResponse,
+                        Long turnNumber) {
 
-                        if (userCancelled) {
-                                // Treat as user cancel regardless of SignalType (ON_COMPLETE or CANCEL)
-                                handleCancel(generationId, context, fullResponse);
-                                return;
-                        }
+                boolean userCancelled = chatCancellationRegistry.isManuallyCancelled(generationId);
+                chatCancellationRegistry.clear(generationId);
 
-                        // Not manually cancelled → use real signalType
-                        switch (signalType) {
-                                case ON_COMPLETE -> handleOnComplete(generationId, context, fullResponse);
-                                case ON_ERROR -> log.warn(
-                                                "Streaming response ended with ERROR for threadId: {}, generationId: {}",
-                                                context.chatThread().getId(), generationId);
-                                case CANCEL -> log.info(
-                                                "Streaming cancelled by downstream (client disconnect?) for threadId: {}, generationId: {}",
-                                                context.chatThread().getId(), generationId);
-                                default -> log.debug(
-                                                "Streaming response finished with signal {} for generationId: {}",
-                                                signalType, generationId);
+                ChatThread thread = context.chatThread();
+                String threadId = thread.getId();
+
+                if (userCancelled) {
+                        handleCancel(generationId, context, fullResponse, turnNumber);
+                        return;
+                }
+
+                switch (signalType) {
+                        case ON_COMPLETE -> {
+                                handleOnComplete(generationId, context, fullResponse, turnNumber);
                         }
-                };
+                        case ON_ERROR -> {
+                                log.warn("Streaming ERROR for threadId: {}, generationId: {}",
+                                                threadId, generationId);
+                                // optional: mark turn as failed
+                        }
+                        case CANCEL -> {
+                                handleCancel(generationId, context, fullResponse, turnNumber);
+                        }
+                        default -> log.debug("Streaming finished with {} for generationId: {}",
+                                        signalType, generationId);
+                }
         }
 
         private void handleCancel(
                         String generationId,
                         ChatContext context,
-                        StringBuilder fullResponse) {
+                        StringBuilder fullResponse, Long turnNumber) {
 
                 if (!fullResponse.isEmpty()) {
-                        saveAssistantMessage(context.chatThread(), fullResponse.toString());
+                        saveAssistantMessage(context.chatThread(), turnNumber, fullResponse.toString());
                 }
                 log.info("Streaming response CANCELLED for threadId: {}, generationId: {}",
                                 context.chatThread().getId(), generationId);
@@ -138,9 +150,9 @@ public class ChatServiceImpl implements ChatService {
         private void handleOnComplete(
                         String generationId,
                         ChatContext context,
-                        StringBuilder fullResponse) {
+                        StringBuilder fullResponse, Long turnNumber) {
                 if (!fullResponse.isEmpty()) {
-                        saveAssistantMessage(context.chatThread(), fullResponse.toString());
+                        saveAssistantMessage(context.chatThread(), turnNumber, fullResponse.toString());
                         log.info("Streaming response completed for threadId: {}, generationId: {}",
                                         context.chatThread().getId(), generationId);
                 } else {
@@ -153,23 +165,25 @@ public class ChatServiceImpl implements ChatService {
         public ChatCallResponse generateResponse(ChatRequest chatRequest,
                         Boolean webSearch) {
                 Long userId = UserContext.getCurrentUser().getUser().getId();
+                ChatContext context = prepareChatContext(chatRequest);
+                String threadId = context.chatThread().getId();
+                TurnReservation reservation = threadTurnService.reserveTurn(threadId);
+                Long turnNumber = reservation.turnNumber();
 
                 tokenUsageService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
 
                 log.debug("Generating non-streaming response for documentId: {}",
                                 chatRequest.documentId());
 
-                ChatContext context = prepareChatContext(chatRequest);
-
-                saveUserMessage(context.chatThread(), chatRequest.question());
+                saveUserMessage(context.chatThread(), turnNumber, chatRequest.question());
 
                 String responseContent = buildChatClientSpec(context, webSearch, null).call()
                                 .content();
 
-                saveAssistantMessage(context.chatThread(), responseContent);
+                saveAssistantMessage(context.chatThread(), turnNumber, responseContent);
 
                 log.debug("Non-streaming response completed for threadId: {}",
-                                context.chatThread().getId());
+                                threadId);
                 return ChatCallResponse.builder().message(responseContent).build();
         }
 
@@ -264,28 +278,67 @@ public class ChatServiceImpl implements ChatService {
                                 .collect(Collectors.joining("\n"));
         }
 
-        private void saveUserMessage(ChatThread thread, String userQuestion) {
-                log.debug("Saving user message for threadId: {}", thread.getId());
-                ChatMessage userMessage = new ChatMessage();
-                userMessage.setThreadId(thread.getId());
-                userMessage.setRole(MessageRole.USER);
-                userMessage.setContent(userQuestion);
-                userMessage.setTimestamp(Instant.now());
-                chatMessageRepository.save(userMessage);
+        public ChatMessage saveUserMessage(ChatThread thread,
+                        Long turnNumber,
+                        String content) {
+                ChatMessage msg = new ChatMessage();
+                msg.setThreadId(thread.getId());
+                msg.setTurnNumber(turnNumber);
+                msg.setRole(MessageRole.USER);
+                msg.setContent(content);
+                msg.setTimestamp(Instant.now());
 
-                thread.setLastMessageSnippet(
-                                userQuestion.length() > 50 ? userQuestion.substring(0, 50) + "..." : userQuestion);
-                chatThreadRepository.save(thread);
+                ChatMessage saved = chatMessageRepository.save(msg);
+                updateThreadSnippet(thread.getId(), turnNumber, content);
+
+                return saved;
         }
 
-        private void saveAssistantMessage(ChatThread thread, String aiResponse) {
-                log.debug("Saving assistant message for threadId: {}", thread.getId());
-                ChatMessage assistantMessage = new ChatMessage();
-                assistantMessage.setThreadId(thread.getId());
-                assistantMessage.setRole(MessageRole.ASSISTANT);
-                assistantMessage.setContent(aiResponse);
-                assistantMessage.setTimestamp(Instant.now());
-                chatMessageRepository.save(assistantMessage);
+        public ChatMessage saveAssistantMessage(ChatThread thread,
+                        Long turnNumber,
+                        String content) {
+                ChatMessage msg = new ChatMessage();
+                msg.setThreadId(thread.getId());
+                msg.setTurnNumber(turnNumber);
+                msg.setRole(MessageRole.ASSISTANT);
+                msg.setContent(content);
+                msg.setTimestamp(Instant.now());
+
+                ChatMessage saved = chatMessageRepository.save(msg);
+
+                updateThreadSnippet(thread.getId(), turnNumber, content);
+
+                return saved;
+        }
+
+        private void updateThreadSnippet(String threadId,
+                        Long turnNumber,
+                        String content) {
+
+                String snippet = computeSnippet(content);
+
+                Query query = new Query(
+                                Criteria.where("_id").is(threadId)
+                                                .orOperator(
+                                                                Criteria.where("lastSnippetTurnNumber").lt(turnNumber),
+                                                                Criteria.where("lastSnippetTurnNumber").exists(false)));
+
+                Update update = new Update()
+                                .set("lastMessageSnippet", snippet)
+                                .set("lastSnippetTurnNumber", turnNumber)
+                                .set("updatedAt", Instant.now());
+
+                mongoTemplate.updateFirst(query, update, ChatThread.class);
+        }
+
+        private String computeSnippet(String content) {
+                if (content == null) {
+                        return null;
+                }
+                int maxLen = 50;
+                return content.length() > maxLen
+                                ? content.substring(0, maxLen) + "..."
+                                : content;
         }
 
         @Override
@@ -295,8 +348,11 @@ public class ChatServiceImpl implements ChatService {
                 var chatThread = chatThreadRepository.findByDocumentIdAndUserId(
                                 documentId, userId);
                 if (chatThread.isPresent()) {
-                        PageRequest pageRequest = PageRequest.of(page, 10,
-                                        Sort.by(Sort.Direction.DESC, "timestamp"));
+                        PageRequest pageRequest = PageRequest.of(
+                                        page,
+                                        10,
+                                        Sort.by(Sort.Direction.DESC, "turnNumber")
+                                                        .and(Sort.by(Sort.Direction.DESC, "timestamp")));
                         List<ChatMessage> recentMessages = chatMessageRepository.findByThreadId(
                                         chatThread.get().getId(), pageRequest);
 

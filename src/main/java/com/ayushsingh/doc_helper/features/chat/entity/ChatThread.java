@@ -30,6 +30,11 @@ public class ChatThread {
 
     private String lastMessageSnippet;
 
+    // global sequence for turns in this thread (monotonic)
+    private Long lastTurnNumber;
+
+    private Long lastSnippetTurnNumber;
+
     @CreatedDate
     private Instant createdAt;
 
