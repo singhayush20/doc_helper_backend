@@ -33,6 +33,12 @@ public class ChatController {
                 this.chatCancellationRegistry = chatCancellationRegistry;
         }
 
+        private enum MessageEvent {
+                MESSAGE,
+                DONE,
+                ERROR
+        }
+
         @PostMapping(path = "/doc-question/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
         public Flux<ServerSentEvent<ChatCallResponse>> getStreamResponse(
                         @RequestParam(name = "webSearch", defaultValue = "false") Boolean webSearch,
@@ -41,14 +47,14 @@ public class ChatController {
 
                 Flux<ServerSentEvent<ChatCallResponse>> messageEvents = chatService
                                 .generateStreamingResponse(request, webSearch, generationId)
-                                .map(chunk -> buildSse("MESSAGE", new ChatCallResponse(chunk)));
+                                .map(chunk -> buildSse(MessageEvent.MESSAGE.toString(), new ChatCallResponse(chunk)));
 
-                ServerSentEvent<ChatCallResponse> doneEvent = buildSse("DONE", new ChatCallResponse());
+                ServerSentEvent<ChatCallResponse> doneEvent = buildSse(MessageEvent.DONE.toString(), new ChatCallResponse());
 
                 return messageEvents
                                 .concatWith(Flux.just(doneEvent))
                                 .onErrorResume(ex -> Flux.just(
-                                                buildSse("ERROR", buildSafeErrorResponse(ex, generationId))));
+                                                buildSse(MessageEvent.ERROR.toString(), buildSafeErrorResponse(ex, generationId))));
         }
 
         private ServerSentEvent<ChatCallResponse> buildSse(
