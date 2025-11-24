@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
 import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
 
 import jakarta.persistence.CascadeType;
@@ -15,6 +16,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -53,6 +55,9 @@ public class User {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private UserTokenQuota tokenQuota;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<UserDoc> documents = new HashSet<>();
 
@@ -68,8 +73,7 @@ public class User {
     @Column(name = "is_verified", nullable = false)
     private Boolean isVerified = false;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval =
-        true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<UserRole> userRoles = new HashSet<>();
 
     public String getFullName() {

@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.ayushsingh.doc_helper.features.user.entity.User;
+
 @Entity
 @Table(name = "user_token_quota", indexes = {
         @Index(name = "idx_quota_user_id", columnList = "user_id", unique = true),
@@ -26,7 +28,12 @@ public class UserTokenQuota {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false, unique = true)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
+    // userId is mapped directly to same FK column
+    @Column(name = "user_id", insertable = false, updatable = false)
     private Long userId;
 
     @Column(name = "monthly_limit", nullable = false)
