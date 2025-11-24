@@ -19,7 +19,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 @RestController
-@RequestMapping("/api/usage")
+@RequestMapping("/api/v1/usage")
 @RequiredArgsConstructor
 public class TokenUsageController {
 
