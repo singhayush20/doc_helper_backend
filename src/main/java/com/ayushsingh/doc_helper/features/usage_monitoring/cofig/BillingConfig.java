@@ -11,6 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class BillingConfig {
+    // TODO: Check if the default can be removed by enforcing config presence
     private Long defaultMonthlyLimit;
     private String billingTimezone;
     private String currency;

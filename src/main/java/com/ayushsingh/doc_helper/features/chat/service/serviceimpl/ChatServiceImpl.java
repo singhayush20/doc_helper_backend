@@ -20,7 +20,8 @@ import com.ayushsingh.doc_helper.features.chat.repository.ChatThreadRepository;
 import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 import com.ayushsingh.doc_helper.features.chat.service.ThreadTurnService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
-import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.UsageRecordingService;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +59,8 @@ public class ChatServiceImpl implements ChatService {
         private final MongoTemplate mongoTemplate;
         private final LoggingAdvisor loggingAdvisor;
         private final WebSearchTool webSearchTool;
-        private final TokenUsageService tokenUsageService;
+        private final UsageRecordingService usageRecordingService;
+        private final QuotaManagementService quotaManagementService;
         private final static Long DEFAULT_TOKEN_THRESHOLD = 6800L;
         private final ChatCancellationRegistry chatCancellationRegistry;
         private final ThreadTurnService threadTurnService;
@@ -71,7 +73,7 @@ public class ChatServiceImpl implements ChatService {
                                 chatRequest.documentId(), generationId);
 
                 Long userId = UserContext.getCurrentUser().getUser().getId();
-                tokenUsageService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
+                quotaManagementService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
 
                 ChatContext context = prepareChatContext(chatRequest);
                 ChatThread thread = context.chatThread();
@@ -170,7 +172,7 @@ public class ChatServiceImpl implements ChatService {
                 TurnReservation reservation = threadTurnService.reserveTurn(threadId);
                 Long turnNumber = reservation.turnNumber();
 
-                tokenUsageService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
+                quotaManagementService.checkAndEnforceQuota(userId, DEFAULT_TOKEN_THRESHOLD);
 
                 log.debug("Generating non-streaming response for documentId: {}",
                                 chatRequest.documentId());

@@ -11,8 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
-import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;
-import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class QuotaResetScheduler {
 
-    private final UserTokenQuotaRepository quotaRepository;
-    private final TokenUsageService tokenUsageService;
+    private final QuotaManagementService quotaManagementService;
 
     private static final int BATCH_SIZE = 100;
 
@@ -31,8 +29,7 @@ public class QuotaResetScheduler {
      * Reset quotas for users whose reset date has passed
      * Runs every day at 12:01 AM in configured timezone
      */
-    @Scheduled(cron = "0 1 0 * * ?", zone = "${monetization.billing" +
-                                            ".billing-timezone}")
+    @Scheduled(cron = "0 1 0 * * ?", zone = "${monetization.billing.billing-timezone}")
     public void resetExpiredQuotas() {
         log.info("=== Starting quota reset job ===");
         Instant startTime = Instant.now();
@@ -48,7 +45,7 @@ public class QuotaResetScheduler {
 
             do {
                 Pageable pageable = PageRequest.of(page, BATCH_SIZE);
-                quotaPage = quotaRepository.findQuotasToResetPaginated(now, pageable);
+                quotaPage = quotaManagementService.findQuotasToResetPaginated(now, pageable);
 
                 if (quotaPage.hasContent()) {
                     log.info("Processing batch {}/{} - {} quotas",
@@ -83,7 +80,7 @@ public class QuotaResetScheduler {
         for (UserTokenQuota quota : quotas) {
             try {
                 // Each reset in separate transaction
-                tokenUsageService.resetQuota(quota);
+                quotaManagementService.resetQuota(quota);
                 successCount.incrementAndGet();
 
                 log.debug("Reset quota for userId: {}", quota.getUserId());

@@ -2,7 +2,8 @@ package com.ayushsingh.doc_helper.config.ai.advisors;
 
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.TokenUsageDto;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.ChatOperationType;
-import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.UsageRecordingService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
 
     public static final String ID = "id";
-    private final TokenUsageService tokenUsageService;
+    private final UsageRecordingService usageRecordingService;
 
     @Override
     public int getOrder() {
@@ -209,7 +210,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                 .durationMs(duration.toMillis())
                 .build();
 
-        tokenUsageService.recordTokenUsage(usageDTO);
+        usageRecordingService.recordTokenUsage(usageDTO);
 
         log.info(
                 "Successfully persisted token usage: userId={}, tokens={}, messageId={}",

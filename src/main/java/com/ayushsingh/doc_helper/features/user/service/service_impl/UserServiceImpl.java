@@ -3,7 +3,6 @@ package com.ayushsingh.doc_helper.features.user.service.service_impl;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,6 +12,7 @@ import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.commons.utility.EmailUtils;
 import com.ayushsingh.doc_helper.config.security.UserContext;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
 import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
 import com.ayushsingh.doc_helper.features.user.entity.Role;
@@ -23,26 +23,19 @@ import com.ayushsingh.doc_helper.features.user.repository.UserRepository;
 import com.ayushsingh.doc_helper.features.user.service.RoleService;
 import com.ayushsingh.doc_helper.features.user.service.UserService;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
-    private final TokenUsageService tokenUsageService;
-
-    public UserServiceImpl(UserRepository userRepository, RoleService roleService, ModelMapper modelMapper,
-            PasswordEncoder passwordEncoder, TokenUsageService tokenUsageService) {
-        this.userRepository = userRepository;
-        this.modelMapper = modelMapper;
-        this.roleService = roleService;
-        this.passwordEncoder = passwordEncoder;
-        this.tokenUsageService = tokenUsageService;
-    }
+    private final QuotaManagementService quotaManagementService;
 
     @Override
     public User findByFirebaseUid(String firebaseUid) {
@@ -76,7 +69,7 @@ public class UserServiceImpl implements UserService {
         user.setUserRoles(userRoles);
         user.setPassword(this.passwordEncoder.encode(userCreateDto.getPassword()));
         var savedUser = this.userRepository.save(user);
-        this.tokenUsageService.createDefaultQuota(savedUser.getId());
+        this.quotaManagementService.createDefaultQuota(savedUser.getId());
         log.info("User created ...");
 
         return this.modelMapper.map(savedUser, UserDetailsDto.class);

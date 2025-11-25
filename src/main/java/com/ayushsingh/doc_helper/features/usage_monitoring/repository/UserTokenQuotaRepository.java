@@ -42,7 +42,7 @@ public interface UserTokenQuotaRepository extends JpaRepository<UserTokenQuota, 
         AND q.isActive = true
         AND q.resetDate > :now
       """)
-  int tryConsumeTokens(@Param("userId") Long userId,
+  int incrementUsageIfActiveAndInPeriod(@Param("userId") Long userId,
       @Param("tokensToUse") Long tokensToUse,
       @Param("now") Instant now);
 

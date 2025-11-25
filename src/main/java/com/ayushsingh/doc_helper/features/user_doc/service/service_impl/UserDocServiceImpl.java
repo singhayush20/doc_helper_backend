@@ -7,7 +7,7 @@ import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 import com.ayushsingh.doc_helper.features.doc_util.DocService;
 import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
 import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
-import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
@@ -17,6 +17,7 @@ import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 import com.ayushsingh.doc_helper.features.user_doc.service.UserDocService;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,7 @@ import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDo
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserDocServiceImpl implements UserDocService {
 
     private final DocService docService;
@@ -43,40 +45,30 @@ public class UserDocServiceImpl implements UserDocService {
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "text/plain",
-            "application/octet-stream"
-    );
-    private static final long MIN_EMBED_TOKENS = 5_000L;
-    private final TokenUsageService tokenUsageService;
+            "application/octet-stream");
+    private final QuotaManagementService tokenUsageService;
 
     private static final Duration SEARCH_CACHE_TTL = Duration.ofMinutes(2);
 
-    public UserDocServiceImpl(
-            DocService docService,
-            UserDocRepository userDocRepository,
-            EmbeddingService embeddingService,
-            ChatService chatService,
-            TokenUsageService tokenUsageService,
-            RedisTemplate<String, Object> redisTemplate) {
-        this.docService = docService;
-        this.userDocRepository = userDocRepository;
-        this.embeddingService = embeddingService;
-        this.chatService = chatService;
-        this.redisTemplate = redisTemplate;
-        this.tokenUsageService = tokenUsageService;
-    }
-
     @Override
     public FileUploadResponse uploadDocument(MultipartFile file) {
-        // TODO: Make the token check more robust- find a way to estimate tokens before saving in this layer
-        // Use the embedding service's token estimator for this
         var savedFileInfo = saveFile(file);
         final var authUser = UserContext.getCurrentUser();
-        tokenUsageService.checkAndEnforceQuota(authUser.getUser().getId(), MIN_EMBED_TOKENS);
+
+        Resource resource = docService.loadFileAsResource(savedFileInfo.storedFileName());
+
+        Long estimatedTokens = embeddingService.estimateEmbeddingTokens(resource);
+
+        tokenUsageService.checkAndEnforceQuota(
+                authUser.getUser().getId(),
+                estimatedTokens);
 
         var savedFile = saveFileInfo(savedFileInfo, authUser.getUser());
 
-        Resource resource = docService.loadFileAsResource(savedFileInfo.storedFileName());
-        embeddingService.generateAndStoreEmbeddings(savedFile.getId(), authUser.getUser().getId(), resource);
+        embeddingService.generateAndStoreEmbeddings(
+                savedFile.getId(),
+                authUser.getUser().getId(),
+                resource);
 
         clearUserSearchCache(authUser.getUser().getId());
 
@@ -197,7 +189,8 @@ public class UserDocServiceImpl implements UserDocService {
             result = userDocRepository.searchByOriginalFilenameFuzzy(userId, normalizedQuery, pageable);
         }
 
-        // Build DTO from Page and cache the DTO (not the Page, which lacks a default constructor)
+        // Build DTO from Page and cache the DTO (not the Page, which lacks a default
+        // constructor)
         var searchResponse = new UserDocDetailsListDto();
         if (result != null) {
             searchResponse.setUserDocs(result.getContent());

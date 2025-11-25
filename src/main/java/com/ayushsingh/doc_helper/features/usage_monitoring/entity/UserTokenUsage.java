@@ -6,8 +6,10 @@ import java.time.Instant;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
@@ -17,7 +19,8 @@ import org.hibernate.annotations.CreationTimestamp;
         @Index(name = "idx_created_at", columnList = "created_at"),
         @Index(name = "idx_thread_id", columnList = "thread_id")
 })
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,10 +36,10 @@ public class UserTokenUsage {
     @Column(name = "document_id")
     private Long documentId;
 
-    @Column(name = "thread_id")
+    @Column(name = "thread_id", length = 255)
     private String threadId;
 
-    @Column(name = "message_id")
+    @Column(name = "message_id", length = 255)
     private String messageId;
 
     @Column(name = "prompt_tokens", nullable = false)
@@ -51,8 +54,8 @@ public class UserTokenUsage {
     @Column(name = "model_name", length = 100)
     private String modelName;
 
-    @Column(name = "operation_type", length = 50)
     @Enumerated(EnumType.STRING)
+    @Column(name = "operation_type", length = 50, nullable = false)
     private ChatOperationType operationType;
 
     @Column(name = "document_chunks")
@@ -64,7 +67,7 @@ public class UserTokenUsage {
     @Column(name = "duration_ms")
     private Long durationMs;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 }

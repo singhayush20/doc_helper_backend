@@ -6,8 +6,10 @@ import jakarta.persistence.*;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -18,10 +20,11 @@ import com.ayushsingh.doc_helper.features.user.entity.User;
         @Index(name = "idx_quota_user_id", columnList = "user_id", unique = true),
         @Index(name = "idx_quota_reset_date", columnList = "reset_date")
 })
-@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class UserTokenQuota {
 
     @Id
