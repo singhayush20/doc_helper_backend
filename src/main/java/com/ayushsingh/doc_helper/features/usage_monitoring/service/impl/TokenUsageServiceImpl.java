@@ -4,6 +4,7 @@ import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.config.security.UserContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.BillingConfig;
+import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PlanConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PricingConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.*;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.AccountTier;
@@ -38,19 +39,23 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         private final UserTokenQuotaRepository quotaRepository;
         private final PricingConfig pricingConfig;
         private final BillingConfig billingConfig;
+        private final PlanConfig planConfig;
 
         public TokenUsageServiceImpl(UserTokenUsageRepository usageRepository,
                         UserTokenQuotaRepository quotaRepository,
                         PricingConfig pricingConfig,
-                        BillingConfig billingConfig) {
+                        BillingConfig billingConfig,
+                        PlanConfig planConfig) {
                 this.usageRepository = usageRepository;
                 this.quotaRepository = quotaRepository;
                 this.billingConfig = billingConfig;
                 this.pricingConfig = pricingConfig;
+                this.planConfig = planConfig;
         }
 
         /**
          * Record token usage for a user.
+         * Single atomic path for quota consumption (tryConsumeTokens).
          */
         @Transactional
         @Override
@@ -58,17 +63,15 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                 Long userId = usageDTO.getUserId();
                 Long tokensToUse = usageDTO.getTotalTokens();
 
-                log.debug("Recording token usage for userId: {}, tokens: {}",
-                                userId, tokensToUse);
+                log.debug("Recording token usage for userId: {}, tokens: {}", userId, tokensToUse);
 
                 Instant now = Instant.now();
 
                 int updatedRows = quotaRepository.tryConsumeTokens(userId, tokensToUse, now);
                 if (updatedRows == 0) {
-                        log.warn("Quota consumption failed for userId={}, tokens={}", userId, tokensToUse);
-                        throw new BaseException(
-                                        "Monthly token quota exceeded or account inactive",
-                                        ExceptionCodes.QUOTA_EXCEEDED);
+                        log.warn("Failed to increment quota row for userId={}, tokens={}. " +
+                                        "Row may be inactive or out of billing period. " +
+                                        "Usage will still be logged.", userId, tokensToUse);
                 }
 
                 BigDecimal cost = usageDTO.getEstimatedCost();
@@ -130,10 +133,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         }
 
         /**
-         * Update user's token quota.
-         * WARNING: this is intended for admin/manual adjustments only.
-         * Normal request-path consumption MUST go through recordTokenUsage
-         * (tryConsumeTokens).
+         * Admin/manual adjustment only.
          */
         @Transactional
         @Override
@@ -143,9 +143,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                 quotaRepository.incrementUsage(userId, tokensUsed);
         }
 
-        /**
-         * Get current user quota or throw if missing.
-         */
         @Override
         public UserTokenQuota getCurrentUserQuota(Long userId) {
                 return quotaRepository.findByUserId(userId)
@@ -155,8 +152,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         }
 
         /**
-         * Create default quota for new user.
-         * Called on user onboarding.
+         * Create default quota for new user
          */
         @Transactional
         public UserTokenQuota createDefaultQuota(Long userId) {
@@ -164,9 +160,13 @@ public class TokenUsageServiceImpl implements TokenUsageService {
 
                 Instant resetDate = getNextMonthStart();
 
+                // Use plan config for FREE tier default monthly limit
+                PlanConfig.PlanLimits freeLimits = planConfig.getLimits(AccountTier.FREE);
+                Long monthlyLimit = freeLimits.getMonthlyTokenLimit();
+
                 UserTokenQuota quota = UserTokenQuota.builder()
                                 .userId(userId)
-                                .monthlyLimit(billingConfig.getDefaultMonthlyLimit())
+                                .monthlyLimit(monthlyLimit)
                                 .currentMonthlyUsage(0L)
                                 .resetDate(resetDate)
                                 .tier(AccountTier.FREE)
@@ -209,7 +209,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         }
 
         /**
-         * Calculate cost based on token usage.
+         * Calculate cost based on token usage
          */
         private BigDecimal calculateCost(String modelName, Long promptTokens,
                         Long completionTokens) {
@@ -227,10 +227,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                 return inputCost.add(outputCost).setScale(6, RoundingMode.HALF_UP);
         }
 
-        /**
-         * Get current month usage for user.
-         * Read-only.
-         */
         @Transactional(readOnly = true)
         @Override
         public Long getCurrentMonthUsage(Long userId) {
@@ -238,9 +234,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                 return quota.getCurrentMonthlyUsage();
         }
 
-        /**
-         * Get user quota information for UI.
-         */
         @Transactional(readOnly = true)
         @Override
         public QuotaInfoResponse getUserQuotaInfo(Long userId) {
@@ -264,9 +257,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                                 .build();
         }
 
-        /**
-         * Get usage history with pagination.
-         */
         @Transactional(readOnly = true)
         @Override
         public Page<UserTokenUsage> getUserUsageHistory(Pageable pageable) {
@@ -274,9 +264,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                 return usageRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
         }
 
-        /**
-         * Get usage for specific document.
-         */
         @Transactional(readOnly = true)
         @Override
         public Page<UserTokenUsage> getDocumentUsageHistory(Long documentId,
@@ -287,9 +274,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                                 userId, documentId, pageable);
         }
 
-        /**
-         * Get daily usage summary for the last N days.
-         */
         @Transactional(readOnly = true)
         @Override
         public DailyUsageSummaryResponse getDailyUsageSummaryForDays(int days) {
@@ -334,9 +318,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                                 projection.getRequestCount());
         }
 
-        /**
-         * Calculate totals from daily summaries.
-         */
         private UsageTotals calculateTotals(List<DailyUsageSummary> summaries) {
                 Long totalTokens = summaries.stream()
                                 .mapToLong(DailyUsageSummary::getTotalTokens)
@@ -357,22 +338,15 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                                 .build();
         }
 
-        /**
-         * Get total cost for user in date range.
-         */
         @Transactional(readOnly = true)
         @Override
         public BigDecimal getTotalCost(Long userId, Instant startDate) {
                 return usageRepository.sumCostForUserSince(userId, startDate);
         }
 
-        /**
-         * Update user tier (for upgrades/downgrades).
-         */
         @Transactional
         @Override
         public void updateUserTier(Long userId, String newTier, Long newLimit) {
-                // TODO: Design account upgradation logic
                 log.error("Account upgradation not implemented!");
 
                 throw new BaseException(
@@ -380,9 +354,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                                 ExceptionCodes.ACCOUNT_UPGRADATION_FAILURE);
         }
 
-        /**
-         * Get usage breakdown by operation type (chat vs embedding).
-         */
         @Transactional(readOnly = true)
         @Override
         public UsageBreakdown getUsageBreakdown(Long userId) {
@@ -394,9 +365,6 @@ public class TokenUsageServiceImpl implements TokenUsageService {
                 return buildUsageBreakdown(projections);
         }
 
-        /**
-         * Get usage breakdown for a specific date range.
-         */
         @Transactional(readOnly = true)
         @Override
         public UsageBreakdown getUsageBreakdownByDateRange(Long userId,

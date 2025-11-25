@@ -166,7 +166,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
         }
     }
 
-    private Long estimateTotalTokens(List<String> chunkTexts) {
+    public Long estimateTotalTokens(List<String> chunkTexts) {
         return chunkTexts.stream().mapToLong(text -> {
             try {
                 return tokenEstimator.estimate(text);

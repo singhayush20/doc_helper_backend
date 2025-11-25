@@ -9,4 +9,6 @@ import lombok.*;
 @Builder
 public class ChatCallResponse {
     private String message;
+    private String errorMessage;
+    private String errorCode;
 }

@@ -30,4 +30,5 @@ public final class ExceptionCodes {
     public static final String ACCOUNT_UPGRADATION_FAILURE = "E0022";
     public static final String EMAIL_FAILURE = "E0023";
     public static final String EMAIL_NOT_VERIFIED = "E0024";
+    public static final String UNKNOWN_MESSAGE_STREAM_ERROR = "E0025";
 }

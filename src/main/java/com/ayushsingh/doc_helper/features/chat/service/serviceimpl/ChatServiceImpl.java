@@ -59,7 +59,7 @@ public class ChatServiceImpl implements ChatService {
         private final LoggingAdvisor loggingAdvisor;
         private final WebSearchTool webSearchTool;
         private final TokenUsageService tokenUsageService;
-        private final static Long DEFAULT_TOKEN_THRESHOLD = 5000L;
+        private final static Long DEFAULT_TOKEN_THRESHOLD = 6800L;
         private final ChatCancellationRegistry chatCancellationRegistry;
         private final ThreadTurnService threadTurnService;
 
