@@ -11,7 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Configuration
-@ConfigurationProperties(prefix = "monetization.pricing")
+@ConfigurationProperties(prefix = "monetization.model-costs")
 @Getter
 @Setter
 public class PricingConfig {

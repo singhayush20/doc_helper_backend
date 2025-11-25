@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.config.ai.ChatCancellationRegistry;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatCallResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatHistoryResponse;
@@ -47,14 +49,17 @@ public class ChatController {
 
                 Flux<ServerSentEvent<ChatCallResponse>> messageEvents = chatService
                                 .generateStreamingResponse(request, webSearch, generationId)
-                                .map(chunk -> buildSse(MessageEvent.MESSAGE.toString(), new ChatCallResponse(chunk)));
+                                .map(chunk -> buildSse(MessageEvent.MESSAGE.toString(),
+                                                new ChatCallResponse(chunk, null, null)));
 
-                ServerSentEvent<ChatCallResponse> doneEvent = buildSse(MessageEvent.DONE.toString(), new ChatCallResponse());
+                ServerSentEvent<ChatCallResponse> doneEvent = buildSse(MessageEvent.DONE.toString(),
+                                new ChatCallResponse());
 
                 return messageEvents
                                 .concatWith(Flux.just(doneEvent))
                                 .onErrorResume(ex -> Flux.just(
-                                                buildSse(MessageEvent.ERROR.toString(), buildSafeErrorResponse(ex, generationId))));
+                                                buildSse(MessageEvent.ERROR.toString(),
+                                                                buildSafeErrorResponse(ex, generationId))));
         }
 
         private ServerSentEvent<ChatCallResponse> buildSse(
@@ -71,7 +76,13 @@ public class ChatController {
                 log.error("Error occured in response stream for generation id: {} error: {}", generationId,
                                 ex.getMessage());
                 String message = "An error occurred while processing your request.";
-                return ChatCallResponse.builder().message(message).build();
+                if (ex instanceof BaseException) {
+                        message = ((BaseException) ex).getMessage();
+                        var code = ((BaseException) ex).getCode();
+                        return ChatCallResponse.builder().errorMessage(message).errorCode(code).build();
+                }
+                return ChatCallResponse.builder().errorMessage(message)
+                                .errorCode(ExceptionCodes.UNKNOWN_MESSAGE_STREAM_ERROR).build();
         }
 
         @PostMapping(path = "/doc-question/stream/cancel")

@@ -7,6 +7,7 @@ import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 import com.ayushsingh.doc_helper.features.doc_util.DocService;
 import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
 import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
+import com.ayushsingh.doc_helper.features.usage_monitoring.service.TokenUsageService;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
@@ -44,6 +45,8 @@ public class UserDocServiceImpl implements UserDocService {
             "text/plain",
             "application/octet-stream"
     );
+    private static final long MIN_EMBED_TOKENS = 5_000L;
+    private final TokenUsageService tokenUsageService;
 
     private static final Duration SEARCH_CACHE_TTL = Duration.ofMinutes(2);
 
@@ -52,18 +55,24 @@ public class UserDocServiceImpl implements UserDocService {
             UserDocRepository userDocRepository,
             EmbeddingService embeddingService,
             ChatService chatService,
+            TokenUsageService tokenUsageService,
             RedisTemplate<String, Object> redisTemplate) {
         this.docService = docService;
         this.userDocRepository = userDocRepository;
         this.embeddingService = embeddingService;
         this.chatService = chatService;
         this.redisTemplate = redisTemplate;
+        this.tokenUsageService = tokenUsageService;
     }
 
     @Override
     public FileUploadResponse uploadDocument(MultipartFile file) {
+        // TODO: Make the token check more robust- find a way to estimate tokens before saving in this layer
+        // Use the embedding service's token estimator for this
         var savedFileInfo = saveFile(file);
         final var authUser = UserContext.getCurrentUser();
+        tokenUsageService.checkAndEnforceQuota(authUser.getUser().getId(), MIN_EMBED_TOKENS);
+
         var savedFile = saveFileInfo(savedFileInfo, authUser.getUser());
 
         Resource resource = docService.loadFileAsResource(savedFileInfo.storedFileName());
