@@ -21,7 +21,6 @@ import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 import com.ayushsingh.doc_helper.features.chat.service.ThreadTurnService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
-import com.ayushsingh.doc_helper.features.usage_monitoring.service.UsageRecordingService;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +58,6 @@ public class ChatServiceImpl implements ChatService {
         private final MongoTemplate mongoTemplate;
         private final LoggingAdvisor loggingAdvisor;
         private final WebSearchTool webSearchTool;
-        private final UsageRecordingService usageRecordingService;
         private final QuotaManagementService quotaManagementService;
         private final static Long DEFAULT_TOKEN_THRESHOLD = 6800L;
         private final ChatCancellationRegistry chatCancellationRegistry;
