@@ -25,55 +25,20 @@ public class PricingConfig {
         private BigDecimal outputCostPer1k;
     }
 
-    /**
-     * Get input cost for a model, returns default if not found
-     */
     public BigDecimal getInputCost(String modelName) {
-        if (modelName == null) {
-            return getDefaultInputCost();
-        }
-
-        ModelPricing pricing = models.get(modelName);
-        if (pricing != null && pricing.getInputCostPer1k() != null) {
-            return pricing.getInputCostPer1k();
-        }
-
-        return getDefaultInputCost();
+        return resolvePricing(modelName).getInputCostPer1k();
     }
 
-    /**
-     * Get output cost for a model, returns default if not found
-     */
     public BigDecimal getOutputCost(String modelName) {
-        if (modelName == null) {
-            return getDefaultOutputCost();
-        }
-
-        ModelPricing pricing = models.get(modelName);
-        if (pricing != null && pricing.getOutputCostPer1k() != null) {
-            return pricing.getOutputCostPer1k();
-        }
-
-        return getDefaultOutputCost();
+        return resolvePricing(modelName).getOutputCostPer1k();
     }
 
-    /**
-     * Get default input cost
-     */
-    private BigDecimal getDefaultInputCost() {
-        ModelPricing defaultPricing = models.get("default");
-        return defaultPricing != null && defaultPricing.getInputCostPer1k() != null
-                ? defaultPricing.getInputCostPer1k()
-                : BigDecimal.valueOf(0.01);
-    }
-
-    /**
-     * Get default output cost
-     */
-    private BigDecimal getDefaultOutputCost() {
-        ModelPricing defaultPricing = models.get("default");
-        return defaultPricing != null && defaultPricing.getOutputCostPer1k() != null
-                ? defaultPricing.getOutputCostPer1k()
-                : BigDecimal.valueOf(0.02);
+    private ModelPricing resolvePricing(String modelName) {
+        String key = (modelName != null) ? modelName : "default";
+        ModelPricing pricing = models.getOrDefault(key, models.get("default"));
+        if (pricing == null) {
+            throw new IllegalStateException("No pricing configured for model '" + key + "' and no 'default' pricing");
+        }
+        return pricing;
     }
 }

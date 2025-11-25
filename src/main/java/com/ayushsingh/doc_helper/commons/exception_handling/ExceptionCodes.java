@@ -31,4 +31,5 @@ public final class ExceptionCodes {
     public static final String EMAIL_FAILURE = "E0023";
     public static final String EMAIL_NOT_VERIFIED = "E0024";
     public static final String UNKNOWN_MESSAGE_STREAM_ERROR = "E0025";
+    public static final String DOCUMENT_PARSING_FAILED = "E0026";
 }
