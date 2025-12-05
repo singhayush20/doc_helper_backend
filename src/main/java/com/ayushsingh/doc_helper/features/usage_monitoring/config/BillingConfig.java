@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.usage_monitoring.cofig;
+package com.ayushsingh.doc_helper.features.usage_monitoring.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

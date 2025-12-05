@@ -1,6 +1,6 @@
 package com.ayushsingh.doc_helper.features.usage_monitoring.service.service_impl;
 
-import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PricingConfig;
+import com.ayushsingh.doc_helper.features.usage_monitoring.config.PricingConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.TokenUsageDto;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenUsage;
 import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;
