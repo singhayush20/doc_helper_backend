@@ -7,6 +7,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import com.ayushsingh.doc_helper.features.payments.config.PaymentGatewayConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.BillingConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PlanConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PricingConfig;
@@ -15,7 +16,7 @@ import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PricingConfig;
 @EnableCaching
 @EnableMongoAuditing
 @EnableScheduling
-@EnableConfigurationProperties({ BillingConfig.class, PricingConfig.class, PlanConfig.class })
+@EnableConfigurationProperties({ BillingConfig.class, PricingConfig.class, PlanConfig.class, PaymentGatewayConfig.class })
 public class DocHelperApplication {
 
 	public static void main(String[] args) {

@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
-import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.config.ai.ChatCancellationRegistry;
+import com.ayushsingh.doc_helper.core.ai.ChatCancellationRegistry;
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatCallResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatHistoryResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatRequest;

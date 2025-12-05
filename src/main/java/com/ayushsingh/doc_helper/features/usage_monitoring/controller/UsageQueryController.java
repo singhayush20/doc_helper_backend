@@ -1,6 +1,6 @@
 package com.ayushsingh.doc_helper.features.usage_monitoring.controller;
 
-import com.ayushsingh.doc_helper.config.security.UserContext;
+import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.BillingConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.DailyUsageSummaryResponse;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.QuotaInfoResponse;

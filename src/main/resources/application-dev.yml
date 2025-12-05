@@ -134,3 +134,9 @@ monetization:
       monthly-token-limit: 1000000
       max-documents: 100
 
+payment:
+  gateway:
+    secret-key: ${RAZORPAY_KEY_SECRET}
+    key-id: ${RAZORPAY_KEY_ID}
+
+
