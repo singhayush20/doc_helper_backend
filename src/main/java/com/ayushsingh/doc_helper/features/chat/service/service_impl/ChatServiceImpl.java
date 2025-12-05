@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.chat.service.serviceimpl;
+package com.ayushsingh.doc_helper.features.chat.service.service_impl;
 
 import com.ayushsingh.doc_helper.core.ai.ChatCancellationRegistry;
 import com.ayushsingh.doc_helper.core.ai.advisors.LoggingAdvisor;

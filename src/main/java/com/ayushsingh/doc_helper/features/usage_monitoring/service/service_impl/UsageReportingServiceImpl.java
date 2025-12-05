@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.usage_monitoring.service.impl;
+package com.ayushsingh.doc_helper.features.usage_monitoring.service.service_impl;
 
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.*;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.ChatOperationType;
