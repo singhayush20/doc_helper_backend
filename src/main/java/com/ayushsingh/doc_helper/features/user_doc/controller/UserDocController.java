@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
-import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.UserDocDetailsListDto;

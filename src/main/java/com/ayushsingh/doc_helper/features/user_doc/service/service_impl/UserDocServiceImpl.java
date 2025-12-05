@@ -1,8 +1,8 @@
 package com.ayushsingh.doc_helper.features.user_doc.service.service_impl;
 
-import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
-import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.config.security.UserContext;
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 import com.ayushsingh.doc_helper.features.doc_util.DocService;
 import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;

@@ -1,12 +1,12 @@
 package com.ayushsingh.doc_helper.features.chat.service.serviceimpl;
 
-import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
-import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.config.ai.ChatCancellationRegistry;
-import com.ayushsingh.doc_helper.config.ai.advisors.LoggingAdvisor;
-import com.ayushsingh.doc_helper.config.ai.prompts.PromptTemplates;
-import com.ayushsingh.doc_helper.config.ai.tools.websearch.WebSearchTool;
-import com.ayushsingh.doc_helper.config.security.UserContext;
+import com.ayushsingh.doc_helper.core.ai.ChatCancellationRegistry;
+import com.ayushsingh.doc_helper.core.ai.advisors.LoggingAdvisor;
+import com.ayushsingh.doc_helper.core.ai.prompts.PromptTemplates;
+import com.ayushsingh.doc_helper.core.ai.tools.websearch.WebSearchTool;
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatCallResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatHistoryResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatMessageResponse;

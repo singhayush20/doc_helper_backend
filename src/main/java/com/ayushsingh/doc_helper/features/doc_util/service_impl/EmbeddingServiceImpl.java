@@ -1,7 +1,7 @@
 package com.ayushsingh.doc_helper.features.doc_util.service_impl;
 
-import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
-import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.EmbeddingUsageService;
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;

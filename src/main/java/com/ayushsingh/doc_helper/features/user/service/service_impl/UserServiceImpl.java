@@ -8,10 +8,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ayushsingh.doc_helper.commons.exception_handling.ExceptionCodes;
-import com.ayushsingh.doc_helper.commons.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.commons.utility.EmailUtils;
-import com.ayushsingh.doc_helper.config.security.UserContext;
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.core.security.UserContext;
+import com.ayushsingh.doc_helper.core.utils.EmailUtils;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
 import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
