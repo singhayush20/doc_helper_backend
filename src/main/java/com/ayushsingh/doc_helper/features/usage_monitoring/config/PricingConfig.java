@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.usage_monitoring.cofig;
+package com.ayushsingh.doc_helper.features.usage_monitoring.config;
 
 import java.math.BigDecimal;
 import java.util.HashMap;

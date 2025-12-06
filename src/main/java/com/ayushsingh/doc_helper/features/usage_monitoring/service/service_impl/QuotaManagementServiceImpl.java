@@ -2,8 +2,8 @@ package com.ayushsingh.doc_helper.features.usage_monitoring.service.service_impl
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.BillingConfig;
-import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PlanConfig;
+import com.ayushsingh.doc_helper.features.usage_monitoring.config.BillingConfig;
+import com.ayushsingh.doc_helper.features.usage_monitoring.config.PlanConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.AccountTier;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
 import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;

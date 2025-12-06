@@ -8,9 +8,10 @@ import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.ayushsingh.doc_helper.features.payments.config.PaymentGatewayConfig;
-import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.BillingConfig;
-import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PlanConfig;
-import com.ayushsingh.doc_helper.features.usage_monitoring.cofig.PricingConfig;
+import com.ayushsingh.doc_helper.features.usage_monitoring.config.BillingConfig;
+import com.ayushsingh.doc_helper.features.usage_monitoring.config.PlanConfig;
+import com.ayushsingh.doc_helper.features.usage_monitoring.config.PricingConfig;
+
 
 @SpringBootApplication
 @EnableCaching
