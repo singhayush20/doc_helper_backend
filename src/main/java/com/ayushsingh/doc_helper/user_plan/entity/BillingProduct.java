@@ -46,6 +46,9 @@ public class BillingProduct {
     @Column(name = "active", nullable = false)
     private boolean active;
 
+    @Column(name = "monthly_token_limit", nullable = false)
+    private Long monthlyTokenLimit;
+
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, orphanRemoval = false, cascade = { CascadeType.PERSIST,
             CascadeType.MERGE, CascadeType.REFRESH })
     private Set<BillingPrice> billingPrices;
