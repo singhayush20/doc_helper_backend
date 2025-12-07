@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RazorPayConfig {
 
-    private final PaymentGatewayConfig paymentGatewayConfig;
+    private final RazorpayProperties paymentGatewayConfig;
 
     RazorpayClient getRazorpayClient() throws RazorpayException {
         return new RazorpayClient(paymentGatewayConfig.getSecretKey(), paymentGatewayConfig.getKeyId());

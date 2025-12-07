@@ -12,7 +12,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class PaymentGatewayConfig {
+public class RazorpayProperties {
     private final String keyId;
     private final String secretKey;
+    private String webhookSecret;
 }

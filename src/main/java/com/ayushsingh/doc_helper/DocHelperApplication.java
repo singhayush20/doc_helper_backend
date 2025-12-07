@@ -7,7 +7,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import com.ayushsingh.doc_helper.features.payments.config.PaymentGatewayConfig;
+import com.ayushsingh.doc_helper.features.payments.config.RazorpayProperties;
 import com.ayushsingh.doc_helper.features.usage_monitoring.config.BillingConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.config.PlanConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.config.PricingConfig;
@@ -17,7 +17,7 @@ import com.ayushsingh.doc_helper.features.usage_monitoring.config.PricingConfig;
 @EnableCaching
 @EnableMongoAuditing
 @EnableScheduling
-@EnableConfigurationProperties({ BillingConfig.class, PricingConfig.class, PlanConfig.class, PaymentGatewayConfig.class })
+@EnableConfigurationProperties({ BillingConfig.class, PricingConfig.class, PlanConfig.class, RazorpayProperties.class })
 public class DocHelperApplication {
 
 	public static void main(String[] args) {

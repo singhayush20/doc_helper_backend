@@ -4,10 +4,11 @@ import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.usage_monitoring.config.BillingConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.config.PlanConfig;
-import com.ayushsingh.doc_helper.features.usage_monitoring.entity.AccountTier;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
 import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
+import com.ayushsingh.doc_helper.user_plan.entity.AccountTier;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
