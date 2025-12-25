@@ -11,9 +11,14 @@ import java.util.Optional;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
+    // Webhook → Update subscription from Razorpay
     Optional<Subscription> findByProviderSubscriptionId(String providerSubscriptionId);
 
+    // Get latest active subscription for user
     Optional<Subscription> findFirstByUserAndStatusInOrderByCreatedAtDesc(
             User user,
             List<SubscriptionStatus> statuses);
+
+    // Get all user subscriptions (for history)
+    List<Subscription> findByUserOrderByCreatedAtDesc(User user);
 }

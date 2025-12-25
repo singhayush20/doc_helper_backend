@@ -28,7 +28,6 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     private final PaymentProviderClient paymentProviderClient;
     private final PaymentProviderEventLogRepository eventLogRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final BillingPriceRepository billingPriceRepository;
     private final QuotaManagementService quotaManagementService;
 
     @Override

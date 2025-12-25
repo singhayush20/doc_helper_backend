@@ -4,8 +4,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.ayushsingh.doc_helper.user_plan.entity.BillingProduct;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface BillingProductRepository extends JpaRepository<BillingProduct, Long> {
+
     Optional<BillingProduct> findByCodeAndActiveTrue(String code);
+
+    Optional<BillingProduct> findByCode(String code);
+
+    List<BillingProduct> findAllByActiveTrue();
+
+    List<BillingProduct> findByActiveTrue();
 }
