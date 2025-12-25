@@ -1,5 +1,10 @@
 package com.ayushsingh.doc_helper.features.payments.service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
+import com.ayushsingh.doc_helper.features.payments.entity.PaymentStatus;
+import com.ayushsingh.doc_helper.features.payments.entity.PaymentType;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 
@@ -25,4 +30,20 @@ public interface PaymentProviderClient {
 
     // Extract provider subscription id from a given event payload
     String extractSubscriptionId(String payload);
+
+    String extractPaymentId(String payload);
+
+    BigDecimal extractPaymentAmount(String payload);
+
+    String extractPaymentCurrency(String payload);
+
+    PaymentStatus extractPaymentStatus(String eventType);
+
+    PaymentType extractPaymentType(String eventType);
+
+    Long extractUserIdFromNotes(String payload);
+
+    Long extractSubscriptionIdFromNotes(String payload);
+
+    Instant extractEventTime(String payload);
 }

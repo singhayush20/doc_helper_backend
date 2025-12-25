@@ -3,6 +3,8 @@ package com.ayushsingh.doc_helper.features.payments.service.service_impl;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.payments.config.RazorpayProperties;
+import com.ayushsingh.doc_helper.features.payments.entity.PaymentStatus;
+import com.ayushsingh.doc_helper.features.payments.entity.PaymentType;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
@@ -16,6 +18,9 @@ import com.razorpay.Utils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.math.BigDecimal;
+import java.time.Instant;
 
 import org.json.JSONObject;
 import org.springframework.stereotype.Component;
@@ -155,4 +160,76 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
                     ExceptionCodes.PAYMENT_PROVIDER_ERROR);
         }
     }
+
+    @Override
+    public String extractPaymentId(String payload) {
+        return new JSONObject(payload)
+                .getJSONObject("payload")
+                .getJSONObject("payment")
+                .getJSONObject("entity")
+                .getString("id");
+    }
+
+    @Override
+    public BigDecimal extractPaymentAmount(String payload) {
+        long amountPaise = new JSONObject(payload)
+                .getJSONObject("payload")
+                .getJSONObject("payment")
+                .getJSONObject("entity")
+                .getLong("amount");
+
+        return BigDecimal.valueOf(amountPaise)
+                .divide(BigDecimal.valueOf(100));
+    }
+
+    @Override
+    public String extractPaymentCurrency(String payload) {
+        return new JSONObject(payload)
+                .getJSONObject("payload")
+                .getJSONObject("payment")
+                .getJSONObject("entity")
+                .getString("currency");
+    }
+
+    @Override
+    public PaymentStatus extractPaymentStatus(String eventType) {
+        return eventType.equals("payment.captured")
+                ? PaymentStatus.SUCCEEDED
+                : PaymentStatus.FAILED;
+    }
+
+    @Override
+    public PaymentType extractPaymentType(String eventType) {
+        return eventType.contains("refund")
+                ? PaymentType.REFUND
+                : PaymentType.SUBSCRIPTION;
+    }
+
+    @Override
+    public Long extractUserIdFromNotes(String payload) {
+        return new JSONObject(payload)
+                .getJSONObject("payload")
+                .getJSONObject("payment")
+                .getJSONObject("entity")
+                .getJSONObject("notes")
+                .optLong("userId");
+    }
+
+    @Override
+    public Long extractSubscriptionIdFromNotes(String payload) {
+        return new JSONObject(payload)
+                .getJSONObject("payload")
+                .getJSONObject("payment")
+                .getJSONObject("entity")
+                .getJSONObject("notes")
+                .optLong("subscriptionId");
+    }
+
+    @Override
+    public Instant extractEventTime(String payload) {
+        long epoch = new JSONObject(payload)
+                .getLong("created_at");
+        return Instant.ofEpochSecond(epoch);
+    }
+
 }
