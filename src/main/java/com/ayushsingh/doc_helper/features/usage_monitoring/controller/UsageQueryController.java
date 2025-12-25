@@ -88,7 +88,7 @@ public class UsageQueryController {
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<Long> getCurrentMonthUsage() {
         Long userId = UserContext.getCurrentUser().getUser().getId();
-        Long usage = quotaManagementService.getCurrentMonthUsage(userId);
+        Long usage = quotaManagementService.getCurrentMonthlyUsage(userId);
         return ResponseEntity.ok(usage);
     }
 

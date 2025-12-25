@@ -37,4 +37,7 @@ public final class ExceptionCodes {
     public static final String SUBSCRIPTION_ALREADY_EXISTS = "E0029";
     public static final String SUBSCRIPTION_INVALID_STATE = "E0030";
     public static final String SUBSCRIPTION_ALREADY_CANCELLED = "E0031";
+    public static final String PRICE_NOT_FOUND = "E0032";
+    public static final String INVALID_WEBHOOK_SIGNATURE = "E0033";
+    public static final String PAYMENT_PROVIDER_ERROR = "EOO34";
 }

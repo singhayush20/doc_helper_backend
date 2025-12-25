@@ -8,19 +8,25 @@ import org.springframework.data.domain.Pageable;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
 
 public interface QuotaManagementService {
+
+    // ---------- Runtime enforcement ----------
     void checkAndEnforceQuota(Long userId, Long tokensToUse);
 
-    void updateUserQuota(Long userId, Long tokensUsed);
+    void incrementUsage(Long userId, Long tokensUsed);
 
-    UserTokenQuota getCurrentUserQuota(Long userId);
+    UserTokenQuota getQuota(Long userId);
 
-    Long getCurrentMonthUsage(Long userId);
+    Long getCurrentMonthlyUsage(Long userId);
 
-    UserTokenQuota createDefaultQuota(Long userId);
+    // ---------- Subscription driven ----------
+    void applySubscriptionQuota(Long userId, Long monthlyTokenLimit);
 
-    void resetQuota(UserTokenQuota quota);
+    void resetQuotaForNewBillingCycle(Long userId);
 
-    void updateUserTier(Long userId, String newTier, Long newLimit);
+    void deactivateQuota(Long userId);
 
-    Page<UserTokenQuota> findQuotasToResetPaginated(Instant instant, Pageable pageable);
+    // ---------- System ----------
+    UserTokenQuota createInitialQuota(Long userId);
+
+    Page<UserTokenQuota> findQuotasToResetPaginated(Instant now, Pageable pageable);
 }

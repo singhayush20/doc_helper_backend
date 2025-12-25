@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.user_plan.dto.CreatePriceRequest;
 import com.ayushsingh.doc_helper.features.user_plan.dto.CreateProductRequest;
@@ -28,10 +29,6 @@ public class BillingProductServiceImpl implements BillingProductService {
 
     private final BillingProductRepository productRepository;
     private final BillingPriceRepository priceRepository;
-
-    // -------------------------------
-    // PRODUCT MANAGEMENT
-    // -------------------------------
 
     @Transactional
     @Override
@@ -87,10 +84,6 @@ public class BillingProductServiceImpl implements BillingProductService {
         return productRepository.findByActiveTrue();
     }
 
-    // -------------------------------
-    // PRICE MANAGEMENT
-    // -------------------------------
-
     @Transactional(readOnly = true)
     @Override
     public List<BillingPrice> getPricesForProduct(Long productId) {
@@ -120,7 +113,7 @@ public class BillingProductServiceImpl implements BillingProductService {
     @Override
     public BillingPrice updatePrice(Long priceId, UpdatePriceRequest request) {
         BillingPrice price = priceRepository.findById(priceId)
-                .orElseThrow(() -> new BaseException("Price not found", "PRICE_NOT_FOUND"));
+                .orElseThrow(() -> new BaseException("Price not found", ExceptionCodes.PRICE_NOT_FOUND));
 
         price.setAmount(BigDecimal.valueOf(request.getAmount()));
         price.setCurrency(request.getCurrency());

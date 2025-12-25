@@ -12,7 +12,6 @@ import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.core.utils.EmailUtils;
-import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 import com.ayushsingh.doc_helper.features.user.dto.UserCreateDto;
 import com.ayushsingh.doc_helper.features.user.dto.UserDetailsDto;
 import com.ayushsingh.doc_helper.features.user.entity.Role;
@@ -35,7 +34,6 @@ public class UserServiceImpl implements UserService {
     private final ModelMapper modelMapper;
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
-    private final QuotaManagementService quotaManagementService;
 
     @Override
     public User findByFirebaseUid(String firebaseUid) {
@@ -69,7 +67,6 @@ public class UserServiceImpl implements UserService {
         user.setUserRoles(userRoles);
         user.setPassword(this.passwordEncoder.encode(userCreateDto.getPassword()));
         var savedUser = this.userRepository.save(user);
-        this.quotaManagementService.createDefaultQuota(savedUser.getId());
         log.info("User created ...");
 
         return this.modelMapper.map(savedUser, UserDetailsDto.class);

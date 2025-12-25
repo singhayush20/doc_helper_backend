@@ -5,11 +5,10 @@ import com.ayushsingh.doc_helper.features.payments.repository.PaymentProviderEve
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentWebhookHandlerService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
-import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
-import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
 import com.ayushsingh.doc_helper.features.user_plan.repository.SubscriptionRepository;
+import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionFallbackService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,18 +27,16 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     private final PaymentProviderEventLogRepository eventLogRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final QuotaManagementService quotaManagementService;
+    private final SubscriptionFallbackService subscriptionFallbackService;
 
     @Override
     @Transactional
     public void handleProviderEvent(String rawPayload, String signatureHeader) {
-        // 1. Verify signature
         paymentProviderClient.validateWebhookSignature(rawPayload, signatureHeader);
 
-        // 2. Extract event id and type
         String eventId = paymentProviderClient.extractEventId(rawPayload);
         String eventType = paymentProviderClient.extractEventType(rawPayload);
 
-        // 3. Idempotency
         Optional<PaymentProviderEventLog> existing = eventLogRepository.findByProviderEventId(eventId);
         if (existing.isPresent() && existing.get().isProcessed()) {
             log.info("Ignoring duplicate event: {}", eventId);
@@ -54,7 +51,6 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
                 .rawPayload(rawPayload)
                 .build());
 
-        // 4. Process event
         processEvent(eventType, rawPayload);
 
         eventLog.setProcessed(true);
@@ -63,6 +59,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     }
 
     private void processEvent(String eventType, String rawPayload) {
+        // TODO: Add actual event type strings from Razorpay
         // This is intentionally generic; you will map Razorpay event names here
         // Example event types (adjust to actual Razorpay values):
         // "subscription.activated", "subscription.charged", "subscription.cancelled",
@@ -91,41 +88,44 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     }
 
     private void handleActivated(Subscription subscription) {
-        log.info("Handling subscription activation for id={}", subscription.getId());
         subscription.setStatus(SubscriptionStatus.ACTIVE);
-        // TODO: optionally set currentPeriodStart/End using provider data
         subscriptionRepository.save(subscription);
 
-        // Upgrade tier based on BillingProduct.tier + PlanConfig for token limit
-        BillingPrice price = subscription.getBillingPrice();
-        AccountTier tier = price.getProduct().getTier();
-        quotaManagementService.updateUserTier(
+        Long tokenLimit = subscription.getBillingPrice()
+                .getProduct()
+                .getMonthlyTokenLimit();
+
+        quotaManagementService.applySubscriptionQuota(
                 subscription.getUser().getId(),
-                tier.name(),
-                null // let QuotaManagementService derive limit from PlanConfig
-        );
+                tokenLimit);
     }
 
     private void handleCharged(Subscription subscription) {
-        log.info("Handling subscription charged for id={}", subscription.getId());
-        // Optionally: align resetDate with provider's period; or rely on your quota
-        // scheduler
-        // If you want subscription-driven reset:
-        // quotaManagementService.resetQuota(...); or custom method to reset for new
-        // billing cycle
+        quotaManagementService.resetQuotaForNewBillingCycle(
+                subscription.getUser().getId());
     }
 
     private void handleCancelled(Subscription subscription) {
+
         log.info("Handling subscription cancelled for id={}", subscription.getId());
+
         subscription.setStatus(SubscriptionStatus.CANCELED);
         subscription.setCanceledAt(Instant.now());
         subscriptionRepository.save(subscription);
 
-        // Downgrade to FREE
-        quotaManagementService.updateUserTier(
-                subscription.getUser().getId(),
-                AccountTier.FREE.name(),
-                null);
+        // Immediate cancellation: fallback now
+        boolean immediateCancel = Boolean.FALSE.equals(subscription.getCancelAtPeriodEnd())
+                || subscription.getCurrentPeriodEnd() == null
+                || Instant.now().isAfter(subscription.getCurrentPeriodEnd());
+
+        if (immediateCancel) {
+            subscriptionFallbackService.applyFreePlan(
+                    subscription.getUser().getId());
+        }
+
+        // else:
+        // cancel_at_period_end = true
+        // FREE fallback will be applied by scheduler once period ends
     }
 
     private void handleHalted(Subscription subscription) {

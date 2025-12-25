@@ -58,7 +58,6 @@ public class BillingPrice {
     @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
-    // Razorpay plan/price id
     @Column(name = "provider_plan_id", nullable = false, length = 100)
     private String providerPlanId;
 

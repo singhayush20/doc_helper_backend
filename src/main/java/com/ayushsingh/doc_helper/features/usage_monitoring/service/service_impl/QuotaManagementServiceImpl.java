@@ -2,12 +2,9 @@ package com.ayushsingh.doc_helper.features.usage_monitoring.service.service_impl
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.features.usage_monitoring.config.BillingConfig;
-import com.ayushsingh.doc_helper.features.usage_monitoring.config.PlanConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
 import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
-import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,121 +22,117 @@ import java.time.*;
 public class QuotaManagementServiceImpl implements QuotaManagementService {
 
     private final UserTokenQuotaRepository quotaRepository;
-    private final BillingConfig billingConfig;
-    private final PlanConfig planConfig;
 
-    @Transactional(readOnly = true)
     @Override
+    @Transactional(readOnly = true)
     public void checkAndEnforceQuota(Long userId, Long tokensToUse) {
-        UserTokenQuota quota = getCurrentUserQuota(userId);
+        UserTokenQuota quota = getQuota(userId);
 
         if (Boolean.FALSE.equals(quota.getIsActive())) {
-            log.warn("Inactive user attempted to use tokens: userId={}", userId);
             throw new BaseException(
-                    "User account is inactive",
+                    "User quota is inactive",
                     ExceptionCodes.USER_QUOTA_INACTIVE);
         }
 
         long remaining = quota.getMonthlyLimit() - quota.getCurrentMonthlyUsage();
         if (remaining < tokensToUse) {
-            log.warn(
-                    "Insufficient quota to start request: userId={}, remaining={}, required={}",
-                    userId, remaining, tokensToUse);
             throw new BaseException(
-                    "Insufficient token quota to start this operation.",
+                    "Insufficient token quota",
                     ExceptionCodes.QUOTA_EXCEEDED);
         }
-
-        log.debug("Soft quota pre-check passed for userId: {}, remaining: {}, required: {}",
-                userId, remaining, tokensToUse);
     }
 
-    @Transactional
     @Override
-    public void updateUserQuota(Long userId, Long tokensUsed) {
-        log.warn("updateUserQuota called for userId={} with tokensUsed={}. " +
-                "This should only be used for admin/manual adjustments.",
-                userId, tokensUsed);
+    @Transactional
+    public void incrementUsage(Long userId, Long tokensUsed) {
         quotaRepository.incrementUsage(userId, tokensUsed);
     }
 
-    @Transactional(readOnly = true)
     @Override
-    public UserTokenQuota getCurrentUserQuota(Long userId) {
+    @Transactional(readOnly = true)
+    public UserTokenQuota getQuota(Long userId) {
         return quotaRepository.findByUserId(userId)
                 .orElseThrow(() -> new BaseException(
-                        "No quota info found for user: " + userId,
+                        "Quota not found for user: " + userId,
                         ExceptionCodes.QUOTA_NOT_FOUND));
     }
 
-    @Transactional(readOnly = true)
     @Override
-    public Long getCurrentMonthUsage(Long userId) {
-        UserTokenQuota quota = getCurrentUserQuota(userId);
-        return quota.getCurrentMonthlyUsage();
+    @Transactional(readOnly = true)
+    public Long getCurrentMonthlyUsage(Long userId) {
+        return getQuota(userId).getCurrentMonthlyUsage();
     }
 
-    @Transactional
     @Override
-    public UserTokenQuota createDefaultQuota(Long userId) {
-        log.debug("Creating default quota for userId: {}", userId);
+    @Transactional
+    public void applySubscriptionQuota(Long userId, Long monthlyTokenLimit) {
 
-        Instant resetDate = getNextMonthStart();
+        UserTokenQuota quota = getQuota(userId);
 
-        PlanConfig.PlanLimits freeLimits = planConfig.getLimits(AccountTier.FREE);
-        Long monthlyLimit = freeLimits.getMonthlyTokenLimit();
+        log.info("Applying subscription quota userId={}, limit={}",
+                userId, monthlyTokenLimit);
+
+        quota.setMonthlyLimit(monthlyTokenLimit);
+        quota.setCurrentMonthlyUsage(0L);
+        quota.setResetDate(nextMonthStart());
+        quota.setIsActive(true);
+
+        quotaRepository.save(quota);
+    }
+
+    @Override
+    @Transactional
+    public void resetQuotaForNewBillingCycle(Long userId) {
+
+        UserTokenQuota quota = getQuota(userId);
+
+        log.info("Resetting quota for new billing cycle userId={}", userId);
+
+        quota.setCurrentMonthlyUsage(0L);
+        quota.setResetDate(nextMonthStart());
+
+        quotaRepository.save(quota);
+    }
+
+    @Override
+    @Transactional
+    public void deactivateQuota(Long userId) {
+
+        UserTokenQuota quota = getQuota(userId);
+
+        quota.setIsActive(false);
+        quotaRepository.save(quota);
+    }
+
+    @Override
+    @Transactional
+    public UserTokenQuota createInitialQuota(Long userId) {
 
         UserTokenQuota quota = UserTokenQuota.builder()
                 .userId(userId)
-                .monthlyLimit(monthlyLimit)
+                .monthlyLimit(0L) // no entitlement yet
                 .currentMonthlyUsage(0L)
-                .resetDate(resetDate)
-                .tier(AccountTier.FREE)
-                .isActive(true)
+                .resetDate(nextMonthStart())
+                .isActive(false)
                 .build();
 
         return quotaRepository.save(quota);
     }
 
-    @Transactional
-    @Override
-    public void resetQuota(UserTokenQuota quota) {
-        Long userId = quota.getUserId();
-        log.debug("Resetting quota for userId: {}", userId);
-
-        Instant now = Instant.now();
-        Instant newResetDate = getNextMonthStart();
-
-        int updated = quotaRepository.resetQuota(userId, now, newResetDate);
-        if (updated == 0) {
-            log.debug("Quota already reset or not due for userId={}", userId);
-        } else {
-            log.info("Quota reset for userId={}", userId);
-        }
-    }
-
-    @Transactional
-    @Override
-    public void updateUserTier(Long userId, String newTier, Long newLimit) {
-        log.error("Account upgradation not implemented!");
-
-        throw new BaseException(
-                "Account upgradation is not supported at the moment!",
-                ExceptionCodes.ACCOUNT_UPGRADATION_FAILURE);
-    }
-
-    private Instant getNextMonthStart() {
-        ZoneId zoneId = ZoneId.of(billingConfig.getBillingTimezone());
-        YearMonth nextMonth = YearMonth.now(zoneId).plusMonths(1);
-        return nextMonth
-                .atDay(1)
-                .atStartOfDay(zoneId)
-                .toInstant();
-    }
-
     @Override
     @Transactional(readOnly = true)
-    public Page<UserTokenQuota> findQuotasToResetPaginated(Instant instant, Pageable pageable) {
-        return quotaRepository.findQuotasToResetPaginated(instant, pageable);
+    public Page<UserTokenQuota> findQuotasToResetPaginated(
+            Instant now, Pageable pageable) {
+
+        return quotaRepository.findQuotasToResetPaginated(now, pageable);
+    }
+
+    private Instant nextMonthStart() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        return now.plusMonths(1)
+                .withDayOfMonth(1)
+                .toLocalDate()
+                .atStartOfDay(now.getZone())
+                .toInstant();
     }
 }

@@ -51,7 +51,7 @@ public class PaymentTransaction {
     @JoinColumn(name = "subscription_id")
     private Subscription subscription;
 
-    @Column(name = "provider_payment_id", length = 100)
+    @Column(name = "provider_payment_id", length = 100, unique = true)
     private String providerPaymentId;
 
     @Column(name = "amount", precision = 10, scale = 2)
