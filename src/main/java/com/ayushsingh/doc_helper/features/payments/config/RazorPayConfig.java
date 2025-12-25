@@ -14,6 +14,6 @@ public class RazorPayConfig {
     private final RazorpayProperties paymentGatewayConfig;
 
     RazorpayClient getRazorpayClient() throws RazorpayException {
-        return new RazorpayClient(paymentGatewayConfig.getSecretKey(), paymentGatewayConfig.getKeyId());
+        return new RazorpayClient(paymentGatewayConfig.secretKey(), paymentGatewayConfig.keyId());
     }
 }

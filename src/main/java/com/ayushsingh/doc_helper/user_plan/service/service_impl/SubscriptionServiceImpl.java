@@ -61,7 +61,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         return CheckoutSessionResponse.builder()
                 .providerSubscriptionId(providerSubId)
-                .providerKeyId(razorpayProperties.getKeyId())
+                .providerKeyId(razorpayProperties.keyId())
                 .planCode(price.getProduct().getCode())
                 .priceCode(price.getPriceCode())
                 .build();

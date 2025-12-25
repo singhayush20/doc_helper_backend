@@ -6,7 +6,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.ayushsingh.doc_helper.features.auth.domain.AuthUser;
+import com.ayushsingh.doc_helper.features.auth.entity.AuthUser;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

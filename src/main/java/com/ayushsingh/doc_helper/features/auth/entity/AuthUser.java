@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.auth.domain;
+package com.ayushsingh.doc_helper.features.auth.entity;
 
 import java.util.Collection;
 import java.util.stream.Collectors;

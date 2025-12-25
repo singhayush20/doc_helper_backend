@@ -1,6 +1,6 @@
 package com.ayushsingh.doc_helper.core.security;
 
-import com.ayushsingh.doc_helper.features.auth.domain.AuthUser;
+import com.ayushsingh.doc_helper.features.auth.entity.AuthUser;
 
 public class UserContext {
 

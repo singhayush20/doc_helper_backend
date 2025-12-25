@@ -4,7 +4,6 @@ import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.config.BillingConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.DailyUsageSummaryResponse;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.QuotaInfoResponse;
-import com.ayushsingh.doc_helper.features.usage_monitoring.dto.UpdateTierRequest;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.UsageBreakdown;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenUsage;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
@@ -14,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -32,6 +32,7 @@ public class UsageQueryController {
     /**
      * Get current user's quota information.
      */
+    @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/quota")
     public ResponseEntity<QuotaInfoResponse> getQuotaInfo() {
         Long userId = UserContext.getCurrentUser().getUser().getId();
@@ -42,6 +43,7 @@ public class UsageQueryController {
     /**
      * Get usage history with pagination.
      */
+    @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/history")
     public ResponseEntity<Page<UserTokenUsage>> getUsageHistory(
             @RequestParam(defaultValue = "0") int page,
@@ -61,6 +63,7 @@ public class UsageQueryController {
     /**
      * Get usage for a specific document.
      */
+    @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/document")
     public ResponseEntity<Page<UserTokenUsage>> getDocumentUsage(
             @RequestParam Long documentId,
@@ -82,6 +85,7 @@ public class UsageQueryController {
      * Get current month's token usage (based on quota table).
      */
     @GetMapping("/current-month")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<Long> getCurrentMonthUsage() {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         Long usage = quotaManagementService.getCurrentMonthUsage(userId);
@@ -92,6 +96,7 @@ public class UsageQueryController {
      * Get daily usage summary for last N days.
      */
     @GetMapping("/daily-summary")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<DailyUsageSummaryResponse> getDailySummary(
             @RequestParam(defaultValue = "30") int days) {
 
@@ -107,6 +112,7 @@ public class UsageQueryController {
      * Get total cost for current month in billing timezone.
      */
     @GetMapping("/cost")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<BigDecimal> getCurrentMonthCost() {
         Long userId = UserContext.getCurrentUser().getUser().getId();
 
@@ -127,6 +133,7 @@ public class UsageQueryController {
      * Get usage breakdown by operation type (chat vs embedding).
      */
     @GetMapping("/breakdown")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<UsageBreakdown> getUsageBreakdown() {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         UsageBreakdown breakdown = usageReportingService.getUsageBreakdown(userId);
@@ -137,6 +144,7 @@ public class UsageQueryController {
      * Get usage breakdown for a specific date range.
      */
     @GetMapping("/breakdown/range")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<UsageBreakdown> getUsageBreakdownByRange(
             @RequestParam(required = false) Long startTimestamp,
             @RequestParam(required = false) Long endTimestamp) {
@@ -160,15 +168,5 @@ public class UsageQueryController {
         UsageBreakdown breakdown = usageReportingService.getUsageBreakdownByDateRange(userId, startDate, endDate);
 
         return ResponseEntity.ok(breakdown);
-    }
-
-    @PatchMapping("/tier")
-    public ResponseEntity<Void> updateTier(@RequestBody UpdateTierRequest request) {
-        // TODO: Add explicit admin authorization check (e.g., method security)
-        quotaManagementService.updateUserTier(
-                request.getUserId(),
-                request.getTier(),
-                request.getMonthlyLimit());
-        return ResponseEntity.ok().build();
     }
 }

@@ -12,7 +12,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 import com.ayushsingh.doc_helper.core.constants.AuthConstants;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.features.auth.domain.AuthUser;
+import com.ayushsingh.doc_helper.features.auth.entity.AuthUser;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user.service.UserService;
 import com.google.firebase.auth.FirebaseAuth;

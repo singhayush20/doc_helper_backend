@@ -26,7 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 @EnableWebSecurity
-
 @EnableMethodSecurity
 public class SecurityConfig {
 
