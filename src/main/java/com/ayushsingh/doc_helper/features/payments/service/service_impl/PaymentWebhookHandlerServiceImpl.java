@@ -9,7 +9,6 @@ import com.ayushsingh.doc_helper.user_plan.entity.AccountTier;
 import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
 import com.ayushsingh.doc_helper.user_plan.entity.Subscription;
 import com.ayushsingh.doc_helper.user_plan.entity.SubscriptionStatus;
-import com.ayushsingh.doc_helper.user_plan.repository.BillingPriceRepository;
 import com.ayushsingh.doc_helper.user_plan.repository.SubscriptionRepository;
 
 import lombok.RequiredArgsConstructor;

@@ -34,4 +34,7 @@ public final class ExceptionCodes {
     public static final String DOCUMENT_PARSING_FAILED = "E0026";
     public static final String INVALID_PLAN = "E0027";
     public static final String SUBSCRIPTION_NOT_FOUND = "E0028";
+    public static final String SUBSCRIPTION_ALREADY_EXISTS = "E0029";
+    public static final String SUBSCRIPTION_INVALID_STATE = "E0030";
+    public static final String SUBSCRIPTION_ALREADY_CANCELLED = "E0031";
 }

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.payments.dto.CheckoutSessionResponse;
+import com.ayushsingh.doc_helper.user_plan.dto.SubscriptionResponse;
 import com.ayushsingh.doc_helper.user_plan.entity.Subscription;
 import com.ayushsingh.doc_helper.user_plan.service.SubscriptionService;
 
@@ -26,11 +27,25 @@ public class BillingController {
     }
 
     @GetMapping("/subscription/current")
-    public ResponseEntity<Subscription> getCurrentSubscription() {
-        Long userId = UserContext.getCurrentUser().getUser().getId();
-        Subscription subscription = subscriptionService.getCurrentActiveSubscription(userId);
-        return ResponseEntity.ok(subscription);
+public ResponseEntity<SubscriptionResponse> getCurrentSubscription() {
+    Long userId = UserContext.getCurrentUser().getUser().getId();
+
+    Subscription sub = subscriptionService.getCurrentActiveSubscription(userId);
+    if (sub == null) {
+        return ResponseEntity.ok(null);
     }
+
+    return ResponseEntity.ok(
+            SubscriptionResponse.builder()
+                    .planCode(sub.getBillingPrice().getProduct().getCode())
+                    .priceCode(sub.getBillingPrice().getPriceCode())
+                    .status(sub.getStatus())
+                    .cancelAtPeriodEnd(sub.getCancelAtPeriodEnd())
+                    .currentPeriodStart(sub.getCurrentPeriodStart())
+                    .currentPeriodEnd(sub.getCurrentPeriodEnd())
+                    .build()
+    );
+}
 
     @PostMapping("/subscription/cancel")
     public ResponseEntity<Void> cancelCurrentAtPeriodEnd() {
