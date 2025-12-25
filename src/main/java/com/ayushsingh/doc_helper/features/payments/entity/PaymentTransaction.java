@@ -1,7 +1,7 @@
 package com.ayushsingh.doc_helper.features.payments.entity;
 
 import com.ayushsingh.doc_helper.features.user.entity.User;
-import com.ayushsingh.doc_helper.user_plan.entity.Subscription;
+import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

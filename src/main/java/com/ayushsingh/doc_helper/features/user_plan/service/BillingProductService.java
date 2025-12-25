@@ -1,13 +1,13 @@
-package com.ayushsingh.doc_helper.user_plan.service;
+package com.ayushsingh.doc_helper.features.user_plan.service;
 
 import java.util.List;
 
-import com.ayushsingh.doc_helper.user_plan.dto.CreatePriceRequest;
-import com.ayushsingh.doc_helper.user_plan.dto.CreateProductRequest;
-import com.ayushsingh.doc_helper.user_plan.dto.UpdatePriceRequest;
-import com.ayushsingh.doc_helper.user_plan.dto.UpdateProductRequest;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingProduct;
+import com.ayushsingh.doc_helper.features.user_plan.dto.CreatePriceRequest;
+import com.ayushsingh.doc_helper.features.user_plan.dto.CreateProductRequest;
+import com.ayushsingh.doc_helper.features.user_plan.dto.UpdatePriceRequest;
+import com.ayushsingh.doc_helper.features.user_plan.dto.UpdateProductRequest;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingProduct;
 
 public interface BillingProductService {
 

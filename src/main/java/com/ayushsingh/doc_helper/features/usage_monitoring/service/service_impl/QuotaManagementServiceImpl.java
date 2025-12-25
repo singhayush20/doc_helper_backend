@@ -7,7 +7,7 @@ import com.ayushsingh.doc_helper.features.usage_monitoring.config.PlanConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
 import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
-import com.ayushsingh.doc_helper.user_plan.entity.AccountTier;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

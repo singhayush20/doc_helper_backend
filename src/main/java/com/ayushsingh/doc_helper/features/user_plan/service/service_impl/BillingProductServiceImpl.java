@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.user_plan.service.service_impl;
+package com.ayushsingh.doc_helper.features.user_plan.service.service_impl;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -7,15 +7,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.user_plan.dto.CreatePriceRequest;
-import com.ayushsingh.doc_helper.user_plan.dto.CreateProductRequest;
-import com.ayushsingh.doc_helper.user_plan.dto.UpdatePriceRequest;
-import com.ayushsingh.doc_helper.user_plan.dto.UpdateProductRequest;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingProduct;
-import com.ayushsingh.doc_helper.user_plan.repository.BillingPriceRepository;
-import com.ayushsingh.doc_helper.user_plan.repository.BillingProductRepository;
-import com.ayushsingh.doc_helper.user_plan.service.BillingProductService;
+import com.ayushsingh.doc_helper.features.user_plan.dto.CreatePriceRequest;
+import com.ayushsingh.doc_helper.features.user_plan.dto.CreateProductRequest;
+import com.ayushsingh.doc_helper.features.user_plan.dto.UpdatePriceRequest;
+import com.ayushsingh.doc_helper.features.user_plan.dto.UpdateProductRequest;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingProduct;
+import com.ayushsingh.doc_helper.features.user_plan.repository.BillingPriceRepository;
+import com.ayushsingh.doc_helper.features.user_plan.repository.BillingProductRepository;
+import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

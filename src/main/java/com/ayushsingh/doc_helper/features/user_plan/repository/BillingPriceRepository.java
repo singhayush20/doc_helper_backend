@@ -1,8 +1,8 @@
-package com.ayushsingh.doc_helper.user_plan.repository;
+package com.ayushsingh.doc_helper.features.user_plan.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 
 import java.util.List;
 import java.util.Optional;

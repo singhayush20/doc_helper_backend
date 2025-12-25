@@ -1,8 +1,8 @@
-package com.ayushsingh.doc_helper.user_plan.repository;
+package com.ayushsingh.doc_helper.features.user_plan.repository;
 
 import com.ayushsingh.doc_helper.features.user.entity.User;
-import com.ayushsingh.doc_helper.user_plan.entity.Subscription;
-import com.ayushsingh.doc_helper.user_plan.entity.SubscriptionStatus;
+import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
+import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.user_plan.entity;
+package com.ayushsingh.doc_helper.features.user_plan.entity;
 
 import java.math.BigDecimal;
 

@@ -5,11 +5,11 @@ import com.ayushsingh.doc_helper.features.payments.repository.PaymentProviderEve
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentWebhookHandlerService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
-import com.ayushsingh.doc_helper.user_plan.entity.AccountTier;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
-import com.ayushsingh.doc_helper.user_plan.entity.Subscription;
-import com.ayushsingh.doc_helper.user_plan.entity.SubscriptionStatus;
-import com.ayushsingh.doc_helper.user_plan.repository.SubscriptionRepository;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
+import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
+import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
+import com.ayushsingh.doc_helper.features.user_plan.repository.SubscriptionRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

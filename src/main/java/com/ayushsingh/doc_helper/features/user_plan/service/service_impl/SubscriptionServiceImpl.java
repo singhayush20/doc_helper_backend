@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.user_plan.service.service_impl;
+package com.ayushsingh.doc_helper.features.user_plan.service.service_impl;
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
@@ -7,12 +7,12 @@ import com.ayushsingh.doc_helper.features.payments.dto.CheckoutSessionResponse;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user.repository.UserRepository;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
-import com.ayushsingh.doc_helper.user_plan.entity.Subscription;
-import com.ayushsingh.doc_helper.user_plan.entity.SubscriptionStatus;
-import com.ayushsingh.doc_helper.user_plan.repository.BillingPriceRepository;
-import com.ayushsingh.doc_helper.user_plan.repository.SubscriptionRepository;
-import com.ayushsingh.doc_helper.user_plan.service.SubscriptionService;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
+import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
+import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
+import com.ayushsingh.doc_helper.features.user_plan.repository.BillingPriceRepository;
+import com.ayushsingh.doc_helper.features.user_plan.repository.SubscriptionRepository;
+import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

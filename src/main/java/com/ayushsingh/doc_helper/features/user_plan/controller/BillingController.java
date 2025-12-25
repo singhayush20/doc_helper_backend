@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.user_plan.controller;
+package com.ayushsingh.doc_helper.features.user_plan.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.*;
 
 import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.payments.dto.CheckoutSessionResponse;
-import com.ayushsingh.doc_helper.user_plan.dto.SubscriptionResponse;
-import com.ayushsingh.doc_helper.user_plan.entity.Subscription;
-import com.ayushsingh.doc_helper.user_plan.service.SubscriptionService;
+import com.ayushsingh.doc_helper.features.user_plan.dto.SubscriptionResponse;
+import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
+import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 
 @RestController
 @RequestMapping("/api/v1/billing")

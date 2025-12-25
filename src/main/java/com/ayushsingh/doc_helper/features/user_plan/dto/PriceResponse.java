@@ -1,6 +1,7 @@
-package com.ayushsingh.doc_helper.user_plan.dto;
+package com.ayushsingh.doc_helper.features.user_plan.dto;
 
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPeriod;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPeriod;
+
 import lombok.Builder;
 import lombok.Getter;
 

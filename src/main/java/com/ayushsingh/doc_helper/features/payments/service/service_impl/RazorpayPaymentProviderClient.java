@@ -3,7 +3,7 @@ package com.ayushsingh.doc_helper.features.payments.service.service_impl;
 import com.ayushsingh.doc_helper.features.payments.config.RazorpayProperties;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.user.entity.User;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

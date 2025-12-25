@@ -1,7 +1,7 @@
 package com.ayushsingh.doc_helper.features.payments.service;
 
 import com.ayushsingh.doc_helper.features.user.entity.User;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 
 public interface PaymentProviderClient {
 

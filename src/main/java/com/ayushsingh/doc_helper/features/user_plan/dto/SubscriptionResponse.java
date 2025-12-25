@@ -1,8 +1,8 @@
-package com.ayushsingh.doc_helper.user_plan.dto;
+package com.ayushsingh.doc_helper.features.user_plan.dto;
 
 import java.time.Instant;
 
-import com.ayushsingh.doc_helper.user_plan.entity.SubscriptionStatus;
+import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
 
 import lombok.Builder;
 import lombok.Getter;

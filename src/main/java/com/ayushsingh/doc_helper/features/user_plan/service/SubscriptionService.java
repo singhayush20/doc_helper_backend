@@ -1,7 +1,7 @@
-package com.ayushsingh.doc_helper.user_plan.service;
+package com.ayushsingh.doc_helper.features.user_plan.service;
 
 import com.ayushsingh.doc_helper.features.payments.dto.CheckoutSessionResponse;
-import com.ayushsingh.doc_helper.user_plan.entity.Subscription;
+import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 
 public interface SubscriptionService {
 

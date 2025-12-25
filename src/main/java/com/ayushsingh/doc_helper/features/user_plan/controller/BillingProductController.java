@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.user_plan.controller;
+package com.ayushsingh.doc_helper.features.user_plan.controller;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -7,10 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.ayushsingh.doc_helper.user_plan.dto.*;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingPrice;
-import com.ayushsingh.doc_helper.user_plan.entity.BillingProduct;
-import com.ayushsingh.doc_helper.user_plan.service.BillingProductService;
+import com.ayushsingh.doc_helper.features.user_plan.dto.*;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingProduct;
+import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 
 import lombok.RequiredArgsConstructor;
 

@@ -1,6 +1,6 @@
-package com.ayushsingh.doc_helper.user_plan.dto;
+package com.ayushsingh.doc_helper.features.user_plan.dto;
 
-import com.ayushsingh.doc_helper.user_plan.entity.AccountTier;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
