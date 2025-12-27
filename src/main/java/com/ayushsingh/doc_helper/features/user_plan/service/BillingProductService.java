@@ -2,18 +2,19 @@ package com.ayushsingh.doc_helper.features.user_plan.service;
 
 import java.util.List;
 
+import com.ayushsingh.doc_helper.features.user_plan.dto.BillingPriceDetailsDto;
+import com.ayushsingh.doc_helper.features.user_plan.dto.BillingPricesResponse;
+import com.ayushsingh.doc_helper.features.user_plan.dto.BillingProductDetailsDto;
+import com.ayushsingh.doc_helper.features.user_plan.dto.BillingProductsResponse;
 import com.ayushsingh.doc_helper.features.user_plan.dto.CreatePriceRequest;
 import com.ayushsingh.doc_helper.features.user_plan.dto.CreateProductRequest;
 import com.ayushsingh.doc_helper.features.user_plan.dto.UpdatePriceRequest;
 import com.ayushsingh.doc_helper.features.user_plan.dto.UpdateProductRequest;
-import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
-import com.ayushsingh.doc_helper.features.user_plan.entity.BillingProduct;
-
 public interface BillingProductService {
 
-    BillingProduct createProduct(CreateProductRequest request);
+    BillingProductDetailsDto createProduct(CreateProductRequest request);
 
-    BillingProduct updateProduct(Long productId, UpdateProductRequest request);
+    BillingProductDetailsDto updateProduct(Long productId, UpdateProductRequest request);
 
     void deleteProduct(Long productId);
 
@@ -21,15 +22,15 @@ public interface BillingProductService {
 
     void deactivateProduct(Long productId);
 
-    List<BillingProduct> getAllActiveProducts();
+    BillingProductsResponse getAllActiveProducts();
 
-    List<BillingPrice> getPricesForProduct(Long productId);
+    BillingPricesResponse getPricesForProduct(Long productId);
 
-    List<BillingPrice> getAllActivePrices(Long productId);
+    BillingPricesResponse getAllActivePrices(Long productId);
 
-    BillingPrice addPriceToProduct(Long productId, CreatePriceRequest request);
+    BillingPriceDetailsDto addPriceToProduct(Long productId, CreatePriceRequest request);
 
-    BillingPrice updatePrice(Long priceId, UpdatePriceRequest request);
+    BillingPriceDetailsDto updatePrice(Long priceId, UpdatePriceRequest request);
 
     void deactivatePrice(Long priceId);
 

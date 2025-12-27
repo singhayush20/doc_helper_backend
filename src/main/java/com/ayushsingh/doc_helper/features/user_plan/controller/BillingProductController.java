@@ -1,15 +1,10 @@
 package com.ayushsingh.doc_helper.features.user_plan.controller;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.ayushsingh.doc_helper.features.user_plan.dto.*;
-import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
-import com.ayushsingh.doc_helper.features.user_plan.entity.BillingProduct;
 import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 
 import lombok.RequiredArgsConstructor;
@@ -23,21 +18,21 @@ public class BillingProductController {
 
     @PostMapping("/products")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ProductResponse> createProduct(
+    public ResponseEntity<BillingProductDetailsDto> createProduct(
             @RequestBody CreateProductRequest request) {
 
-        BillingProduct product = billingProductService.createProduct(request);
-        return ResponseEntity.ok(mapProduct(product));
+        var product = billingProductService.createProduct(request);
+        return ResponseEntity.ok(product);
     }
 
     @PutMapping("/products/{productId}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ProductResponse> updateProduct(
+    public ResponseEntity<BillingProductDetailsDto> updateProduct(
             @PathVariable Long productId,
             @RequestBody UpdateProductRequest request) {
 
-        BillingProduct product = billingProductService.updateProduct(productId, request);
-        return ResponseEntity.ok(mapProduct(product));
+        var product = billingProductService.updateProduct(productId, request);
+        return ResponseEntity.ok(product);
     }
 
     @DeleteMapping("/products/{productId}")
@@ -63,52 +58,43 @@ public class BillingProductController {
 
     @GetMapping("/products/active")
     @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
-    public ResponseEntity<List<ProductResponse>> getActiveProducts() {
-        List<ProductResponse> products = billingProductService
-                .getAllActiveProducts()
-                .stream()
-                .map(this::mapProduct)
-                .collect(Collectors.toList());
+    public ResponseEntity<BillingProductsResponse> getActiveProducts() {
+        var products = billingProductService
+                .getAllActiveProducts();
 
         return ResponseEntity.ok(products);
     }
 
     @GetMapping("/products/{productId}/prices")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<List<PriceResponse>> getPricesForProduct(
+    public ResponseEntity<BillingPricesResponse> getPricesForProduct(
             @PathVariable Long productId) {
 
-        List<PriceResponse> prices = billingProductService
-                .getPricesForProduct(productId)
-                .stream()
-                .map(this::mapPrice)
-                .collect(Collectors.toList());
+        var prices = billingProductService
+                .getPricesForProduct(productId);
 
         return ResponseEntity.ok(prices);
     }
 
     @GetMapping("/products/{productId}/prices/active")
     @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
-    public ResponseEntity<List<PriceResponse>> getAllActivePrices(
+    public ResponseEntity<BillingPricesResponse> getAllActivePrices(
             @PathVariable Long productId) {
 
-        List<PriceResponse> prices = billingProductService
-                .getAllActivePrices(productId)
-                .stream()
-                .map(this::mapPrice)
-                .collect(Collectors.toList());
+        var prices = billingProductService
+                .getAllActivePrices(productId);
 
         return ResponseEntity.ok(prices);
     }
 
     @PostMapping("/products/{productId}/prices")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<PriceResponse> addPriceToProduct(
+    public ResponseEntity<BillingPriceDetailsDto> addPriceToProduct(
             @PathVariable Long productId,
             @RequestBody CreatePriceRequest request) {
 
-        BillingPrice price = billingProductService.addPriceToProduct(productId, request);
-        return ResponseEntity.ok(mapPrice(price));
+        var price = billingProductService.addPriceToProduct(productId, request);
+        return ResponseEntity.ok(price);
     }
 
     @DeleteMapping("/product/prices/{priceId}")
@@ -120,12 +106,12 @@ public class BillingProductController {
 
     @PutMapping("/prices/{priceId}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<PriceResponse> updatePrice(
+    public ResponseEntity<BillingPriceDetailsDto> updatePrice(
             @PathVariable Long priceId,
             @RequestBody UpdatePriceRequest request) {
 
-        BillingPrice price = billingProductService.updatePrice(priceId, request);
-        return ResponseEntity.ok(mapPrice(price));
+        var price = billingProductService.updatePrice(priceId, request);
+        return ResponseEntity.ok(price);
     }
 
     @PostMapping("/prices/{priceId}/deactivate")
@@ -133,29 +119,5 @@ public class BillingProductController {
     public ResponseEntity<Void> deactivatePrice(@PathVariable Long priceId) {
         billingProductService.deactivatePrice(priceId);
         return ResponseEntity.ok().build();
-    }
-
-    private ProductResponse mapProduct(BillingProduct product) {
-        return ProductResponse.builder()
-                .id(product.getId())
-                .code(product.getCode())
-                .displayName(product.getDisplayName())
-                .tier(product.getTier())
-                .monthlyTokenLimit(product.getMonthlyTokenLimit())
-                .active(product.isActive())
-                .build();
-    }
-
-    private PriceResponse mapPrice(BillingPrice price) {
-        return PriceResponse.builder()
-                .id(price.getId())
-                .priceCode(price.getPriceCode())
-                .billingPeriod(price.getBillingPeriod())
-                .version(price.getVersion())
-                .amount(price.getAmount().longValue())
-                .currency(price.getCurrency())
-                .providerPlanId(price.getProviderPlanId())
-                .active(price.isActive())
-                .build();
     }
 }

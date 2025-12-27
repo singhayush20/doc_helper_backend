@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.user_plan.service.service_impl;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +11,10 @@ import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.payments.config.RazorpayProperties;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
+import com.ayushsingh.doc_helper.features.user_plan.dto.BillingPriceDetailsDto;
+import com.ayushsingh.doc_helper.features.user_plan.dto.BillingPricesResponse;
+import com.ayushsingh.doc_helper.features.user_plan.dto.BillingProductDetailsDto;
+import com.ayushsingh.doc_helper.features.user_plan.dto.BillingProductsResponse;
 import com.ayushsingh.doc_helper.features.user_plan.dto.CreatePriceRequest;
 import com.ayushsingh.doc_helper.features.user_plan.dto.CreateProductRequest;
 import com.ayushsingh.doc_helper.features.user_plan.dto.UpdatePriceRequest;
@@ -38,7 +43,7 @@ public class BillingProductServiceImpl implements BillingProductService {
 
         @Transactional
         @Override
-        public BillingProduct createProduct(CreateProductRequest request) {
+        public BillingProductDetailsDto createProduct(CreateProductRequest request) {
                 BillingProduct product = BillingProduct.builder()
                                 .code(request.getCode())
                                 .displayName(request.getDisplayName())
@@ -47,12 +52,12 @@ public class BillingProductServiceImpl implements BillingProductService {
                                 .active(true)
                                 .build();
 
-                return productRepository.save(product);
+                return mapProduct(productRepository.save(product));
         }
 
         @Transactional
         @Override
-        public BillingProduct updateProduct(Long productId, UpdateProductRequest request) {
+        public BillingProductDetailsDto updateProduct(Long productId, UpdateProductRequest request) {
                 BillingProduct product = productRepository.findById(productId)
                                 .orElseThrow(() -> new BaseException("Product not found",
                                                 ExceptionCodes.PRODUCT_NOT_FOUND));
@@ -61,7 +66,7 @@ public class BillingProductServiceImpl implements BillingProductService {
                 product.setTier(request.getTier());
                 product.setMonthlyTokenLimit(request.getMonthlyTokenLimit());
 
-                return productRepository.save(product);
+                return mapProduct(productRepository.save(product));
         }
 
         @Transactional
@@ -140,19 +145,27 @@ public class BillingProductServiceImpl implements BillingProductService {
 
         @Transactional(readOnly = true)
         @Override
-        public List<BillingProduct> getAllActiveProducts() {
-                return productRepository.findByActiveTrue();
+        public BillingProductsResponse getAllActiveProducts() {
+                var products = productRepository.findByActiveTrue();
+                return new BillingProductsResponse(products.stream()
+                                .map(this::mapProduct)
+                                .collect(Collectors.toList()));
+
         }
 
         @Transactional(readOnly = true)
         @Override
-        public List<BillingPrice> getPricesForProduct(Long productId) {
-                return priceRepository.findByProductId(productId);
+        public BillingPricesResponse getPricesForProduct(Long productId) {
+                var prices = priceRepository.findByProductId(productId);
+
+                return new BillingPricesResponse(prices.stream()
+                                .map(this::mapPrice)
+                                .collect(Collectors.toList()));
         }
 
         @Transactional
         @Override
-        public BillingPrice addPriceToProduct(Long productId, CreatePriceRequest request) {
+        public BillingPriceDetailsDto addPriceToProduct(Long productId, CreatePriceRequest request) {
                 BillingProduct product = productRepository.getReferenceById(productId);
                 System.out
                                 .println("Razorpay Key: " + razorpayProperties.keyId() + " Secret: "
@@ -179,12 +192,12 @@ public class BillingProductServiceImpl implements BillingProductService {
                                 .active(false)
                                 .build();
 
-                return priceRepository.save(price);
+                return mapPrice(priceRepository.save(price));
         }
 
         @Transactional
         @Override
-        public BillingPrice updatePrice(Long priceId, UpdatePriceRequest request) {
+        public BillingPriceDetailsDto updatePrice(Long priceId, UpdatePriceRequest request) {
                 BillingPrice price = priceRepository.findById(priceId)
                                 .orElseThrow(() -> new BaseException("Price not found",
                                                 ExceptionCodes.PRICE_NOT_FOUND));
@@ -192,7 +205,7 @@ public class BillingProductServiceImpl implements BillingProductService {
                 price.setAmount(BigDecimal.valueOf(request.getAmount()));
                 price.setCurrency(request.getCurrency());
 
-                return priceRepository.save(price);
+                return mapPrice(priceRepository.save(price));
         }
 
         @Transactional
@@ -239,8 +252,35 @@ public class BillingProductServiceImpl implements BillingProductService {
         }
 
         @Override
-        public List<BillingPrice> getAllActivePrices(Long productId) {
-                return priceRepository.findByProductIdAndActiveTrue(productId);
+        public BillingPricesResponse getAllActivePrices(Long productId) {
+                var prices =  priceRepository.findByProductIdAndActiveTrue(productId);
+
+                return new BillingPricesResponse(prices.stream()
+                                .map(this::mapPrice)
+                                .collect(Collectors.toList()));
         }
 
+        private BillingProductDetailsDto mapProduct(BillingProduct product) {
+                return BillingProductDetailsDto.builder()
+                                .id(product.getId())
+                                .code(product.getCode())
+                                .displayName(product.getDisplayName())
+                                .tier(product.getTier())
+                                .monthlyTokenLimit(product.getMonthlyTokenLimit())
+                                .active(product.isActive())
+                                .build();
+        }
+
+        private BillingPriceDetailsDto mapPrice(BillingPrice price) {
+                return BillingPriceDetailsDto.builder()
+                                .id(price.getId())
+                                .priceCode(price.getPriceCode())
+                                .billingPeriod(price.getBillingPeriod())
+                                .version(price.getVersion())
+                                .amount(price.getAmount().longValue())
+                                .currency(price.getCurrency())
+                                .providerPlanId(price.getProviderPlanId())
+                                .active(price.isActive())
+                                .build();
+        }
 }
