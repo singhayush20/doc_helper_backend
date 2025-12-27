@@ -238,4 +238,9 @@ public class BillingProductServiceImpl implements BillingProductService {
                 priceRepository.delete(price);
         }
 
+        @Override
+        public List<BillingPrice> getAllActivePrices(Long productId) {
+                return priceRepository.findByProductIdAndActiveTrue(productId);
+        }
+
 }

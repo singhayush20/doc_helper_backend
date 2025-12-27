@@ -15,14 +15,14 @@ import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductServic
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@PreAuthorize("hasRole('ROLE_ADMIN')")
-@RequestMapping("/api/v1/admin/billing")
+@RequestMapping("/api/v1/billing")
 @RequiredArgsConstructor
 public class BillingProductController {
 
     private final BillingProductService billingProductService;
 
     @PostMapping("/products")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ProductResponse> createProduct(
             @RequestBody CreateProductRequest request) {
 
@@ -31,6 +31,7 @@ public class BillingProductController {
     }
 
     @PutMapping("/products/{productId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable Long productId,
             @RequestBody UpdateProductRequest request) {
@@ -40,24 +41,28 @@ public class BillingProductController {
     }
 
     @DeleteMapping("/products/{productId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
         billingProductService.deleteProduct(productId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/products/{productId}/activate")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> activateProduct(@PathVariable Long productId) {
         billingProductService.activateProduct(productId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/products/{productId}/deactivate")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> deactivateProduct(@PathVariable Long productId) {
         billingProductService.deactivateProduct(productId);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/products/active")
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public ResponseEntity<List<ProductResponse>> getActiveProducts() {
         List<ProductResponse> products = billingProductService
                 .getAllActiveProducts()
@@ -69,6 +74,7 @@ public class BillingProductController {
     }
 
     @GetMapping("/products/{productId}/prices")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<List<PriceResponse>> getPricesForProduct(
             @PathVariable Long productId) {
 
@@ -81,7 +87,22 @@ public class BillingProductController {
         return ResponseEntity.ok(prices);
     }
 
+    @GetMapping("/products/{productId}/prices/active")
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
+    public ResponseEntity<List<PriceResponse>> getAllActivePrices(
+            @PathVariable Long productId) {
+
+        List<PriceResponse> prices = billingProductService
+                .getAllActivePrices(productId)
+                .stream()
+                .map(this::mapPrice)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(prices);
+    }
+
     @PostMapping("/products/{productId}/prices")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<PriceResponse> addPriceToProduct(
             @PathVariable Long productId,
             @RequestBody CreatePriceRequest request) {
@@ -91,12 +112,14 @@ public class BillingProductController {
     }
 
     @DeleteMapping("/product/prices/{priceId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> deleteBillingPriceFromProduct(@PathVariable Long priceId) {
         billingProductService.deleteBillingPriceFromProduct(priceId);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/prices/{priceId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<PriceResponse> updatePrice(
             @PathVariable Long priceId,
             @RequestBody UpdatePriceRequest request) {
@@ -106,6 +129,7 @@ public class BillingProductController {
     }
 
     @PostMapping("/prices/{priceId}/deactivate")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> deactivatePrice(@PathVariable Long priceId) {
         billingProductService.deactivatePrice(priceId);
         return ResponseEntity.ok().build();

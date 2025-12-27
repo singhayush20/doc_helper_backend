@@ -26,4 +26,6 @@ public interface BillingPriceRepository extends JpaRepository<BillingPrice, Long
                 WHERE p.product.id = :productId
             """)
     boolean existsByProductId(@Param("productId") Long productId);
+
+    List<BillingPrice> findByProductIdAndActiveTrue(Long productId);
 }

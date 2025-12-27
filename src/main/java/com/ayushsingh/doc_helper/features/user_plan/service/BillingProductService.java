@@ -25,6 +25,8 @@ public interface BillingProductService {
 
     List<BillingPrice> getPricesForProduct(Long productId);
 
+    List<BillingPrice> getAllActivePrices(Long productId);
+
     BillingPrice addPriceToProduct(Long productId, CreatePriceRequest request);
 
     BillingPrice updatePrice(Long priceId, UpdatePriceRequest request);

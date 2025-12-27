@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.user_plan.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.ayushsingh.doc_helper.core.security.UserContext;
@@ -17,7 +18,8 @@ public class BillingController {
 
     private final SubscriptionService subscriptionService;
 
-    @PostMapping("/razorpay/checkout")
+    @PostMapping("/checkout")
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public ResponseEntity<CheckoutSessionResponse> createCheckoutSession(
             @RequestParam("priceCode") String priceCode) {
 
@@ -27,6 +29,7 @@ public class BillingController {
     }
 
     @GetMapping("/subscription/current")
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
 public ResponseEntity<SubscriptionResponse> getCurrentSubscription() {
     Long userId = UserContext.getCurrentUser().getUser().getId();
 
@@ -48,6 +51,7 @@ public ResponseEntity<SubscriptionResponse> getCurrentSubscription() {
 }
 
     @PostMapping("/subscription/cancel")
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public ResponseEntity<Void> cancelCurrentAtPeriodEnd() {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         subscriptionService.cancelCurrentSubscriptionAtPeriodEnd(userId);
