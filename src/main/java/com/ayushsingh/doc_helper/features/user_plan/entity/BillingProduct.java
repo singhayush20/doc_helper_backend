@@ -32,8 +32,8 @@ public class BillingProduct {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "code", nullable = false, unique = true, length = 50)
-    private String code; // TODO: Code and Account Tier seems to be duplicating each other
+    @Column(name = "code", nullable = false, unique = true, length = 50,updatable = false)
+    private String code;
 
     @Column(name = "display_name", nullable = false, length = 100)
     private String displayName;

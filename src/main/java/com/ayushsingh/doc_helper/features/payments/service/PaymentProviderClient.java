@@ -6,9 +6,13 @@ import java.time.Instant;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentStatus;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentType;
 import com.ayushsingh.doc_helper.features.user.entity.User;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPeriod;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 
 public interface PaymentProviderClient {
+
+    String createPlan(BillingPeriod billingPeriod, BigDecimal amount, String billingProductCode, String currency,
+            String priceCode, String planDescription, Integer version);
 
     // Create provider subscription and return its id (and any other info if needed)
     String createSubscription(BillingPrice price, User user, Long localSubscriptionId);

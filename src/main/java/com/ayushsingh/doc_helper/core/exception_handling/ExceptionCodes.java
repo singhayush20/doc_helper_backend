@@ -40,4 +40,11 @@ public final class ExceptionCodes {
     public static final String PRICE_NOT_FOUND = "E0032";
     public static final String INVALID_WEBHOOK_SIGNATURE = "E0033";
     public static final String PAYMENT_PROVIDER_ERROR = "EOO34";
+    public static final String PRODUCT_NOT_FOUND = "E0035";
+    public static final String ACTIVE_PRODUCT_DELETION = "E0036";
+    public static final String ACTIVE_SUBSCRIPTION_PRODUCT_DELETION = "E0037";
+    public static final String PLAN_GENERATION_ERROR = "E0038";
+    public static final String ACTIVE_SUBSCRIPTION_PRICE_DELETION = "E0039";
+    public static final String BILLING_PRODUCT_IN_USE = "E0040";
+    public static final String FREE_TIER_NOT_FOUND = "E0041";
 }

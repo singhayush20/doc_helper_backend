@@ -39,6 +39,12 @@ public class BillingProductController {
         return ResponseEntity.ok(mapProduct(product));
     }
 
+    @DeleteMapping("/products/{productId}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
+        billingProductService.deleteProduct(productId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/products/{productId}/activate")
     public ResponseEntity<Void> activateProduct(@PathVariable Long productId) {
         billingProductService.activateProduct(productId);
@@ -84,6 +90,12 @@ public class BillingProductController {
         return ResponseEntity.ok(mapPrice(price));
     }
 
+    @DeleteMapping("/product/prices/{priceId}")
+    public ResponseEntity<Void> deleteBillingPriceFromProduct(@PathVariable Long priceId) {
+        billingProductService.deleteBillingPriceFromProduct(priceId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/prices/{priceId}")
     public ResponseEntity<PriceResponse> updatePrice(
             @PathVariable Long priceId,
@@ -107,13 +119,6 @@ public class BillingProductController {
                 .tier(product.getTier())
                 .monthlyTokenLimit(product.getMonthlyTokenLimit())
                 .active(product.isActive())
-                .prices(
-                        product.getBillingPrices() == null
-                                ? List.of()
-                                : product.getBillingPrices()
-                                        .stream()
-                                        .map(this::mapPrice)
-                                        .collect(Collectors.toList()))
                 .build();
     }
 

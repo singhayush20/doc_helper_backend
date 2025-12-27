@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.user_plan.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingProduct;
 
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.Optional;
 
 public interface BillingProductRepository extends JpaRepository<BillingProduct, Long> {
 
-    Optional<BillingProduct> findByCodeAndActiveTrue(String code);
+    Optional<BillingProduct> findByTier(AccountTier code);
 
     Optional<BillingProduct> findByCode(String code);
 

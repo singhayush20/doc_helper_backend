@@ -105,21 +105,6 @@ public class QuotaManagementServiceImpl implements QuotaManagementService {
     }
 
     @Override
-    @Transactional
-    public UserTokenQuota createInitialQuota(Long userId) {
-
-        UserTokenQuota quota = UserTokenQuota.builder()
-                .userId(userId)
-                .monthlyLimit(0L) // no entitlement yet
-                .currentMonthlyUsage(0L)
-                .resetDate(nextMonthStart())
-                .isActive(false)
-                .build();
-
-        return quotaRepository.save(quota);
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public Page<UserTokenQuota> findQuotasToResetPaginated(
             Instant now, Pageable pageable) {

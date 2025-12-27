@@ -1,6 +1,8 @@
 package com.ayushsingh.doc_helper.features.user_plan.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 
@@ -15,9 +17,13 @@ public interface BillingPriceRepository extends JpaRepository<BillingPrice, Long
     // For Razorpay subscriptions (PlanID stored in Razorpay dashboard)
     Optional<BillingPrice> findByProviderPlanId(String providerPlanId);
 
-    // List prices for UI (e.g. PRO has multiple plans: monthly, yearly)
-    List<BillingPrice> findByProductIdAndActiveTrue(Long productId);
-
     // Optional advanced filtering
     List<BillingPrice> findByProductId(Long productId);
+
+    @Query("""
+                SELECT COUNT(p) > 0
+                FROM BillingPrice p
+                WHERE p.product.id = :productId
+            """)
+    boolean existsByProductId(@Param("productId") Long productId);
 }

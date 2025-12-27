@@ -1,7 +1,10 @@
 package com.ayushsingh.doc_helper.features.user_plan.entity;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -55,12 +58,24 @@ public class BillingPrice {
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "currency", nullable = false, length = 10)
-    private String currency;
+    private Currency currency;
 
     @Column(name = "provider_plan_id", nullable = false, length = 100)
     private String providerPlanId;
 
     @Column(name = "active", nullable = false)
     private boolean active;
+
+    @Column(name = "description", length = 50, nullable = false)
+    private String description;
+
+    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    private Instant createdAt;
+
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private Instant updatedAt;
 }

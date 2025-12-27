@@ -14,25 +14,45 @@ import java.util.Optional;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
-    // Webhook → Update subscription from Razorpay
-    Optional<Subscription> findByProviderSubscriptionId(String providerSubscriptionId);
+  // Webhook → Update subscription from Razorpay
+  Optional<Subscription> findByProviderSubscriptionId(String providerSubscriptionId);
 
-    // Get latest active subscription for user
-    Optional<Subscription> findFirstByUserAndStatusInOrderByCreatedAtDesc(
-            User user,
-            List<SubscriptionStatus> statuses);
+  // Get latest active subscription for user
+  Optional<Subscription> findFirstByUserAndStatusInOrderByCreatedAtDesc(
+      User user,
+      List<SubscriptionStatus> statuses);
 
-    // Get all user subscriptions (for history)
-    List<Subscription> findByUserOrderByCreatedAtDesc(User user);
+  // Get all user subscriptions (for history)
+  List<Subscription> findByUserOrderByCreatedAtDesc(User user);
 
-    @Query("""
-                SELECT s
-                FROM Subscription s
-                WHERE s.status = 'CANCELED'
-                  AND s.cancelAtPeriodEnd = true
-                  AND s.currentPeriodEnd <= :now
-            """)
-    List<Subscription> findCancelledSubscriptionsReadyForFallback(
-            @Param("now") Instant now);
+  @Query("""
+          SELECT s
+          FROM Subscription s
+          WHERE s.status = 'CANCELED'
+            AND s.cancelAtPeriodEnd = true
+            AND s.currentPeriodEnd <= :now
+      """)
+  List<Subscription> findCancelledSubscriptionsReadyForFallback(
+      @Param("now") Instant now);
+
+  @Query("""
+          SELECT COUNT(s) > 0
+          FROM Subscription s
+          WHERE s.billingPrice.product.id = :productId
+            AND s.status IN :statuses
+      """)
+  boolean existsSubscriptionsForProductWithStatuses(
+      @Param("productId") Long productId,
+      @Param("statuses") List<SubscriptionStatus> statuses);
+
+  @Query("""
+          SELECT COUNT(s) > 0
+          FROM Subscription s
+          WHERE s.billingPrice.id = :id
+            AND s.status IN :statuses
+      """)
+  boolean existsSubscriptionsForPriceWithStatuses(
+      @Param("id") Long id,
+      @Param("statuses") List<SubscriptionStatus> statuses);
 
 }

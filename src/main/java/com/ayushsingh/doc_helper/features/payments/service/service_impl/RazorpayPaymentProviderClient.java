@@ -7,10 +7,12 @@ import com.ayushsingh.doc_helper.features.payments.entity.PaymentStatus;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentType;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.user.entity.User;
+import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPeriod;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.razorpay.Plan;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Subscription;
@@ -33,6 +35,47 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
     private final RazorpayProperties properties;
     private final RazorpayClient razorpayClient;
     private final ObjectMapper mapper = new ObjectMapper();
+
+    @Override
+    public String createPlan(
+            BillingPeriod billingPeriod,
+            BigDecimal amount,
+            String billingProductCode,
+            String currency,
+            String priceCode,
+            String planDescription,
+            Integer version) {
+        JSONObject planRequest = new JSONObject();
+        planRequest.put("period", billingPeriod.getPeriod());
+        planRequest.put("interval", 1);
+        planRequest.put("item", new JSONObject()
+                .put("name", priceCode)
+                .put("amount", getAmountInSubunits(amount))
+                .put("currency",
+                        currency)
+                .put("description", planDescription));
+        JSONObject notes = new JSONObject();
+        notes.put("version", version);
+        notes.put("billingProductCode", billingProductCode);
+        planRequest.put("notes", notes);
+
+        Plan plan;
+        try {
+            plan = razorpayClient.plans.create(planRequest);
+            String providerPlanId = plan.get("id");
+            return providerPlanId;
+        } catch (RazorpayException e) {
+            log.error("Failed to create Razorpay plan: {}", e.getMessage());
+            e.printStackTrace();
+            throw new BaseException(
+                    "Failed to create plan with payment provider",
+                    ExceptionCodes.PLAN_GENERATION_ERROR);
+        }
+    }
+
+    private Long getAmountInSubunits(BigDecimal amount) {
+        return amount.multiply(BigDecimal.valueOf(100)).longValue();
+    }
 
     @Override
     public String createSubscription(

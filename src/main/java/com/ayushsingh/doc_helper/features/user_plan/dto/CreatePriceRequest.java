@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.user_plan.dto;
 
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPeriod;
+import com.ayushsingh.doc_helper.features.user_plan.entity.Currency;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,10 +15,9 @@ import lombok.Setter;
 public class CreatePriceRequest {
     private String priceCode;
     private Long amount;
-    private String currency;
+    private Currency currency;
     private Integer intervalMonths;
-    private Long tokenLimit;
     private BillingPeriod billingPeriod;
-    private String providerPlanId;
     private Integer version;
+    private String description;
 }

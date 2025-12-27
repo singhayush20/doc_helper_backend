@@ -15,11 +15,11 @@ public interface BillingProductService {
 
     BillingProduct updateProduct(Long productId, UpdateProductRequest request);
 
+    void deleteProduct(Long productId);
+
     void activateProduct(Long productId);
 
     void deactivateProduct(Long productId);
-
-    BillingProduct getProductByCode(String code);
 
     List<BillingProduct> getAllActiveProducts();
 
@@ -30,4 +30,6 @@ public interface BillingProductService {
     BillingPrice updatePrice(Long priceId, UpdatePriceRequest request);
 
     void deactivatePrice(Long priceId);
+
+    void deleteBillingPriceFromProduct(Long priceId);
 }
