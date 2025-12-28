@@ -10,11 +10,10 @@ import lombok.Getter;
 @Builder
 public class BillingPriceDetailsDto {
 
-    private Long id;
     private String priceCode;
     private BillingPeriod billingPeriod;
     private Integer version;
-    private Long amount; // frontend-friendly
+    private Long amount;
     private Currency currency;
     private String providerPlanId;
     private boolean active;

@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.payments.service.service_impl;
 
+import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentProviderEventLog;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentTransaction;
 import com.ayushsingh.doc_helper.features.payments.repository.PaymentProviderEventLogRepository;
@@ -8,7 +9,6 @@ import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient
 import com.ayushsingh.doc_helper.features.payments.service.PaymentWebhookHandlerService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 import com.ayushsingh.doc_helper.features.user.entity.User;
-import com.ayushsingh.doc_helper.features.user.repository.UserRepository;
 import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
 import com.ayushsingh.doc_helper.features.user_plan.repository.SubscriptionRepository;
@@ -33,7 +33,6 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionFallbackService subscriptionFallbackService;
     private final QuotaManagementService quotaManagementService;
-    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -101,12 +100,9 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
             return;
         }
 
-        Long userId = paymentProviderClient.extractUserIdFromNotes(rawPayload);
         Long localSubscriptionId = paymentProviderClient.extractSubscriptionIdFromNotes(rawPayload);
 
-        User user = userId != null
-                ? userRepository.findById(userId).orElse(null)
-                : null;
+        User user = UserContext.getCurrentUser().getUser();
 
         Subscription subscription = localSubscriptionId != null
                 ? subscriptionRepository.findById(localSubscriptionId).orElse(null)

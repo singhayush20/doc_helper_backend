@@ -4,9 +4,13 @@ import java.time.Instant;
 
 import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Builder
 public class SubscriptionResponse {

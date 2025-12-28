@@ -3,7 +3,9 @@ package com.ayushsingh.doc_helper.features.user_plan.repository;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
+import com.ayushsingh.doc_helper.features.user_plan.projection.CurrentSubscriptionView;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,45 +16,73 @@ import java.util.Optional;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
-  // Webhook → Update subscription from Razorpay
-  Optional<Subscription> findByProviderSubscriptionId(String providerSubscriptionId);
+    // Webhook → Update subscription from Razorpay
+    Optional<Subscription> findByProviderSubscriptionId(String providerSubscriptionId);
 
-  // Get latest active subscription for user
-  Optional<Subscription> findFirstByUserAndStatusInOrderByCreatedAtDesc(
-      User user,
-      List<SubscriptionStatus> statuses);
+    Optional<Subscription> findFirstByUserAndStatusInOrderByCreatedAtDesc(
+            User user,
+            List<SubscriptionStatus> statuses);
 
-  // Get all user subscriptions (for history)
-  List<Subscription> findByUserOrderByCreatedAtDesc(User user);
+            
 
-  @Query("""
-          SELECT s
-          FROM Subscription s
-          WHERE s.status = 'CANCELED'
-            AND s.cancelAtPeriodEnd = true
-            AND s.currentPeriodEnd <= :now
-      """)
-  List<Subscription> findCancelledSubscriptionsReadyForFallback(
-      @Param("now") Instant now);
+    @Query("""
+                SELECT
+                    p.code AS planCode,
+                    p.displayName AS planName,
+                    p.tier AS planTier,
+                    p.monthlyTokenLimit AS planMonthlyTokenLimit,
+                    bp.priceCode AS priceCode,
+                    bp.billingPeriod AS billingPeriod,
+                    bp.amount AS amount,
+                    bp.currency AS currency,
+                    bp.discription AS priceDescription,
+                    s.status AS status,
+                    s.cancelAtPeriodEnd AS cancelAtPeriodEnd,
+                    s.currentPeriodStart AS currentPeriodStart,
+                    s.currentPeriodEnd AS currentPeriodEnd
+                FROM Subscription s
+                    JOIN s.billingPrice bp
+                    JOIN bp.product p
+                WHERE s.user.id = :userId
+                  AND s.status IN :activeStatuses
+                ORDER BY s.createdAt DESC
+            """)
+    List<CurrentSubscriptionView> findCurrentSubscriptionView(
+            @Param("userId") Long userId,
+            @Param("activeStatuses") List<SubscriptionStatus> activeStatuses,
+            Pageable pageable);
 
-  @Query("""
-          SELECT COUNT(s) > 0
-          FROM Subscription s
-          WHERE s.billingPrice.product.id = :productId
-            AND s.status IN :statuses
-      """)
-  boolean existsSubscriptionsForProductWithStatuses(
-      @Param("productId") Long productId,
-      @Param("statuses") List<SubscriptionStatus> statuses);
+    // Get all user subscriptions (for history)
+    List<Subscription> findByUserOrderByCreatedAtDesc(User user);
 
-  @Query("""
-          SELECT COUNT(s) > 0
-          FROM Subscription s
-          WHERE s.billingPrice.id = :id
-            AND s.status IN :statuses
-      """)
-  boolean existsSubscriptionsForPriceWithStatuses(
-      @Param("id") Long id,
-      @Param("statuses") List<SubscriptionStatus> statuses);
+    @Query("""
+                SELECT s
+                FROM Subscription s
+                WHERE s.status = 'CANCELED'
+                  AND s.cancelAtPeriodEnd = true
+                  AND s.currentPeriodEnd <= :now
+            """)
+    List<Subscription> findCancelledSubscriptionsReadyForFallback(
+            @Param("now") Instant now);
+
+    @Query("""
+                SELECT COUNT(s) > 0
+                FROM Subscription s
+                WHERE s.billingPrice.product.id = :productId
+                  AND s.status IN :statuses
+            """)
+    boolean existsSubscriptionsForProductWithStatuses(
+            @Param("productId") Long productId,
+            @Param("statuses") List<SubscriptionStatus> statuses);
+
+    @Query("""
+                SELECT COUNT(s) > 0
+                FROM Subscription s
+                WHERE s.billingPrice.id = :id
+                  AND s.status IN :statuses
+            """)
+    boolean existsSubscriptionsForPriceWithStatuses(
+            @Param("id") Long id,
+            @Param("statuses") List<SubscriptionStatus> statuses);
 
 }

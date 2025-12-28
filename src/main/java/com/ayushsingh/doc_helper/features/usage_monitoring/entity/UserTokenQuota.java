@@ -49,10 +49,6 @@ public class UserTokenQuota {
     @Column(name = "reset_date", nullable = false, columnDefinition = "TIMESTAMPTZ")
     private Instant resetDate;
 
-    @Column(name = "tier", length = 50)
-    @Enumerated(EnumType.STRING)
-    private AccountTier tier; // TODO: Remove this - not required since the TokenQuota is linked to User which is linked to Subscription which is linked to BillingProduct which has the tier info
-
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;

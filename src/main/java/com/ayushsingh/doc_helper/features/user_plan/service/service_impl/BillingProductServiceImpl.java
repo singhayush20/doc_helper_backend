@@ -273,7 +273,6 @@ public class BillingProductServiceImpl implements BillingProductService {
 
         private BillingPriceDetailsDto mapPrice(BillingPrice price) {
                 return BillingPriceDetailsDto.builder()
-                                .id(price.getId())
                                 .priceCode(price.getPriceCode())
                                 .billingPeriod(price.getBillingPeriod())
                                 .version(price.getVersion())

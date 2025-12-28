@@ -5,10 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.payments.dto.CheckoutSessionResponse;
 import com.ayushsingh.doc_helper.features.user_plan.dto.SubscriptionResponse;
-import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 
 @RestController
@@ -23,38 +21,22 @@ public class BillingController {
     public ResponseEntity<CheckoutSessionResponse> createCheckoutSession(
             @RequestParam("priceCode") String priceCode) {
 
-        Long userId = UserContext.getCurrentUser().getUser().getId();
-        CheckoutSessionResponse response = subscriptionService.startCheckoutForPriceCode(userId, priceCode);
+        CheckoutSessionResponse response = subscriptionService.startCheckoutForPriceCode(priceCode);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/subscription/current")
     @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
-public ResponseEntity<SubscriptionResponse> getCurrentSubscription() {
-    Long userId = UserContext.getCurrentUser().getUser().getId();
+    public ResponseEntity<SubscriptionResponse> getCurrentSubscription() {
 
-    Subscription sub = subscriptionService.getCurrentActiveSubscription(userId);
-    if (sub == null) {
-        return ResponseEntity.ok(null);
+        var subscriptionResponse = subscriptionService.getCurrentSubscription();
+        return ResponseEntity.ok(subscriptionResponse);
     }
-
-    return ResponseEntity.ok(
-            SubscriptionResponse.builder()
-                    .planCode(sub.getBillingPrice().getProduct().getCode())
-                    .priceCode(sub.getBillingPrice().getPriceCode())
-                    .status(sub.getStatus())
-                    .cancelAtPeriodEnd(sub.getCancelAtPeriodEnd())
-                    .currentPeriodStart(sub.getCurrentPeriodStart())
-                    .currentPeriodEnd(sub.getCurrentPeriodEnd())
-                    .build()
-    );
-}
 
     @PostMapping("/subscription/cancel")
     @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     public ResponseEntity<Void> cancelCurrentAtPeriodEnd() {
-        Long userId = UserContext.getCurrentUser().getUser().getId();
-        subscriptionService.cancelCurrentSubscriptionAtPeriodEnd(userId);
+        subscriptionService.cancelCurrentSubscriptionAtPeriodEnd();
         return ResponseEntity.ok().build();
     }
 }

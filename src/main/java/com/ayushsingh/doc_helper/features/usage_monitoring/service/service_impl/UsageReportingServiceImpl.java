@@ -39,7 +39,6 @@ public class UsageReportingServiceImpl implements UsageReportingService {
                     .currentMonthlyUsage(0L)
                     .remainingTokens(0L)
                     .usagePercentage(0.0)
-                    .tier(null)
                     .isActive(false)
                     .resetDate(null)
                     .build();
@@ -58,8 +57,6 @@ public class UsageReportingServiceImpl implements UsageReportingService {
                 .remainingTokens(remaining)
                 .usagePercentage(usagePercentage)
                 .resetDate(quota.getResetDate())
-                .tier(quota.getTier())
-                .isActive(quota.getIsActive())
                 .build();
     }
 

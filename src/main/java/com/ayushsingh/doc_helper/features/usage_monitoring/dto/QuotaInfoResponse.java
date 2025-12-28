@@ -2,8 +2,6 @@ package com.ayushsingh.doc_helper.features.usage_monitoring.dto;
 
 import java.time.Instant;
 
-import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
-
 import lombok.*;
 
 @Builder
@@ -18,6 +16,5 @@ public class QuotaInfoResponse {
     private Long remainingTokens;
     private Double usagePercentage;
     private Instant resetDate;
-    private AccountTier tier;
     private Boolean isActive;
 }
