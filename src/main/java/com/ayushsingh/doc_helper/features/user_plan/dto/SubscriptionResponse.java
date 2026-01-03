@@ -20,4 +20,10 @@ public class SubscriptionResponse {
     private Boolean cancelAtPeriodEnd;
     private Instant currentPeriodStart;
     private Instant currentPeriodEnd;
+    private String planName;
+    private String planTier;
+    private Long planMonthlyTokenLimit;
+    private Long amount;
+    private String currency;
+    private String description;
 }

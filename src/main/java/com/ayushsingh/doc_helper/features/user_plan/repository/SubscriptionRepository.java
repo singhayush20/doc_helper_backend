@@ -35,7 +35,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
                     bp.billingPeriod AS billingPeriod,
                     bp.amount AS amount,
                     bp.currency AS currency,
-                    bp.discription AS priceDescription,
+                    bp.description AS priceDescription,
                     s.status AS status,
                     s.cancelAtPeriodEnd AS cancelAtPeriodEnd,
                     s.currentPeriodStart AS currentPeriodStart,

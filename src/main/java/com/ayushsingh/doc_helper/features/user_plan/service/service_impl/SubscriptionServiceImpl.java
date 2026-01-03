@@ -110,6 +110,12 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                                 .cancelAtPeriodEnd(view.getCancelAtPeriodEnd())
                                 .currentPeriodStart(view.getCurrentPeriodStart())
                                 .currentPeriodEnd(view.getCurrentPeriodEnd())
+                                .planName(view.getPlanName())
+                                .planTier(view.getPlanTier().name())
+                                .planMonthlyTokenLimit(view.getPlanMonthlyTokenLimit())
+                                .amount(view.getAmount())
+                                .currency(view.getCurrency())
+                                .description(view.getPriceDescription())
                                 .build();
         }
 
