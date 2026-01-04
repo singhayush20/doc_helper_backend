@@ -2,8 +2,18 @@ package com.ayushsingh.doc_helper.features.user_plan.entity;
 
 import java.util.Set;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.List;
+import java.util.ArrayList;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -39,6 +49,7 @@ public class BillingProduct {
     private String displayName;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "tier", nullable = false, length = 50)
     private AccountTier tier;
 
@@ -47,6 +58,13 @@ public class BillingProduct {
 
     @Column(name = "monthly_token_limit", nullable = false)
     private Long monthlyTokenLimit;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "billing_product_features", joinColumns = @JoinColumn(name = "product_id"))
+    @OrderColumn(name = "feature_index")
+    @Column(name = "feature", length = 512)
+    @Builder.Default
+    private List<String> features = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, orphanRemoval = false, cascade = { CascadeType.PERSIST,
             CascadeType.MERGE, CascadeType.REFRESH })

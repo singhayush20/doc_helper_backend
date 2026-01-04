@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.user_plan.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
@@ -16,5 +17,6 @@ public interface BillingProductRepository extends JpaRepository<BillingProduct, 
 
     List<BillingProduct> findAllByActiveTrue();
 
+    @EntityGraph(attributePaths = "features")
     List<BillingProduct> findByActiveTrue();
 }

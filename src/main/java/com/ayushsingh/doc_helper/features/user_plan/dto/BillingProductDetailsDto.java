@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.user_plan.dto;
 
 import lombok.Builder;
 import lombok.Getter;
+import java.util.List;
 
 import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 
@@ -15,4 +16,5 @@ public class BillingProductDetailsDto {
     private AccountTier tier;
     private Long monthlyTokenLimit;
     private boolean active;
+    private List<String> features;
 }

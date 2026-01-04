@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.user_plan.service.service_impl;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -49,6 +50,7 @@ public class BillingProductServiceImpl implements BillingProductService {
                                 .displayName(request.getDisplayName())
                                 .tier(request.getTier())
                                 .monthlyTokenLimit(request.getMonthlyTokenLimit())
+                                .features(request.getFeatures() == null ? new ArrayList<>() : request.getFeatures())
                                 .active(true)
                                 .build();
 
@@ -65,6 +67,7 @@ public class BillingProductServiceImpl implements BillingProductService {
                 product.setDisplayName(request.getDisplayName());
                 product.setTier(request.getTier());
                 product.setMonthlyTokenLimit(request.getMonthlyTokenLimit());
+                product.setFeatures(request.getFeatures() == null ? new ArrayList<>() : request.getFeatures());
 
                 return mapProduct(productRepository.save(product));
         }
@@ -268,6 +271,7 @@ public class BillingProductServiceImpl implements BillingProductService {
                                 .tier(product.getTier())
                                 .monthlyTokenLimit(product.getMonthlyTokenLimit())
                                 .active(product.isActive())
+                                .features(product.getFeatures())
                                 .build();
         }
 

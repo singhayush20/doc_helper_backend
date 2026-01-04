@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.user_plan.dto;
 
 import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,4 +17,5 @@ public class CreateProductRequest {
     private String displayName;
     private AccountTier tier;
     private Long monthlyTokenLimit;
+    private List<String> features;
 }
