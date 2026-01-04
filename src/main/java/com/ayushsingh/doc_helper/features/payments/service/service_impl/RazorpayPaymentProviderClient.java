@@ -85,7 +85,7 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
 
         JSONObject payload = new JSONObject();
         payload.put("plan_id", price.getProviderPlanId());
-        payload.put("total_count", 0);
+        payload.put("total_count", 1);
 
         JSONObject notes = new JSONObject();
         notes.put("user_id", user.getId());
@@ -100,7 +100,6 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
         } catch (RazorpayException e) {
             log.error("Failed to create Razorpay subscription for userId={}, localSubscriptionId={}: {}",
                     user.getId(), localSubscriptionId, e.getMessage());
-            e.printStackTrace();
 
             throw new BaseException(
                     "Failed to create subscription with payment provider",

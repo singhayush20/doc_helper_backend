@@ -14,4 +14,5 @@ public class CheckoutSessionResponse {
     private String providerKeyId;
     private String planCode;
     private String priceCode;
+    private Double amount;
 }

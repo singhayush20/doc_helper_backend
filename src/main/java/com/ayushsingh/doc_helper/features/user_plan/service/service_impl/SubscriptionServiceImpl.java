@@ -68,6 +68,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                                 .providerKeyId(razorpayProperties.keyId())
                                 .planCode(price.getProduct().getCode())
                                 .priceCode(price.getPriceCode())
+                                .amount(price.getAmount().doubleValue())
                                 .build();
         }
 
