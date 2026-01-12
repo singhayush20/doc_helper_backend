@@ -19,7 +19,7 @@ public class RazorpayWebhookController {
     public ResponseEntity<Void> handleWebhook(
             @RequestBody String payload,
             @RequestHeader("X-Razorpay-Signature") String signature) {
-
+        log.info("Received webhook trigger from Razorpay {}",payload);
         webhookHandlerService.handleProviderEvent(payload, signature);
         return ResponseEntity.ok().build();
     }

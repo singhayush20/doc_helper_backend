@@ -138,5 +138,6 @@ payment:
   gateway:
     secret-key: ${RAZORPAY_KEY_SECRET}
     key-id: ${RAZORPAY_KEY_ID}
+    subscription-webhook-secret: ${SUBSCRIPTION_EVENT_WEBHOOK_SECRET}
 
 

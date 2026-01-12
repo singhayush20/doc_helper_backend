@@ -113,7 +113,8 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                 || path.endsWith(".map")
                 || path.startsWith("/api/public/")
                 || path.startsWith("/api/v1/auth/")
-                || path.equals("/error");
+                || path.equals("/error")
+                || path.contains("/api/v1/billing/razorpay/webhook");
 
         return !isPublicRoute; // Protected if NOT public
     }
@@ -143,6 +144,7 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                 || path.endsWith(".png")
                 || path.endsWith(".ico")
                 || path.endsWith(".map")
-                || path.startsWith("/api/public/");
+                || path.startsWith("/api/public/")
+                || path.contains("/api/v1/billing/razorpay/webhook"); // Exclude webhook endpoint from auth filter
     }
 }

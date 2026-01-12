@@ -151,7 +151,7 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
             valid = Utils.verifyWebhookSignature(
                     payload,
                     signatureHeader,
-                    properties.webhookSecret());
+                    properties.subscriptionWebhookSecret());
         } catch (RazorpayException e) {
             log.error("Error verifying webhook signature, {}: {}", e, e.getMessage());
         } finally {
