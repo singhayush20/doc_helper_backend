@@ -75,4 +75,8 @@ public class Subscription {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "checkout_expires_at", nullable = false)
+    private Instant checkoutExpiresAt;
+
 }

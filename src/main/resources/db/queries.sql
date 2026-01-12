@@ -82,3 +82,5 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS idx_documents_originalfilename_trgm ON documents USING gin (
     original_file_name gin_trgm_ops
 );
+
+CREATE INDEX idx_subscription_status_expiry ON subscription (status, checkout_expires_at);

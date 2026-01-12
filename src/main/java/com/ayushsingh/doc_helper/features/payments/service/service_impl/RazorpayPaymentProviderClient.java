@@ -5,6 +5,7 @@ import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseExceptio
 import com.ayushsingh.doc_helper.features.payments.config.RazorpayProperties;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentStatus;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentType;
+import com.ayushsingh.doc_helper.features.payments.entity.ProviderSubscriptionStatus;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPeriod;
@@ -272,6 +273,50 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
         long epoch = new JSONObject(payload)
                 .getLong("created_at");
         return Instant.ofEpochSecond(epoch);
+    }
+
+    @Override
+    public ProviderSubscriptionStatus fetchSubscriptionStatus(
+            String providerSubscriptionId) {
+
+        try {
+            Subscription subscription = razorpayClient.subscriptions.fetch(providerSubscriptionId);
+
+            String status = subscription.get("status");
+
+            return mapStatus(status);
+
+        } catch (RazorpayException ex) {
+            log.error(
+                    "Failed to fetch Razorpay subscription status for {}",
+                    providerSubscriptionId,
+                    ex);
+            return ProviderSubscriptionStatus.UNKNOWN;
+        }
+    }
+
+    private ProviderSubscriptionStatus mapStatus(String razorpayStatus) {
+
+        return switch (razorpayStatus.toLowerCase()) {
+
+            case "created" -> ProviderSubscriptionStatus.CREATED;
+
+            case "authenticated" -> ProviderSubscriptionStatus.AUTHENTICATED;
+
+            case "active" -> ProviderSubscriptionStatus.ACTIVE;
+
+            case "pending" -> ProviderSubscriptionStatus.PENDING;
+
+            case "halted" -> ProviderSubscriptionStatus.HALTED;
+
+            case "cancelled" -> ProviderSubscriptionStatus.CANCELLED;
+
+            case "expired" -> ProviderSubscriptionStatus.EXPIRED;
+
+            case "completed" -> ProviderSubscriptionStatus.COMPLETED;
+
+            default -> ProviderSubscriptionStatus.UNKNOWN;
+        };
     }
 
 }

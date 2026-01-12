@@ -5,6 +5,7 @@ import java.time.Instant;
 
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentStatus;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentType;
+import com.ayushsingh.doc_helper.features.payments.entity.ProviderSubscriptionStatus;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPeriod;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
@@ -50,4 +51,7 @@ public interface PaymentProviderClient {
     Long extractSubscriptionIdFromNotes(String payload);
 
     Instant extractEventTime(String payload);
+
+    ProviderSubscriptionStatus fetchSubscriptionStatus(String providerSubscriptionId);
+
 }

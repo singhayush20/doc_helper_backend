@@ -23,6 +23,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -35,13 +37,15 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         private final PaymentProviderClient paymentProviderClient;
         private final RazorpayProperties razorpayProperties;
 
+        private static final Duration CHECKOUT_TTL = Duration.ofMinutes(30);
+
         @Override
         @Transactional
         public CheckoutSessionResponse startCheckoutForPriceCode(String priceCode) {
 
                 User user = UserContext.getCurrentUser().getUser();
 
-                assertNoActiveSubscription(user);
+                assertNoBlockingSubscription(user);
 
                 BillingPrice price = billingPriceRepository
                                 .findFirstByPriceCodeAndActiveTrueOrderByVersionDesc(priceCode)
@@ -53,12 +57,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                                 .user(user)
                                 .billingPrice(price)
                                 .status(SubscriptionStatus.INCOMPLETE)
+                                .checkoutExpiresAt(Instant.now().plus(CHECKOUT_TTL))
                                 .cancelAtPeriodEnd(false)
                                 .build();
 
                 subscription = subscriptionRepository.save(subscription);
 
-                String providerSubId = paymentProviderClient.createSubscription(price, user, subscription.getId());
+                String providerSubId = paymentProviderClient
+                                .createSubscription(price, user, subscription.getId());
 
                 subscription.setProviderSubscriptionId(providerSubId);
                 subscriptionRepository.save(subscription);
@@ -72,19 +78,16 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                                 .build();
         }
 
-        private void assertNoActiveSubscription(User user) {
-                subscriptionRepository
-                                .findFirstByUserAndStatusInOrderByCreatedAtDesc(
-                                                user,
-                                                List.of(
-                                                                SubscriptionStatus.ACTIVE,
-                                                                SubscriptionStatus.INCOMPLETE,
-                                                                SubscriptionStatus.PAST_DUE))
-                                .ifPresent(sub -> {
-                                        throw new BaseException(
-                                                        "Active subscription already exists",
-                                                        ExceptionCodes.SUBSCRIPTION_ALREADY_EXISTS);
-                                });
+        private void assertNoBlockingSubscription(User user) {
+
+                boolean exists = subscriptionRepository
+                                .existsBlockingSubscription(user, Instant.now());
+
+                if (exists) {
+                        throw new BaseException(
+                                        "Active or pending subscription already exists",
+                                        ExceptionCodes.SUBSCRIPTION_ALREADY_EXISTS);
+                }
         }
 
         @Override
@@ -125,9 +128,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         public void cancelCurrentSubscriptionAtPeriodEnd() {
                 var user = UserContext.getCurrentUser().getUser();
                 var subscription = subscriptionRepository.findFirstByUserAndStatusInOrderByCreatedAtDesc(
-                                user, List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE)).orElseThrow(()-> new BaseException(
-                                        "No subscription found",
-                                        ExceptionCodes.SUBSCRIPTION_NOT_FOUND));
+                                user, List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE))
+                                .orElseThrow(() -> new BaseException(
+                                                "No subscription found",
+                                                ExceptionCodes.SUBSCRIPTION_NOT_FOUND));
 
                 if (subscription.getProviderSubscriptionId() == null) {
                         throw new BaseException(
