@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.payments.service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Optional;
 
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentStatus;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentType;
@@ -46,12 +47,12 @@ public interface PaymentProviderClient {
 
     PaymentType extractPaymentType(String eventType);
 
-    Long extractUserIdFromNotes(String payload);
-
-    Long extractSubscriptionIdFromNotes(String payload);
-
     Instant extractEventTime(String payload);
 
     ProviderSubscriptionStatus fetchSubscriptionStatus(String providerSubscriptionId);
+
+    Optional<String> fetchInvoiceIdForPayment(String providerPaymentId);
+
+    Optional<String> fetchSubscriptionIdForInvoice(String providerInvoiceId);
 
 }

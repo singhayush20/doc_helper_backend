@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.payments.service.service_impl;
 
-import com.ayushsingh.doc_helper.core.security.UserContext;
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentProviderEventLog;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentTransaction;
 import com.ayushsingh.doc_helper.features.payments.repository.PaymentProviderEventLogRepository;
@@ -100,13 +101,24 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
             return;
         }
 
-        Long localSubscriptionId = paymentProviderClient.extractSubscriptionIdFromNotes(rawPayload);
+        Optional<String> providerSubId = paymentProviderClient.fetchInvoiceIdForPayment(providerPaymentId)
+                .flatMap(paymentProviderClient::fetchSubscriptionIdForInvoice);
 
-        User user = UserContext.getCurrentUser().getUser();
+        Subscription subscription = providerSubId
+                .flatMap(subscriptionRepository::findByProviderSubscriptionId)
+                .orElse(null);
 
-        Subscription subscription = localSubscriptionId != null
-                ? subscriptionRepository.findById(localSubscriptionId).orElse(null)
+        User user = subscription != null
+                ? subscription.getUser()
                 : null;
+
+        if (user == null || subscription == null) {
+            log.error("No local subscription/user found for payment id={}",
+                    providerPaymentId);
+            throw new BaseException(
+                    "No local subscription/user found for payment",
+                    ExceptionCodes.SUBSCRIPTION_WEBHOOK_DATA_INVALID_ERROR);
+        }
 
         PaymentTransaction transaction = PaymentTransaction.builder()
                 .user(user)
@@ -139,29 +151,65 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
             return;
         }
 
-        Subscription subscription = subscriptionRepository.findByProviderSubscriptionId(providerSubId)
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(providerSubId)
                 .orElse(null);
 
         if (subscription == null) {
-            log.warn("No local subscription found for providerSubId={}",
-                    providerSubId);
+            log.warn("No local subscription found for providerSubId={}", providerSubId);
             return;
         }
 
         switch (eventType) {
-            case "subscription.activated" -> handleActivated(subscription);
-            case "subscription.charged" -> handleCharged(subscription);
-            case "subscription.cancelled", "subscription.completed" ->
+
+            case "subscription.authenticated" ->
+                handleAuthenticated(subscription);
+
+            case "subscription.activated" ->
+                handleActivated(subscription);
+
+            case "subscription.pending" ->
+                handlePending(subscription);
+
+            case "subscription.halted" ->
+                handleHalted(subscription);
+
+            case "subscription.cancelled" ->
                 handleCancelled(subscription);
-            case "subscription.halted" -> handleHalted(subscription);
-            default -> log.info("Unhandled subscription event type: {}", eventType);
+
+            case "subscription.completed" ->
+                handleCompleted(subscription);
+
+            case "subscription.expired" ->
+                handleExpired(subscription);
+
+            default ->
+                log.info("Unhandled subscription event type: {}", eventType);
         }
+    }
+
+    private void handleAuthenticated(Subscription subscription) {
+
+        if (subscription.getStatus() != SubscriptionStatus.INCOMPLETE) {
+            return;
+        }
+
+        log.info("Subscription authenticated: {}", subscription.getId());
+
+        subscription.setStatus(SubscriptionStatus.INCOMPLETE);
+        subscriptionRepository.save(subscription);
     }
 
     /**
      * Subscription became ACTIVE → apply paid quota.
      */
     private void handleActivated(Subscription subscription) {
+
+        if (subscription.getStatus() == SubscriptionStatus.ACTIVE) {
+            return;
+        }
+
+        log.info("Subscription activated: {}", subscription.getId());
 
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscriptionRepository.save(subscription);
@@ -175,23 +223,30 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
                 tokenLimit);
     }
 
-    /**
-     * New billing cycle charged → reset quota.
-     */
-    private void handleCharged(Subscription subscription) {
+    private void handlePending(Subscription subscription) {
+        // TODO: Take appropriate actions for pending subscriptions
 
-        quotaManagementService.resetQuotaForNewBillingCycle(
-                subscription.getUser().getId());
+        if (subscription.getStatus() == SubscriptionStatus.PAST_DUE) {
+            return;
+        }
+
+        log.warn("Subscription moved to PAST_DUE: {}", subscription.getId());
+
+        subscription.setStatus(SubscriptionStatus.PAST_DUE);
+        subscriptionRepository.save(subscription);
     }
-
+    
     /**
      * Subscription cancelled.
      * Immediate fallback or scheduled fallback handled.
      */
     private void handleCancelled(Subscription subscription) {
 
-        log.info("Handling subscription cancelled for id={}",
-                subscription.getId());
+        if (subscription.getStatus() == SubscriptionStatus.CANCELED) {
+            return;
+        }
+
+        log.info("Subscription cancelled: {}", subscription.getId());
 
         subscription.setStatus(SubscriptionStatus.CANCELED);
         subscription.setCanceledAt(Instant.now());
@@ -205,17 +260,42 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
             subscriptionFallbackService.applyFreePlan(
                     subscription.getUser().getId());
         }
-        // else:
-        // cancel_at_period_end = true
-        // FREE fallback will be applied by scheduler
     }
+
+    private void handleCompleted(Subscription subscription) {
+
+        if (subscription.getStatus() == SubscriptionStatus.CANCELED) {
+            return;
+        }
+
+        log.info("Subscription completed: {}", subscription.getId());
+
+        subscription.setStatus(SubscriptionStatus.CANCELED);
+        subscriptionRepository.save(subscription);
+
+        subscriptionFallbackService.applyFreePlan(
+                subscription.getUser().getId());
+    }    
+
+    private void handleExpired(Subscription subscription) {
+        // TODO: Take appropriate actions for expired subscriptions
+
+        if (subscription.getStatus() == SubscriptionStatus.EXPIRED) {
+            return;
+        }
+
+        log.warn("Subscription expired before activation: {}", subscription.getId());
+
+        subscription.setStatus(SubscriptionStatus.EXPIRED);
+        subscriptionRepository.save(subscription);
+    }    
 
     /**
      * Subscription halted (payment issues, etc.).
      * No quota change here; policy handled via scheduler.
      */
     private void handleHalted(Subscription subscription) {
-
+        // TODO: Take appropriate actions for halted subscriptions
         subscription.setStatus(SubscriptionStatus.HALTED);
         subscriptionRepository.save(subscription);
     }

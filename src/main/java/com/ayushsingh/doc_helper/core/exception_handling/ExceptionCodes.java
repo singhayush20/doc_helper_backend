@@ -47,4 +47,5 @@ public final class ExceptionCodes {
     public static final String ACTIVE_SUBSCRIPTION_PRICE_DELETION = "E0039";
     public static final String BILLING_PRODUCT_IN_USE = "E0040";
     public static final String FREE_TIER_NOT_FOUND = "E0041";
+    public static final String SUBSCRIPTION_WEBHOOK_DATA_INVALID_ERROR = "E0042";
 }

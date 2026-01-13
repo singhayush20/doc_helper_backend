@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Optional;
 
 import org.json.JSONObject;
 import org.springframework.stereotype.Component;
@@ -165,13 +166,32 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
 
     @Override
     public String extractEventId(String payload) {
+
         try {
-            return mapper.readTree(payload).get("id").asText();
-        } catch (JsonProcessingException e) {
-            log.error("Error extracting event id from razorpay event: {}: {}", e, e.getMessage());
-            e.printStackTrace();
+            JsonNode root = mapper.readTree(payload);
+            String event = root.path("event").asText();
+
+            if (event.startsWith("payment.")) {
+                return root.path("payload")
+                        .path("payment")
+                        .path("entity")
+                        .path("id")
+                        .asText(null);
+            }
+
+            if (event.startsWith("subscription.")) {
+                return root.path("payload")
+                        .path("subscription")
+                        .path("entity")
+                        .path("id")
+                        .asText(null);
+            }
+
+            return null;
+
+        } catch (Exception e) {
             throw new BaseException(
-                    "Error when parsing webhook payload",
+                    "Invalid webhook payload",
                     ExceptionCodes.PAYMENT_PROVIDER_ERROR);
         }
     }
@@ -179,12 +199,12 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
     @Override
     public String extractEventType(String payload) {
         try {
-            return mapper.readTree(payload).get("event").asText();
-        } catch (JsonProcessingException e) {
-            log.error("Error extracting event type from razorpay event: {}: {}", e, e.getMessage());
-            e.printStackTrace();
+            return mapper.readTree(payload)
+                    .path("event")
+                    .asText(null);
+        } catch (Exception e) {
             throw new BaseException(
-                    "Error when parsing webhook payload",
+                    "Invalid webhook payload",
                     ExceptionCodes.PAYMENT_PROVIDER_ERROR);
         }
     }
@@ -204,34 +224,84 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
         }
     }
 
+    private JsonNode paymentNode(String payload) throws Exception {
+        return mapper.readTree(payload)
+                .path("payload")
+                .path("payment")
+                .path("entity");
+    }
+
     @Override
     public String extractPaymentId(String payload) {
-        return new JSONObject(payload)
-                .getJSONObject("payload")
-                .getJSONObject("payment")
-                .getJSONObject("entity")
-                .getString("id");
+        try {
+            return paymentNode(payload)
+                    .path("id")
+                    .asText(null);
+        } catch (Exception e) {
+            log.error("Error extracting id from payload: {}",e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public BigDecimal extractPaymentAmount(String payload) {
-        long amountPaise = new JSONObject(payload)
-                .getJSONObject("payload")
-                .getJSONObject("payment")
-                .getJSONObject("entity")
-                .getLong("amount");
+        try {
+            long paise = paymentNode(payload)
+                    .path("amount")
+                    .asLong(0);
 
-        return BigDecimal.valueOf(amountPaise)
-                .divide(BigDecimal.valueOf(100));
+            return BigDecimal.valueOf(paise)
+                    .divide(BigDecimal.valueOf(100));
+        } catch (Exception e) {
+            log.error("Error extracting payment amount from payload: {}", e.getMessage());
+            e.printStackTrace();
+            return BigDecimal.ZERO;
+        }
     }
 
     @Override
     public String extractPaymentCurrency(String payload) {
-        return new JSONObject(payload)
-                .getJSONObject("payload")
-                .getJSONObject("payment")
-                .getJSONObject("entity")
-                .getString("currency");
+        try {
+            return paymentNode(payload)
+                    .path("currency")
+                    .asText(null);
+        } catch (Exception e) {
+            log.error("Error extracting currency from payload: {}", e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @Override
+    public Optional<String> fetchInvoiceIdForPayment(String providerPaymentId) {
+
+        try {
+            com.razorpay.Payment payment = razorpayClient.payments.fetch(providerPaymentId);
+
+            String invoiceId = payment.get("invoice_id");
+            return Optional.ofNullable(invoiceId);
+
+        } catch (RazorpayException e) {
+            log.error("Failed to fetch payment {}", providerPaymentId, e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<String> fetchSubscriptionIdForInvoice(
+            String providerInvoiceId) {
+
+        try {
+            com.razorpay.Invoice invoice = razorpayClient.invoices.fetch(providerInvoiceId);
+
+            String subscriptionId = invoice.get("subscription_id");
+            return Optional.ofNullable(subscriptionId);
+
+        } catch (RazorpayException e) {
+            log.error("Failed to fetch invoice {}", providerInvoiceId, e);
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -249,30 +319,15 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
     }
 
     @Override
-    public Long extractUserIdFromNotes(String payload) {
-        return new JSONObject(payload)
-                .getJSONObject("payload")
-                .getJSONObject("payment")
-                .getJSONObject("entity")
-                .getJSONObject("notes")
-                .optLong("userId");
-    }
-
-    @Override
-    public Long extractSubscriptionIdFromNotes(String payload) {
-        return new JSONObject(payload)
-                .getJSONObject("payload")
-                .getJSONObject("payment")
-                .getJSONObject("entity")
-                .getJSONObject("notes")
-                .optLong("subscriptionId");
-    }
-
-    @Override
     public Instant extractEventTime(String payload) {
-        long epoch = new JSONObject(payload)
-                .getLong("created_at");
-        return Instant.ofEpochSecond(epoch);
+        try {
+            long epoch = mapper.readTree(payload)
+                    .path("created_at")
+                    .asLong(0);
+            return Instant.ofEpochSecond(epoch);
+        } catch (Exception e) {
+            return Instant.now();
+        }
     }
 
     @Override

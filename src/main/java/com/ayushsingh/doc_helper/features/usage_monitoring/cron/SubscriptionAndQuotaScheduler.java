@@ -45,7 +45,7 @@ public class SubscriptionAndQuotaScheduler {
     }
 
     /**
-     * 1️⃣ Apply FREE fallback for cancelled subscriptions
+     * Apply FREE fallback for cancelled subscriptions
      * whose billing period has ended.
      */
     private void handleScheduledDowngrades(Instant now) {
@@ -73,7 +73,7 @@ public class SubscriptionAndQuotaScheduler {
     }
 
     /**
-     * 2️⃣ Reset quota for users whose quota reset date passed
+     * Reset quota for users whose quota reset date passed
      * (active subscriptions only).
      */
     private void handleQuotaResets(Instant now) {
