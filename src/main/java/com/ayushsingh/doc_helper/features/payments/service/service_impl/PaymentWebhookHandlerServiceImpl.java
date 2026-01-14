@@ -171,7 +171,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
                 handleAuthenticated(subscription);
 
             case "subscription.activated" ->
-                handleActivated(subscription);
+                    handleActivated(subscription, rawPayload);
 
             case "subscription.pending" ->
                 handlePending(subscription);
@@ -183,10 +183,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
                 handleCancelled(subscription);
 
             case "subscription.completed" ->
-                handleCompleted(subscription);
-
-            case "subscription.expired" ->
-                handleExpired(subscription);
+                handleCompleted(subscription,rawPayload);
 
             case "subscription.charged" ->
                     handleSubscriptionCharged(subscription, rawPayload);
@@ -197,8 +194,34 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     }
 
     private void handleSubscriptionCharged(Subscription subscription, String rawPayload) {
-        // TODO: Handle charged status
+
+        Instant start =
+                paymentProviderClient.extractSubscriptionPeriodStart(rawPayload);
+        Instant end =
+                paymentProviderClient.extractSubscriptionPeriodEnd(rawPayload);
+
+        if (start != null) {
+            subscription.setCurrentPeriodStart(start);
+        }
+
+        if (end != null) {
+            subscription.setCurrentPeriodEnd(end);
+        }
+
+        subscriptionRepository.save(subscription);
+
+        Long tokenLimit = subscription.getBillingPrice()
+                .getProduct()
+                .getMonthlyTokenLimit();
+
+        quotaManagementService.applySubscriptionQuota(
+                subscription.getUser().getId(),
+                tokenLimit);
+
+        log.info("Subscription charged; window updated: {} → {}",
+                start, end);
     }
+
 
     private void handleAuthenticated(Subscription subscription) {
 
@@ -212,16 +235,17 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         subscriptionRepository.save(subscription);
     }
 
-    /**
-     * Subscription became ACTIVE → apply paid quota.
-     */
-    private void handleActivated(Subscription subscription) {
+    private void handleActivated(Subscription subscription, String rawPayload) {
 
-        if (subscription.getStatus() == SubscriptionStatus.ACTIVE) {
-            return;
-        }
+        if (subscription.getStatus() == SubscriptionStatus.ACTIVE) return;
 
-        log.info("Subscription activated: {}", subscription.getId());
+        Instant start =
+                paymentProviderClient.extractSubscriptionPeriodStart(rawPayload);
+        Instant end =
+                paymentProviderClient.extractSubscriptionPeriodEnd(rawPayload);
+
+        if (start != null) subscription.setCurrentPeriodStart(start);
+        if (end != null) subscription.setCurrentPeriodEnd(end);
 
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscriptionRepository.save(subscription);
@@ -233,7 +257,10 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         quotaManagementService.applySubscriptionQuota(
                 subscription.getUser().getId(),
                 tokenLimit);
+
+        log.info("Subscription activated: {}", subscription.getId());
     }
+
 
     private void handlePending(Subscription subscription) {
         // TODO: Take appropriate actions for pending subscriptions
@@ -247,26 +274,21 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         subscription.setStatus(SubscriptionStatus.PAST_DUE);
         subscriptionRepository.save(subscription);
     }
-    
-    /**
-     * Subscription canceled.
-     * Immediate fallback or scheduled fallback handled.
-     */
+
     private void handleCancelled(Subscription subscription) {
 
-        if (subscription.getStatus() == SubscriptionStatus.CANCELED) {
-            return;
-        }
+        if (subscription.getStatus() == SubscriptionStatus.CANCELED) return;
 
-        log.info("Subscription cancelled: {}", subscription.getId());
+        log.info("Subscription cancelled by user: {}", subscription.getId());
 
         subscription.setStatus(SubscriptionStatus.CANCELED);
+        subscription.setCancelAtPeriodEnd(true);
         subscription.setCanceledAt(Instant.now());
         subscriptionRepository.save(subscription);
 
-        boolean immediateCancel = Boolean.FALSE.equals(subscription.getCancelAtPeriodEnd())
-                || subscription.getCurrentPeriodEnd() == null
-                || Instant.now().isAfter(subscription.getCurrentPeriodEnd());
+        boolean immediateCancel =
+                subscription.getCurrentPeriodEnd() == null
+                        || Instant.now().isAfter(subscription.getCurrentPeriodEnd());
 
         if (immediateCancel) {
             subscriptionFallbackService.applyFreePlan(
@@ -274,28 +296,21 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         }
     }
 
-    private void handleCompleted(Subscription subscription) {
+
+    private void handleCompleted(Subscription subscription, String rawPayload) {
+
+        Instant end =
+                paymentProviderClient.extractSubscriptionPeriodEnd(rawPayload);
+
+        if (end != null) subscription.setCurrentPeriodEnd(end);
+
         subscription.setCancelAtPeriodEnd(true);
         subscriptionRepository.save(subscription);
-    }    
 
-    private void handleExpired(Subscription subscription) {
-        // TODO: Take appropriate actions for expired subscriptions
+        log.info("Subscription billing completed; access till {}",
+                subscription.getCurrentPeriodEnd());
+    }
 
-        if (subscription.getStatus() == SubscriptionStatus.EXPIRED) {
-            return;
-        }
-
-        log.warn("Subscription expired before activation: {}", subscription.getId());
-
-        subscription.setStatus(SubscriptionStatus.EXPIRED);
-        subscriptionRepository.save(subscription);
-    }    
-
-    /**
-     * Subscription halted (payment issues, etc.).
-     * No quota change here; policy handled via scheduler.
-     */
     private void handleHalted(Subscription subscription) {
         // TODO: Take appropriate actions for halted subscriptions
         subscription.setStatus(SubscriptionStatus.HALTED);

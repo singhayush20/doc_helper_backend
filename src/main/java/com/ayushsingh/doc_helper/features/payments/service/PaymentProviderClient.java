@@ -55,4 +55,8 @@ public interface PaymentProviderClient {
 
     Optional<String> fetchSubscriptionIdForInvoice(String providerInvoiceId);
 
+    Instant extractSubscriptionPeriodStart(String payload);
+
+    Instant extractSubscriptionPeriodEnd(String payload);
+
 }

@@ -352,6 +352,32 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
         }
     }
 
+    @Override
+    public Instant extractSubscriptionPeriodStart(String payload) {
+        try {
+            long epoch = mapper.readTree(payload)
+                    .at("/payload/subscription/entity/current_start")
+                    .asLong(0);
+            return epoch > 0 ? Instant.ofEpochSecond(epoch) : null;
+        } catch (Exception e) {
+            log.error("Failed to extract subscription current_start", e);
+            return null;
+        }
+    }
+
+    @Override
+    public Instant extractSubscriptionPeriodEnd(String payload) {
+        try {
+            long epoch = mapper.readTree(payload)
+                    .at("/payload/subscription/entity/current_end")
+                    .asLong(0);
+            return epoch > 0 ? Instant.ofEpochSecond(epoch) : null;
+        } catch (Exception e) {
+            log.error("Failed to extract subscription current_end", e);
+            return null;
+        }
+    }
+
     private ProviderSubscriptionStatus mapStatus(String razorpayStatus) {
 
         return switch (razorpayStatus.toLowerCase()) {

@@ -3,6 +3,7 @@ package com.ayushsingh.doc_helper.features.usage_monitoring.cron;
 import java.time.Instant;
 import java.util.List;
 
+import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,53 +30,67 @@ public class SubscriptionAndQuotaScheduler {
 
     private static final int BATCH_SIZE = 100;
 
-    /**
-     * Runs every day at 12:01 AM (billing timezone)
-     */
     @Scheduled(cron = "0 1 0 * * ?", zone = "${monetization.billing.billing-timezone}")
     public void processBillingTransitions() {
 
         Instant now = Instant.now();
-        log.info("=== Starting billing transition job ===");
+        log.info("=== Billing transition job started ===");
 
+        handleCheckoutExpiries(now);
         handleScheduledDowngrades(now);
         handleQuotaResets(now);
 
         log.info("=== Billing transition job completed ===");
     }
 
-    /**
-     * Apply FREE fallback for cancelled subscriptions
-     * whose billing period has ended.
-     */
-    private void handleScheduledDowngrades(Instant now) {
+    /* ---------------- Checkout timeout ---------------- */
 
-        List<Subscription> subscriptions = subscriptionRepository
-                .findCancelledSubscriptionsReadyForFallback(now);
+    private void handleCheckoutExpiries(Instant now) {
 
-        for (Subscription subscription : subscriptions) {
+        List<Subscription> subs =
+                subscriptionRepository.findCheckoutExpiredSubscriptions(now);
+
+        for (Subscription s : subs) {
             try {
-                log.info(
-                        "Applying scheduled FREE fallback for userId={}, subscriptionId={}",
-                        subscription.getUser().getId(),
-                        subscription.getId());
+                log.warn("Checkout expired: {}", s.getId());
+
+                s.setStatus(SubscriptionStatus.EXPIRED);
+                subscriptionRepository.save(s);
 
                 subscriptionFallbackService.applyFreePlan(
-                        subscription.getUser().getId());
+                        s.getUser().getId());
 
             } catch (Exception ex) {
-                log.error(
-                        "Failed scheduled FREE fallback for userId={}",
-                        subscription.getUser().getId(),
-                        ex);
+                log.error("Checkout expiry failed: {}", s.getId(), ex);
             }
         }
     }
 
-    /**
-     * Reset quota for users whose quota reset date passed
-     * (active subscriptions only).
-     */
+    /* ---------------- Paid period ended ---------------- */
+
+    private void handleScheduledDowngrades(Instant now) {
+
+        List<Subscription> subs =
+                subscriptionRepository.findSubscriptionsReadyForFallback(now);
+
+        for (Subscription s : subs) {
+            try {
+                log.info("Applying fallback for subscription {}", s.getId());
+
+                subscriptionFallbackService.applyFreePlan(
+                        s.getUser().getId());
+
+                s.setStatus(SubscriptionStatus.CANCELED);
+                subscriptionRepository.save(s);
+
+            } catch (Exception ex) {
+                log.error("Fallback failed for {}", s.getId(), ex);
+            }
+        }
+    }
+
+    /* ---------------- Quota reset ---------------- */
+
     private void handleQuotaResets(Instant now) {
 
         int page = 0;
@@ -91,15 +106,11 @@ public class SubscriptionAndQuotaScheduler {
                     quotaManagementService.resetQuotaForNewBillingCycle(
                             quota.getUserId());
                 } catch (Exception ex) {
-                    log.error(
-                            "Failed quota reset for userId={}",
-                            quota.getUserId(),
-                            ex);
+                    log.error("Quota reset failed for {}",
+                            quota.getUserId(), ex);
                 }
             }
-
             page++;
-
         } while (quotaPage.hasNext());
     }
 }
