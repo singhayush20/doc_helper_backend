@@ -44,6 +44,8 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         String eventId = paymentProviderClient.extractEventId(rawPayload);
         String eventType = paymentProviderClient.extractEventType(rawPayload);
 
+        log.info("Received webhook event: event type: {}, eventId: {}",eventType,eventId);
+
         Optional<PaymentProviderEventLog> existing = eventLogRepository.findByProviderEventId(eventId);
 
         if (existing.isPresent() && existing.get().isProcessed()) {
@@ -71,6 +73,8 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
      */
     private void processEvent(String eventType, String rawPayload) {
 
+        log.debug("Processing event: {}",rawPayload);
+
         if (eventType.startsWith("payment.") || eventType.startsWith("refund.")) {
             handlePaymentEvent(eventType, rawPayload);
             return;
@@ -87,6 +91,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     private void handlePaymentEvent(String eventType, String rawPayload) {
 
         String providerPaymentId = paymentProviderClient.extractPaymentId(rawPayload);
+        log.debug("Handling payment event: {}",providerPaymentId);
 
         if (providerPaymentId == null) {
             log.warn("Payment event without payment id: {}", eventType);
@@ -112,7 +117,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
                 ? subscription.getUser()
                 : null;
 
-        if (user == null || subscription == null) {
+        if (subscription == null) {
             log.error("No local subscription/user found for payment id={}",
                     providerPaymentId);
             throw new BaseException(
@@ -145,7 +150,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     private void handleSubscriptionEvent(String eventType, String rawPayload) {
 
         String providerSubId = paymentProviderClient.extractSubscriptionId(rawPayload);
-
+        log.info("Handling subscription event: providerSubscriptionId: {}",providerSubId);
         if (providerSubId == null) {
             log.warn("Subscription event without subscription id: {}", eventType);
             return;
@@ -183,9 +188,16 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
             case "subscription.expired" ->
                 handleExpired(subscription);
 
+            case "subscription.charged" ->
+                    handleSubscriptionCharged(subscription, rawPayload);
+
             default ->
                 log.info("Unhandled subscription event type: {}", eventType);
         }
+    }
+
+    private void handleSubscriptionCharged(Subscription subscription, String rawPayload) {
+        // TODO: Handle charged status
     }
 
     private void handleAuthenticated(Subscription subscription) {
@@ -237,7 +249,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     }
     
     /**
-     * Subscription cancelled.
+     * Subscription canceled.
      * Immediate fallback or scheduled fallback handled.
      */
     private void handleCancelled(Subscription subscription) {
@@ -263,18 +275,8 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     }
 
     private void handleCompleted(Subscription subscription) {
-
-        if (subscription.getStatus() == SubscriptionStatus.CANCELED) {
-            return;
-        }
-
-        log.info("Subscription completed: {}", subscription.getId());
-
-        subscription.setStatus(SubscriptionStatus.CANCELED);
+        subscription.setCancelAtPeriodEnd(true);
         subscriptionRepository.save(subscription);
-
-        subscriptionFallbackService.applyFreePlan(
-                subscription.getUser().getId());
     }    
 
     private void handleExpired(Subscription subscription) {

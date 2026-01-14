@@ -13,10 +13,6 @@ public interface BillingProductRepository extends JpaRepository<BillingProduct, 
 
     Optional<BillingProduct> findByTier(AccountTier code);
 
-    Optional<BillingProduct> findByCode(String code);
-
-    List<BillingProduct> findAllByActiveTrue();
-
     @EntityGraph(attributePaths = "features")
     List<BillingProduct> findByActiveTrue();
 }

@@ -16,19 +16,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SubscriptionFallbackServiceImpl implements SubscriptionFallbackService {
 
-    private final BillingProductRepository billingProductRepository;
     private final QuotaManagementService quotaManagementService;
+
 
     @Override
     public void applyFreePlan(Long userId) {
 
-        BillingProduct freeProduct = billingProductRepository
-                .findByTier(AccountTier.FREE)
-                .orElseThrow(() -> new BaseException("Failed to create free plan for user",
-                        ExceptionCodes.FREE_TIER_NOT_FOUND));
-
-        quotaManagementService.applySubscriptionQuota(
-                userId,
-                freeProduct.getMonthlyTokenLimit());
+        quotaManagementService.applyFreeQuota(userId);
     }
 }

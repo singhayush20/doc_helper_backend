@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -64,11 +65,9 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
         Plan plan;
         try {
             plan = razorpayClient.plans.create(planRequest);
-            String providerPlanId = plan.get("id");
-            return providerPlanId;
+            return plan.get("id");
         } catch (RazorpayException e) {
             log.error("Failed to create Razorpay plan: {}", e.getMessage());
-            e.printStackTrace();
             throw new BaseException(
                     "Failed to create plan with payment provider",
                     ExceptionCodes.PLAN_GENERATION_ERROR);
@@ -83,11 +82,11 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
     public String createSubscription(
             BillingPrice price,
             User user,
-            Long localSubscriptionId) {
+            Long localSubscriptionId, BillingPeriod billingPeriod) {
 
         JSONObject payload = new JSONObject();
         payload.put("plan_id", price.getProviderPlanId());
-        payload.put("total_count", 1);
+        payload.put("total_count", getTotalCount(billingPeriod));
 
         JSONObject notes = new JSONObject();
         notes.put("user_id", user.getId());
@@ -107,6 +106,14 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
                     "Failed to create subscription with payment provider",
                     ExceptionCodes.PAYMENT_PROVIDER_ERROR);
         }
+    }
+
+    private int getTotalCount(BillingPeriod billingPeriod) {
+        return switch(billingPeriod) {
+            case BillingPeriod.MONTHLY -> 12;
+            case BillingPeriod.QUATERLY -> 4;
+            case BillingPeriod.YEARLY -> 1;
+        };
     }
 
     @Override
@@ -155,12 +162,11 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
                     properties.subscriptionWebhookSecret());
         } catch (RazorpayException e) {
             log.error("Error verifying webhook signature, {}: {}", e, e.getMessage());
-        } finally {
-            if (!valid) {
-                throw new BaseException(
-                        "Invalid Razorpay webhook signature",
-                        ExceptionCodes.INVALID_WEBHOOK_SIGNATURE);
-            }
+        }
+        if (!valid) {
+            throw new BaseException(
+                    "Invalid Razorpay webhook signature",
+                    ExceptionCodes.INVALID_WEBHOOK_SIGNATURE);
         }
     }
 
@@ -217,7 +223,6 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
             return node.at("/payload/subscription/entity/id").asText(null);
         } catch (JsonProcessingException e) {
             log.error("Error extracting subscription id from razorpay event: {}: {}", e, e.getMessage());
-            e.printStackTrace();
             throw new BaseException(
                     "Error when parsing webhook payload",
                     ExceptionCodes.PAYMENT_PROVIDER_ERROR);
@@ -238,8 +243,7 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
                     .path("id")
                     .asText(null);
         } catch (Exception e) {
-            log.error("Error extracting id from payload: {}",e.getMessage());
-            e.printStackTrace();
+            log.error("Error extracting id from payload: {}", e.getMessage());
             return null;
         }
     }
@@ -252,10 +256,9 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
                     .asLong(0);
 
             return BigDecimal.valueOf(paise)
-                    .divide(BigDecimal.valueOf(100));
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         } catch (Exception e) {
             log.error("Error extracting payment amount from payload: {}", e.getMessage());
-            e.printStackTrace();
             return BigDecimal.ZERO;
         }
     }
@@ -268,7 +271,6 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
                     .asText(null);
         } catch (Exception e) {
             log.error("Error extracting currency from payload: {}", e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }

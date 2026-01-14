@@ -11,8 +11,6 @@ public interface QuotaManagementService {
 
     void checkAndEnforceQuota(Long userId, Long tokensToUse);
 
-    void incrementUsage(Long userId, Long tokensUsed);
-
     UserTokenQuota getQuota(Long userId);
 
     Long getCurrentMonthlyUsage(Long userId);
@@ -24,4 +22,6 @@ public interface QuotaManagementService {
     void deactivateQuota(Long userId);
 
     Page<UserTokenQuota> findQuotasToResetPaginated(Instant now, Pageable pageable);
+
+    void applyFreeQuota(Long userId);
 }

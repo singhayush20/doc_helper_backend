@@ -21,6 +21,7 @@ import java.time.*;
 @Slf4j
 public class QuotaManagementServiceImpl implements QuotaManagementService {
 
+    private static final long DEFAULT_MONTHLY_TOKEN_LIMIT = 10000;
     private final UserTokenQuotaRepository quotaRepository;
 
     @Override
@@ -40,12 +41,6 @@ public class QuotaManagementServiceImpl implements QuotaManagementService {
                     "Insufficient token quota",
                     ExceptionCodes.QUOTA_EXCEEDED);
         }
-    }
-
-    @Override
-    @Transactional
-    public void incrementUsage(Long userId, Long tokensUsed) {
-        quotaRepository.incrementUsage(userId, tokensUsed);
     }
 
     @Override
@@ -110,6 +105,19 @@ public class QuotaManagementServiceImpl implements QuotaManagementService {
             Instant now, Pageable pageable) {
 
         return quotaRepository.findQuotasToResetPaginated(now, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void applyFreeQuota(Long userId) {
+        UserTokenQuota quota = getQuota(userId);
+
+        quota.setMonthlyLimit(DEFAULT_MONTHLY_TOKEN_LIMIT);
+        quota.setCurrentMonthlyUsage(0L);
+        quota.setResetDate(nextMonthStart());
+        quota.setIsActive(true);
+
+        quotaRepository.save(quota);
     }
 
     private Instant nextMonthStart() {

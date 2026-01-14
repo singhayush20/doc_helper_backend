@@ -17,7 +17,7 @@ public interface PaymentProviderClient {
             String priceCode, String planDescription, Integer version);
 
     // Create provider subscription and return its id (and any other info if needed)
-    String createSubscription(BillingPrice price, User user, Long localSubscriptionId);
+    String createSubscription(BillingPrice price, User user, Long localSubscriptionId, BillingPeriod billingPeriod);
 
     // Cancel at period end
     void cancelSubscriptionAtPeriodEnd(String providerSubscriptionId);
