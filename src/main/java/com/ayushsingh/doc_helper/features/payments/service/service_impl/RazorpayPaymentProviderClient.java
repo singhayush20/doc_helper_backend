@@ -172,28 +172,27 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
 
     @Override
     public String extractEventId(String payload) {
-
         try {
             JsonNode root = mapper.readTree(payload);
-            String event = root.path("event").asText();
 
-            if (event.startsWith("payment.")) {
-                return root.path("payload")
-                        .path("payment")
-                        .path("entity")
-                        .path("id")
-                        .asText(null);
+            String eventType = root.path("event").asText(null);
+            long createdAt = root.path("created_at").asLong(0);
+
+            String resourceId = null;
+
+            if (eventType.startsWith("payment.")) {
+                resourceId = root.at("/payload/payment/entity/id").asText(null);
+            } else if (eventType.startsWith("subscription.")) {
+                resourceId = root.at("/payload/subscription/entity/id").asText(null);
+            } else if (eventType.startsWith("refund.")) {
+                resourceId = root.at("/payload/refund/entity/id").asText(null);
             }
 
-            if (event.startsWith("subscription.")) {
-                return root.path("payload")
-                        .path("subscription")
-                        .path("entity")
-                        .path("id")
-                        .asText(null);
+            if (resourceId == null || createdAt == 0) {
+                return null;
             }
 
-            return null;
+            return eventType + ":" + resourceId + ":" + createdAt;
 
         } catch (Exception e) {
             throw new BaseException(
@@ -201,6 +200,7 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
                     ExceptionCodes.PAYMENT_PROVIDER_ERROR);
         }
     }
+
 
     @Override
     public String extractEventType(String payload) {
@@ -308,10 +308,14 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
 
     @Override
     public PaymentStatus extractPaymentStatus(String eventType) {
-        return eventType.equals("payment.captured")
-                ? PaymentStatus.SUCCEEDED
-                : PaymentStatus.FAILED;
+        // Razorpay defines three payment event types: captured, failed, pending
+        return switch (eventType) {
+            case "payment.captured"   -> PaymentStatus.SUCCEEDED;
+            case "payment.failed"     -> PaymentStatus.FAILED;
+            default -> PaymentStatus.PENDING; // payment.authorized or anything else
+        };
     }
+
 
     @Override
     public PaymentType extractPaymentType(String eventType) {

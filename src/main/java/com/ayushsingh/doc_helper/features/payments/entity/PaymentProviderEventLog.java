@@ -1,7 +1,9 @@
 package com.ayushsingh.doc_helper.features.payments.entity;
 
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Type;
 
 import java.time.Instant;
 
@@ -35,7 +37,8 @@ public class PaymentProviderEventLog {
     @Column(name = "processed_at")
     private Instant processedAt;
 
-    @Lob
-    @Column(name = "raw_payload", nullable = false)
+    @Type(JsonType.class)
+    @Column(name = "raw_payload", columnDefinition = "jsonb", nullable = false)
     private String rawPayload;
+
 }

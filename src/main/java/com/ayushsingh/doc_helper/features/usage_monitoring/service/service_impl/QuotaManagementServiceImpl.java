@@ -69,7 +69,7 @@ public class QuotaManagementServiceImpl implements QuotaManagementService {
 
         quota.setMonthlyLimit(monthlyTokenLimit);
         quota.setCurrentMonthlyUsage(0L);
-        quota.setResetDate(nextMonthStart());
+        quota.setResetDate(oneMonthFromNow());
         quota.setIsActive(true);
 
         quotaRepository.save(quota);
@@ -84,7 +84,7 @@ public class QuotaManagementServiceImpl implements QuotaManagementService {
         log.info("Resetting quota for new billing cycle userId={}", userId);
 
         quota.setCurrentMonthlyUsage(0L);
-        quota.setResetDate(nextMonthStart());
+        quota.setResetDate(oneMonthFromNow());
 
         quotaRepository.save(quota);
     }
@@ -114,18 +114,15 @@ public class QuotaManagementServiceImpl implements QuotaManagementService {
 
         quota.setMonthlyLimit(DEFAULT_MONTHLY_TOKEN_LIMIT);
         quota.setCurrentMonthlyUsage(0L);
-        quota.setResetDate(nextMonthStart());
+        quota.setResetDate(oneMonthFromNow());
         quota.setIsActive(true);
 
         quotaRepository.save(quota);
     }
 
-    private Instant nextMonthStart() {
-        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-        return now.plusMonths(1)
-                .withDayOfMonth(1)
-                .toLocalDate()
-                .atStartOfDay(now.getZone())
+    private Instant oneMonthFromNow() {
+        return ZonedDateTime.now(ZoneId.of("Asia/Kolkata"))
+                .plusMonths(1)
                 .toInstant();
     }
 }

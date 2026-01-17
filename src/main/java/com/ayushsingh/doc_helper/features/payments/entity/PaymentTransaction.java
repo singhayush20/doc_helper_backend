@@ -3,6 +3,7 @@ package com.ayushsingh.doc_helper.features.payments.entity;
 import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,7 +14,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -21,6 +21,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Type;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -31,6 +32,7 @@ import java.time.Instant;
         @Index(name = "idx_tx_user", columnList = "user_id"),
         @Index(name = "idx_tx_subscription", columnList = "subscription_id"),
         @Index(name = "idx_tx_provider_payment", columnList = "provider_payment_id")
+
 })
 @Getter
 @Setter
@@ -71,7 +73,8 @@ public class PaymentTransaction {
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
 
-    @Lob
-    @Column(name = "raw_payload")
+    @Type(JsonType.class)
+    @Column(name = "raw_payload", columnDefinition = "jsonb", nullable = false)
     private String rawPayload;
+
 }

@@ -3,13 +3,13 @@ package com.ayushsingh.doc_helper.features.payments.service.service_impl;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentProviderEventLog;
+import com.ayushsingh.doc_helper.features.payments.entity.PaymentStatus;
 import com.ayushsingh.doc_helper.features.payments.entity.PaymentTransaction;
 import com.ayushsingh.doc_helper.features.payments.repository.PaymentProviderEventLogRepository;
 import com.ayushsingh.doc_helper.features.payments.repository.PaymentTransactionRepository;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentWebhookHandlerService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
-import com.ayushsingh.doc_helper.features.user.entity.User;
 import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
 import com.ayushsingh.doc_helper.features.user_plan.repository.SubscriptionRepository;
@@ -38,22 +38,23 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     @Override
     @Transactional
     public void handleProviderEvent(String rawPayload, String signatureHeader) {
+        log.info("Received webhook {}",rawPayload);
 
         paymentProviderClient.validateWebhookSignature(rawPayload, signatureHeader);
 
         String eventId = paymentProviderClient.extractEventId(rawPayload);
         String eventType = paymentProviderClient.extractEventType(rawPayload);
 
-        log.info("Received webhook event: event type: {}, eventId: {}",eventType,eventId);
+        log.info("webhook event: eventId: {} eventType: {}",eventId,eventType);
 
-        Optional<PaymentProviderEventLog> existing = eventLogRepository.findByProviderEventId(eventId);
+        Optional<PaymentProviderEventLog> existingEventLog = eventLogRepository.findByProviderEventId(eventId);
 
-        if (existing.isPresent() && existing.get().isProcessed()) {
-            log.info("Ignoring duplicate webhook event: {}", eventId);
+        if (existingEventLog.isPresent() && existingEventLog.get().isProcessed()) {
+            log.info("Existing event log found for event id: {}, skipping!",eventId);
             return;
         }
 
-        PaymentProviderEventLog eventLog = existing.orElseGet(() -> PaymentProviderEventLog.builder()
+        PaymentProviderEventLog eventLog = existingEventLog.orElseGet(() -> PaymentProviderEventLog.builder()
                 .providerEventId(eventId)
                 .eventType(eventType)
                 .receivedAt(Instant.now())
@@ -61,20 +62,21 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
                 .rawPayload(rawPayload)
                 .build());
 
+        log.info("Processing new event log for eventId: {}, eventType: {}",eventId,eventType);
+
         processEvent(eventType, rawPayload);
 
         eventLog.setProcessed(true);
         eventLog.setProcessedAt(Instant.now());
-        eventLogRepository.save(eventLog);
+        var savedLog =  eventLogRepository.save(eventLog);
+        log.info("Saved new event log with id: {}",savedLog.getId());
     }
 
     /**
      * Routes event to payment or subscription handlers.
      */
     private void processEvent(String eventType, String rawPayload) {
-
-        log.debug("Processing event: {}",rawPayload);
-
+        log.info("Processing new event for eventType: {}, payload: {}",eventType,rawPayload);
         if (eventType.startsWith("payment.") || eventType.startsWith("refund.")) {
             handlePaymentEvent(eventType, rawPayload);
             return;
@@ -89,49 +91,74 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
      * -------------------------------
      */
     private void handlePaymentEvent(String eventType, String rawPayload) {
+        log.info("Handling payment event: eventType: {}, rawPayload: {}",eventType,rawPayload);
+        String providerPaymentId =
+                paymentProviderClient.extractPaymentId(rawPayload);
 
-        String providerPaymentId = paymentProviderClient.extractPaymentId(rawPayload);
-        log.debug("Handling payment event: {}",providerPaymentId);
+        log.debug("Obtained providerPaymentId: {} for eventType: {}",providerPaymentId,eventType);
 
         if (providerPaymentId == null) {
-            log.warn("Payment event without payment id: {}", eventType);
+            log.info("Provider payment id is null for eventType: {}",eventType);
             return;
         }
 
-        if (paymentTransactionRepository
-                .existsByProviderPaymentId(providerPaymentId)) {
 
-            log.info("Duplicate payment transaction ignored: {}",
-                    providerPaymentId);
+        PaymentStatus newStatus =
+                paymentProviderClient.extractPaymentStatus(eventType);
+        log.debug("Obtained new payment status: {} for eventType: {}",newStatus,eventType);
+
+        Optional<PaymentTransaction> paymentTransactionOptional =
+                paymentTransactionRepository
+                        .findByProviderPaymentId(providerPaymentId);
+
+        if (paymentTransactionOptional.isPresent()) {
+            log.info("Updating existing paymentTransaction for eventType: {}, providerPlanId: {}, rawPayload: {}",eventType,providerPaymentId,rawPayload);
+
+            PaymentTransaction transaction = paymentTransactionOptional.get();
+
+            if (isFinalState(transaction.getStatus())) {
+                log.info("Skipping payment transaction update for eventType: {}, providerPlanId: {}, rawPayload: {}",eventType,providerPaymentId,rawPayload);
+                return;
+            }
+
+            transaction.setStatus(newStatus);
+            transaction.setOccurredAt(
+                    paymentProviderClient.extractEventTime(rawPayload));
+            transaction.setRawPayload(rawPayload);
+
+            paymentTransactionRepository.save(transaction);
             return;
         }
 
-        Optional<String> providerSubId = paymentProviderClient.fetchInvoiceIdForPayment(providerPaymentId)
-                .flatMap(paymentProviderClient::fetchSubscriptionIdForInvoice);
+
+        /* ---------- first time seeing this payment ---------- */
+        Optional<String> invoiceId = paymentProviderClient.fetchInvoiceIdForPayment(providerPaymentId);
+        Optional<String> providerSubId =
+                invoiceId.flatMap(paymentProviderClient::fetchSubscriptionIdForInvoice);
+
+        log.info("Provider Subscription id obtained for eventType: {}, invoiceId: {}, providerPaymentId: {}",invoiceId, eventType,providerPaymentId);
 
         Subscription subscription = providerSubId
                 .flatMap(subscriptionRepository::findByProviderSubscriptionId)
                 .orElse(null);
 
-        User user = subscription != null
-                ? subscription.getUser()
-                : null;
-
         if (subscription == null) {
-            log.error("No local subscription/user found for payment id={}",
-                    providerPaymentId);
+            // TODO: Check the logic here why Subscription is not found for events?
+            log.error("Subscription not found for providerSubId: {}, providerPaymentId: {}",providerSubId, providerPaymentId);
             throw new BaseException(
-                    "No local subscription/user found for payment",
+                    "No local subscription found for payment",
                     ExceptionCodes.SUBSCRIPTION_WEBHOOK_DATA_INVALID_ERROR);
         }
+        log.info("Subscription found with id: {} for providerSubId: {}",subscription.getId(),providerSubId);
+
 
         PaymentTransaction transaction = PaymentTransaction.builder()
-                .user(user)
+                .user(subscription.getUser())
                 .subscription(subscription)
                 .providerPaymentId(providerPaymentId)
                 .amount(paymentProviderClient.extractPaymentAmount(rawPayload))
                 .currency(paymentProviderClient.extractPaymentCurrency(rawPayload))
-                .status(paymentProviderClient.extractPaymentStatus(eventType))
+                .status(newStatus)
                 .type(paymentProviderClient.extractPaymentType(eventType))
                 .occurredAt(paymentProviderClient.extractEventTime(rawPayload))
                 .rawPayload(rawPayload)
@@ -139,7 +166,13 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
 
         paymentTransactionRepository.save(transaction);
 
-        log.info("Recorded payment transaction: {}", providerPaymentId);
+        log.info("Saved new PaymentTransaction record for providerPaymentId: {}, providerSubId: {}",providerPaymentId,providerSubId);
+    }
+
+    private boolean isFinalState(PaymentStatus status) {
+        return status == PaymentStatus.SUCCEEDED
+                || status == PaymentStatus.FAILED
+                || status == PaymentStatus.REFUNDED;
     }
 
     /**
@@ -150,9 +183,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
     private void handleSubscriptionEvent(String eventType, String rawPayload) {
 
         String providerSubId = paymentProviderClient.extractSubscriptionId(rawPayload);
-        log.info("Handling subscription event: providerSubscriptionId: {}",providerSubId);
         if (providerSubId == null) {
-            log.warn("Subscription event without subscription id: {}", eventType);
             return;
         }
 
@@ -161,65 +192,40 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
                 .orElse(null);
 
         if (subscription == null) {
-            log.warn("No local subscription found for providerSubId={}", providerSubId);
             return;
         }
 
         switch (eventType) {
 
-            case "subscription.authenticated" ->
-                handleAuthenticated(subscription);
-
-            case "subscription.activated" ->
-                    handleActivated(subscription, rawPayload);
-
-            case "subscription.pending" ->
-                handlePending(subscription);
-
-            case "subscription.halted" ->
-                handleHalted(subscription);
-
-            case "subscription.cancelled" ->
-                handleCancelled(subscription);
-
-            case "subscription.completed" ->
-                handleCompleted(subscription,rawPayload);
-
-            case "subscription.charged" ->
-                    handleSubscriptionCharged(subscription, rawPayload);
-
-            default ->
-                log.info("Unhandled subscription event type: {}", eventType);
+            // Sent when the first payment is made on the subscription. This can either be the authorisation amount,
+            // the upfront amount, the plan amount or a combination of the plan amount and the upfront amount.
+            // WE DON'T NEED TO MAP THIS STATE AS THE SUBSCRIPTION IS STILL NOT ACTIVE
+            case "subscription.authenticated" -> handleAuthenticated(subscription);
+            // Sent when the subscription moves to the active state either from the authenticated ,
+            // pending or halted state. If a Subscription moves to the active state from the pending or halted state,
+            // only the subsequent invoices that are generated are charged.
+            // Existing invoices that were already generated are not charged.
+            // TODO: Handle the activated state gracefully - payment is still not made
+            case "subscription.activated" -> handleActivated(subscription, rawPayload);
+            // Sent every time a successful charge is made on the subscription.
+            // This is mapped to ACTIVE SubscriptionStatus and used to reset quotas and fetch active subscription for users
+            case "subscription.charged" -> handleSubscriptionCharged(subscription, rawPayload);
+            // Sent when the subscription moves to the pending state. This happens when a charge on the card fails.
+            // We try to charge the card on a periodic basis while it is in the pending state.
+            // If the payment fails again, the Webhook is triggered again.
+            // TODO: Handle this state gracefully - how to manage the user quota during this time?
+            case "subscription.pending" -> handlePending(subscription);
+            // Sent when all retries have been exhausted and the subscription moves from the pending state to the halted state.
+            // The customer has to manually retry the charge or change the card linked to the subscription,
+            // for the subscription to move back to the active state.
+            // TODO: Handle this state gracefully - how to handle the user quotas?
+            case "subscription.halted" -> handleHalted(subscription);
+            // Sent when a subscription is cancelled and moved to the cancelled state.
+            case "subscription.cancelled" -> handleCancelled(subscription);
+            case "subscription.completed" -> handleCompleted(subscription, rawPayload);
+            // "subscription.paused" and "subscription.resumed" are not handled because this feature is provided by the application
+            default -> log.info("Unhandled subscription event type: {}", eventType);
         }
-    }
-
-    private void handleSubscriptionCharged(Subscription subscription, String rawPayload) {
-
-        Instant start =
-                paymentProviderClient.extractSubscriptionPeriodStart(rawPayload);
-        Instant end =
-                paymentProviderClient.extractSubscriptionPeriodEnd(rawPayload);
-
-        if (start != null) {
-            subscription.setCurrentPeriodStart(start);
-        }
-
-        if (end != null) {
-            subscription.setCurrentPeriodEnd(end);
-        }
-
-        subscriptionRepository.save(subscription);
-
-        Long tokenLimit = subscription.getBillingPrice()
-                .getProduct()
-                .getMonthlyTokenLimit();
-
-        quotaManagementService.applySubscriptionQuota(
-                subscription.getUser().getId(),
-                tokenLimit);
-
-        log.info("Subscription charged; window updated: {} → {}",
-                start, end);
     }
 
 
@@ -229,15 +235,11 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
             return;
         }
 
-        log.info("Subscription authenticated: {}", subscription.getId());
-
         subscription.setStatus(SubscriptionStatus.INCOMPLETE);
         subscriptionRepository.save(subscription);
     }
 
-    private void handleActivated(Subscription subscription, String rawPayload) {
-
-        if (subscription.getStatus() == SubscriptionStatus.ACTIVE) return;
+    private void handleSubscriptionCharged(Subscription subscription, String rawPayload) {
 
         Instant start =
                 paymentProviderClient.extractSubscriptionPeriodStart(rawPayload);
@@ -248,6 +250,7 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         if (end != null) subscription.setCurrentPeriodEnd(end);
 
         subscription.setStatus(SubscriptionStatus.ACTIVE);
+
         subscriptionRepository.save(subscription);
 
         Long tokenLimit = subscription.getBillingPrice()
@@ -257,29 +260,11 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         quotaManagementService.applySubscriptionQuota(
                 subscription.getUser().getId(),
                 tokenLimit);
-
-        log.info("Subscription activated: {}", subscription.getId());
-    }
-
-
-    private void handlePending(Subscription subscription) {
-        // TODO: Take appropriate actions for pending subscriptions
-
-        if (subscription.getStatus() == SubscriptionStatus.PAST_DUE) {
-            return;
-        }
-
-        log.warn("Subscription moved to PAST_DUE: {}", subscription.getId());
-
-        subscription.setStatus(SubscriptionStatus.PAST_DUE);
-        subscriptionRepository.save(subscription);
     }
 
     private void handleCancelled(Subscription subscription) {
 
         if (subscription.getStatus() == SubscriptionStatus.CANCELED) return;
-
-        log.info("Subscription cancelled by user: {}", subscription.getId());
 
         subscription.setStatus(SubscriptionStatus.CANCELED);
         subscription.setCancelAtPeriodEnd(true);
@@ -298,7 +283,6 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
 
 
     private void handleCompleted(Subscription subscription, String rawPayload) {
-
         Instant end =
                 paymentProviderClient.extractSubscriptionPeriodEnd(rawPayload);
 
@@ -307,12 +291,37 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         subscription.setCancelAtPeriodEnd(true);
         subscriptionRepository.save(subscription);
 
-        log.info("Subscription billing completed; access till {}",
-                subscription.getCurrentPeriodEnd());
+    }
+
+    private void handleActivated(Subscription subscription, String rawPayload) {
+
+        // ACTIVE is only set on subscription.charged
+        if (subscription.getStatus() == SubscriptionStatus.ACTIVE) {
+            return; // already paid, nothing to do
+        }
+
+        if (subscription.getStatus() == SubscriptionStatus.CREATED) {
+            return; // already in correct state
+        }
+
+        subscription.setStatus(SubscriptionStatus.CREATED);
+        subscriptionRepository.save(subscription);
+    }
+
+
+    private void handlePending(Subscription subscription) {
+        if (subscription.getStatus() == SubscriptionStatus.PAST_DUE) {
+            return;
+        }
+
+        subscription.setStatus(SubscriptionStatus.PAST_DUE);
+        subscriptionRepository.save(subscription);
     }
 
     private void handleHalted(Subscription subscription) {
-        // TODO: Take appropriate actions for halted subscriptions
+        if (subscription.getStatus() == SubscriptionStatus.HALTED) {
+            return;
+        }
         subscription.setStatus(SubscriptionStatus.HALTED);
         subscriptionRepository.save(subscription);
     }
