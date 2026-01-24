@@ -120,12 +120,13 @@ monetization:
     default-monthly-limit: 600000
     currency: INR
   model-costs:
-    gpt-4:
-      input-cost-per1k: 0.03
-      output-cost-per1k: 0.06
-    default:
-      input-cost-per1k: 0.01
-      output-cost-per1k: 0.02
+    models:
+      gemini-embedding-001:
+        input-cost-per1k: 0.0001
+        output-cost-per1k: 0.0
+      default:
+        input-cost-per1k: 0.01
+        output-cost-per1k: 0.00
   plans:
     FREE:
       monthly-token-limit: 600000

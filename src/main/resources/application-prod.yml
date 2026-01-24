@@ -96,3 +96,30 @@ logging:
 
 server:
   port: 8080
+
+monetization:
+  billing:
+    billing-timezone: Asia/Kolkata
+    default-monthly-limit: 600000
+    currency: INR
+  model-costs:
+    models:
+      gemini-embedding-001:
+        input-cost-per1k: 0.0001
+        output-cost-per1k: 0.0
+      default:
+        input-cost-per1k: 0.01
+        output-cost-per1k: 0.00
+  plans:
+    FREE:
+      monthly-token-limit: 600000
+      max-documents: 10
+    PRO:
+      monthly-token-limit: 1000000
+      max-documents: 100
+
+payment:
+  gateway:
+    secret-key: ${RAZORPAY_KEY_SECRET}
+    key-id: ${RAZORPAY_KEY_ID}
+    subscription-webhook-secret: ${SUBSCRIPTION_EVENT_WEBHOOK_SECRET}

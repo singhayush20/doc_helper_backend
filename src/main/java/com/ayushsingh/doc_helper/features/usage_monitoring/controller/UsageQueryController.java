@@ -153,11 +153,10 @@ public class UsageQueryController {
         Instant now = Instant.now();
 
         Instant defaultStart = now.minus(30, ChronoUnit.DAYS);
-        Instant defaultEnd = now;
 
         Instant startDate = (startTimestamp != null) ? Instant.ofEpochMilli(startTimestamp) : defaultStart;
 
-        Instant endDate = (endTimestamp != null) ? Instant.ofEpochMilli(endTimestamp) : defaultEnd;
+        Instant endDate = (endTimestamp != null) ? Instant.ofEpochMilli(endTimestamp) : now;
 
         if (startDate.isAfter(endDate)) {
             Instant tmp = startDate;
