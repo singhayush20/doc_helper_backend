@@ -25,9 +25,9 @@ import java.util.List;
 public class EmbeddingServiceImpl implements EmbeddingService {
 
         private static final String EMBEDDING_MODEL = "gemini-embedding-001";
-        private static final int MAX_TOKENS_PER_CHUNK = 2048;
-        private static final int DEFAULT_CHUNK_SIZE = 1024;
-        private static final int MIN_CHUNK_OVERLAP_SIZE = 100;
+        private static final int CHUNK_SIZE = 400;
+        private static final int CHUNK_OVERLAP = 80;
+        private static final int MAX_TOKENS_PER_CHUNK = 512;        
 
         private final VectorStore vectorStore;
         private final UserDocRepository userDocRepository;
@@ -165,11 +165,11 @@ public class EmbeddingServiceImpl implements EmbeddingService {
                 log.debug("Read {} document(s) from file: {}", documents.size(), fileNameForLog);
 
                 TokenTextSplitter textSplitter = new TokenTextSplitter(
-                                DEFAULT_CHUNK_SIZE,
-                                MIN_CHUNK_OVERLAP_SIZE,
+                                CHUNK_SIZE,
+                                CHUNK_OVERLAP,
                                 10,
                                 MAX_TOKENS_PER_CHUNK,
-                                true);
+                                true              );
 
                 return textSplitter.apply(documents);
         }
