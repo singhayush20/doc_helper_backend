@@ -51,6 +51,7 @@ public class UserDocServiceImpl implements UserDocService {
     private static final Duration SEARCH_CACHE_TTL = Duration.ofMinutes(2);
 
     @Override
+    @Transactional
     public FileUploadResponse uploadDocument(MultipartFile file) {
         var savedFileInfo = saveFile(file);
         final var authUser = UserContext.getCurrentUser();
@@ -115,8 +116,7 @@ public class UserDocServiceImpl implements UserDocService {
         return savedFileInfo;
     }
 
-    @Transactional
-    private UserDoc saveFileInfo(DocSaveResponse savedFileInfo, User user) {
+     private UserDoc saveFileInfo(DocSaveResponse savedFileInfo, User user) {
         UserDoc newUserDoc = new UserDoc();
         newUserDoc.setUser(user);
         newUserDoc.setFileName(savedFileInfo.storedFileName());
@@ -155,7 +155,7 @@ public class UserDocServiceImpl implements UserDocService {
             sourcePath.ifPresent(docService::deleteFile);
 
             // Clear user's cached search results
-            clearUserSearchCache(authUser.getUser().getId());
+            clearUserSearchCache(authUser.getUser().getId());   
         }
 
         return new FileDeletionVerificationResponse(affectedRows != 0);
@@ -218,7 +218,7 @@ public class UserDocServiceImpl implements UserDocService {
     private void clearUserSearchCache(Long userId) {
         String pattern = String.format("search:user:%d:*", userId);
         var keys = redisTemplate.keys(pattern);
-        if (keys != null && !keys.isEmpty()) {
+        if (!keys.isEmpty()) {
             redisTemplate.delete(keys);
             log.info("Cleared {} cached search keys for user {}", keys.size(), userId);
         }
