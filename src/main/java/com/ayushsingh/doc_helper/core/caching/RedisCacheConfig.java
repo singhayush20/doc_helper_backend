@@ -60,5 +60,4 @@ public class RedisCacheConfig {
                 template.afterPropertiesSet();
                 return template;
         }
-
 }

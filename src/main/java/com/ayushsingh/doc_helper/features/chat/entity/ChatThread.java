@@ -35,6 +35,10 @@ public class ChatThread {
 
     private Long lastSnippetTurnNumber;
 
+    private String conversationSummary;
+    
+    private Instant summaryUpdatedAt;
+
     @CreatedDate
     private Instant createdAt;
 
