@@ -7,6 +7,7 @@ import com.ayushsingh.doc_helper.features.payments.config.RazorpayProperties;
 import com.ayushsingh.doc_helper.features.payments.dto.CheckoutSessionResponse;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
 import com.ayushsingh.doc_helper.features.user.entity.User;
+import com.ayushsingh.doc_helper.features.user_plan.dto.SubscriptionCancelRequest;
 import com.ayushsingh.doc_helper.features.user_plan.dto.SubscriptionResponse;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
@@ -25,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -160,6 +160,30 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 subscription.getProviderSubscriptionId());
 
         subscription.setCancelAtPeriodEnd(true);
+        subscriptionRepository.save(subscription);
+    }
+
+    @Override
+    public void cancelCheckout(SubscriptionCancelRequest request) {
+        var user = UserContext.getCurrentUser().getUser();
+        log.info("Payment Cancelled during checkout: {} {}",request.getPaymentFailureErrorCode(), request.getPaymentFailureErrorMessage());
+        var subscription = subscriptionRepository.findFirstByUserAndStatusInOrderByCreatedAtDesc(
+                        user, List.of(SubscriptionStatus.INCOMPLETE))
+                .orElseThrow(() -> new BaseException(
+                        "No subscription found",
+                        ExceptionCodes.SUBSCRIPTION_NOT_FOUND));
+
+        if (subscription.getProviderSubscriptionId() == null) {
+            throw new BaseException(
+                    "Subscription not linked with payment provider",
+                    ExceptionCodes.SUBSCRIPTION_INVALID_STATE);
+        }
+        else {
+            paymentProviderClient.cancelSubscriptionImmediately(
+                    subscription.getProviderSubscriptionId());
+        }
+        subscription.setCanceledAt(Instant.now());
+        subscription.setStatus(SubscriptionStatus.CANCELED);
         subscriptionRepository.save(subscription);
     }
 }

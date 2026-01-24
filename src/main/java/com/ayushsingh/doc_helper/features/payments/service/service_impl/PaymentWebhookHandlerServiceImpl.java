@@ -267,7 +267,6 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
         if (subscription.getStatus() == SubscriptionStatus.CANCELED) return;
 
         subscription.setStatus(SubscriptionStatus.CANCELED);
-        subscription.setCancelAtPeriodEnd(true);
         subscription.setCanceledAt(Instant.now());
         subscriptionRepository.save(subscription);
 

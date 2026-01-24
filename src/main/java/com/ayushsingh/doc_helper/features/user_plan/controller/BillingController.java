@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.user_plan.controller;
 
+import com.ayushsingh.doc_helper.features.user_plan.dto.SubscriptionCancelRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,5 +39,11 @@ public class BillingController {
     public ResponseEntity<Void> cancelCurrentAtPeriodEnd() {
         subscriptionService.cancelCurrentSubscriptionAtPeriodEnd();
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/subscription/cancel-checkout")
+    public ResponseEntity<Boolean> cancelCheckout(@RequestBody SubscriptionCancelRequest request) {
+        subscriptionService.cancelCheckout(request);
+        return ResponseEntity.ok(true);
     }
 }

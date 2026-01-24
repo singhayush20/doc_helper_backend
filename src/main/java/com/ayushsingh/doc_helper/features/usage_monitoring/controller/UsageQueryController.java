@@ -32,7 +32,7 @@ public class UsageQueryController {
     /**
      * Get current user's quota information.
      */
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("hasAnyRole('ROLE_USER','ROLE_ADMIN')")
     @GetMapping("/quota")
     public ResponseEntity<QuotaInfoResponse> getQuotaInfo() {
         Long userId = UserContext.getCurrentUser().getUser().getId();
