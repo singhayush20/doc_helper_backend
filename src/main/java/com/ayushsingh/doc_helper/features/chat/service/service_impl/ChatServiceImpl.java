@@ -21,6 +21,8 @@ import com.ayushsingh.doc_helper.features.chat.service.ChatSummaryService;
 import com.ayushsingh.doc_helper.features.chat.service.ThreadTurnService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
+import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
+import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,12 +41,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -63,12 +63,12 @@ public class ChatServiceImpl implements ChatService {
     private final LoggingAdvisor loggingAdvisor;
     private final WebSearchTool webSearchTool;
     private final QuotaManagementService quotaManagementService;
-    private final static Long DEFAULT_TOKEN_THRESHOLD = 6800L;
     private final ChatCancellationRegistry chatCancellationRegistry;
     private final ThreadTurnService threadTurnService;
-    private final RedisTemplate<String, String> redisTemplate;
     private final ChatSummaryService chatSummaryService;
+    private final UserActivityRecorder userActivityRecorder;
 
+    private final static Long DEFAULT_TOKEN_THRESHOLD = 6800L;
     private static final int MAX_RAG_CHARS = 2500;
 
     @Override
@@ -175,6 +175,7 @@ public class ChatServiceImpl implements ChatService {
             chatSummaryService.summarizeThread(context.chatThread().getId());
         }
 
+        userActivityRecorder.record(context.userId(), context.documentId(), UserActivityType.DOCUMENT_CHAT);
     }
 
     @Override
@@ -201,6 +202,9 @@ public class ChatServiceImpl implements ChatService {
         if (turnNumber % 6 == 0) {
             chatSummaryService.summarizeThread(threadId);
         }
+
+        userActivityRecorder.record(context.userId(), context.documentId(), UserActivityType.DOCUMENT_CHAT);
+
 
         log.debug("Non-streaming response completed for threadId: {}",
                 threadId);
@@ -300,7 +304,7 @@ public class ChatServiceImpl implements ChatService {
         List<Document> filtered = docs != null ? docs.stream()
                 .filter(doc -> {
                     Float dist = (Float) doc.getMetadata().get("distance");
-                    log.debug("Metadata for doc: {} {}",doc.getId(),doc.getMetadata());
+                    log.debug("Metadata for doc: {} {}", doc.getId(), doc.getMetadata());
                     return dist == null || dist < 0.65f;
                 })
                 .toList() : List.of();

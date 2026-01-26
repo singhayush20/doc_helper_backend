@@ -9,6 +9,8 @@ import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
 import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 import com.ayushsingh.doc_helper.features.user.entity.User;
+import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
+import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.UserDocDetailsListDto;
@@ -42,6 +44,7 @@ public class UserDocServiceImpl implements UserDocService {
     private final EmbeddingService embeddingService;
     private final ChatService chatService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserActivityRecorder userActivityRecorder;
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "text/plain",
@@ -72,6 +75,8 @@ public class UserDocServiceImpl implements UserDocService {
                 resource);
 
         clearUserSearchCache(authUser.getUser().getId());
+
+        userActivityRecorder.record(authUser.getUser().getId(),savedFile.getId(), UserActivityType.DOCUMENT_UPLOAD);
 
         return new FileUploadResponse(savedFile.getFileName(), savedFile.getFileName());
     }

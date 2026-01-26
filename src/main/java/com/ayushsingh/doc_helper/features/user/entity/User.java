@@ -29,7 +29,6 @@ import lombok.ToString;
 @Table(name = "users")
 @Getter
 @Setter
-@ToString(exclude = { "password" })
 @NoArgsConstructor
 public class User {
 
