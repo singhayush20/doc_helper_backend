@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.user_activity.service;
 
 import com.ayushsingh.doc_helper.features.user_activity.dto.UserActivityResolution;
+import com.ayushsingh.doc_helper.features.user_activity.dto.UserActivityWriteRequest;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivity;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityGroup;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityMetadata;
@@ -17,13 +18,16 @@ public class UserActivityRecorder {
 
     private final UserActivityRepository repository;
     private final UserActivityRedisGateway redis;
+    private final UserActivityRedisBuffer activityRedisBuffer;
 
     public UserActivityRecorder(
             UserActivityRepository repository,
-            UserActivityRedisGateway redis
+            UserActivityRedisGateway redis,
+            UserActivityRedisBuffer redisBuffer
     ) {
         this.repository = repository;
         this.redis = redis;
+        this.activityRedisBuffer = redisBuffer;
     }
 
     @Transactional
@@ -68,9 +72,17 @@ public class UserActivityRecorder {
             activity.setDominantAt(now);
         }
 
-        if (resolution.scheduleDbWrite()) {
-            repository.save(activity);
-        }
+        activityRedisBuffer.buffer(
+                new UserActivityWriteRequest(
+                        activity.getUserId(),
+                        activity.getDocumentId(),
+                        activity.getDominantActivity(),
+                        activity.getLastAction(),
+                        activity.getDominantAt(),
+                        activity.getLastActionAt(),
+                        activity.getMetadata()
+                )
+        );
 
         if (resolution.updateRedis() && allowed) {
             redis.updateRecentDocuments(userId, documentId, now);
@@ -85,3 +97,4 @@ public class UserActivityRecorder {
         };
     }
 }
+
