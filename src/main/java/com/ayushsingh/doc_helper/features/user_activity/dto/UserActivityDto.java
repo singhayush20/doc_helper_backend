@@ -15,5 +15,6 @@ public class UserActivityDto {
     private UserActivityType dominantActivity;
     private Instant dominantAt;
     private UserActivityType lastAction;
+    private String fileName;
 }
 

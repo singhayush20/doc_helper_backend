@@ -19,11 +19,11 @@ public class UserActivityResolver {
             );
         }
 
-        int incomingP = UserActivityMetadata.precedenceOf(incoming);
-        int existingP =
+        int incomingPrecedence = UserActivityMetadata.precedenceOf(incoming);
+        int existingPrecedence =
                 UserActivityMetadata.precedenceOf(existing.getDominantActivity());
 
-        if (incomingP > existingP) {
+        if (incomingPrecedence > existingPrecedence) {
             return new UserActivityResolution(
                     true, true, true, true
             );

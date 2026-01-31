@@ -4,6 +4,7 @@
     import com.fasterxml.jackson.core.JsonProcessingException;
     import com.fasterxml.jackson.databind.ObjectMapper;
     import lombok.RequiredArgsConstructor;
+    import lombok.extern.slf4j.Slf4j;
     import org.springframework.data.redis.core.RedisTemplate;
     import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@
 
     @Service
     @RequiredArgsConstructor
+    @Slf4j
     public class UserActivityRedisBuffer {
 
         private static final String BUFFER_KEY = "activity:buffer";
@@ -26,9 +28,12 @@
             try {
                 String value = objectMapper.writeValueAsString(writeRequest);
                 redis.opsForHash().put(BUFFER_KEY, field, value);
+                // Set the buffer to expire after 5 minutes to prevent memory leaks
+                // and to prevent the buffer from growing indefinitely, in case of a
+                // failure to manually clean the buffer entries
                 redis.expire(BUFFER_KEY, Duration.ofMinutes(5));
             } catch (JsonProcessingException e) {
-                // fail open
+                log.error("Failed to serialize user activity write request: {}",writeRequest, e);
             }
         }
 

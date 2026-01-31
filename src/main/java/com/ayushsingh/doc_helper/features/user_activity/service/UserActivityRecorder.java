@@ -8,27 +8,19 @@ import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityMetad
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
 import com.ayushsingh.doc_helper.features.user_activity.repository.UserActivityRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
 
 @Service
+@RequiredArgsConstructor
 public class UserActivityRecorder {
 
     private final UserActivityRepository repository;
-    private final UserActivityRedisGateway redis;
+    private final UserActivityRedisGateway userActivityRedisGateway;
     private final UserActivityRedisBuffer activityRedisBuffer;
-
-    public UserActivityRecorder(
-            UserActivityRepository repository,
-            UserActivityRedisGateway redis,
-            UserActivityRedisBuffer redisBuffer
-    ) {
-        this.repository = repository;
-        this.redis = redis;
-        this.activityRedisBuffer = redisBuffer;
-    }
 
     @Transactional
     public void record(
@@ -36,14 +28,16 @@ public class UserActivityRecorder {
             Long documentId,
             UserActivityType action
     ) {
-        UserActivityGroup group = UserActivityMetadata.groupOf(action);
+        UserActivityGroup activityGroup = UserActivityMetadata.groupOf(action);
 
-        boolean allowed =
-                redis.allowByDebounce(
+        // Check if the debounce window has passed or not before updating for the next event. This
+        // prevents repetitive updates in a very short time span
+        boolean isUpdateRequired =
+                userActivityRedisGateway.allowByDebounce(
                         userId,
                         documentId,
-                        group,
-                        debounceWindow(group)
+                        activityGroup,
+                        debounceWindow(activityGroup)
                 );
 
         UserActivity existing =
@@ -84,8 +78,8 @@ public class UserActivityRecorder {
                 )
         );
 
-        if (resolution.updateRedis() && allowed) {
-            redis.updateRecentDocuments(userId, documentId, now);
+        if (resolution.updateRedis() && isUpdateRequired) {
+            userActivityRedisGateway.updateRecentDocuments(userId, documentId, now);
         }
     }
 

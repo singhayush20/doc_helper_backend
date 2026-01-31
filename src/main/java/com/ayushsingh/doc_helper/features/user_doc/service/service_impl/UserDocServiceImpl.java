@@ -17,8 +17,9 @@ import com.ayushsingh.doc_helper.features.user_doc.dto.UserDocDetailsListDto;
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
+import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
+import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocNameProjection;
 import com.ayushsingh.doc_helper.features.user_doc.service.UserDocService;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -30,9 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
-
-import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
 
 @Slf4j
 @Service
@@ -209,6 +210,11 @@ public class UserDocServiceImpl implements UserDocService {
         log.debug("Cached result for key: {} for TTL: {}s", cacheKey, SEARCH_CACHE_TTL.toSeconds());
 
         return searchResponse;
+    }
+
+    @Override
+    public List<UserDocNameProjection> findAllDocNamesByIdIn(Collection<Long> ids) {
+        return userDocRepository.findAllByIdIn(ids);
     }
 
     private UserDocDetailsListDto getCachedSearchResult(String cacheKey) {

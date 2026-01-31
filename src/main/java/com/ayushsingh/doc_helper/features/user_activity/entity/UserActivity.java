@@ -62,8 +62,25 @@ public class UserActivity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Builder.Default
     @Type(JsonType.class)
     @Column(name = "metadata", columnDefinition = "jsonb")
     private Map<String, Object> metadata = new HashMap<>();
+
+    @Override
+    public String toString() {
+        return "UserActivity{" +
+                "id=" + id +
+                ", userId=" + userId +
+                ", documentId=" + documentId +
+                ", dominantActivity=" + dominantActivity +
+                ", lastAction=" + lastAction +
+                ", dominantAt=" + dominantAt +
+                ", lastActionAt=" + lastActionAt +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                ", metadata=" + metadata +
+                '}';
+    }
 }
 

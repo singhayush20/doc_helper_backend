@@ -17,6 +17,11 @@ public class UserActivityRedisGateway {
         this.redis = redis;
     }
 
+    /**
+     * Checks and stores a debounce key for the given userId, documentId and activity group
+     * If the key is found to be present, it means the debounce window has still not passed.
+     * If the keys is not found, it means the debounce window has passed and the key is stored.
+     */
     public boolean allowByDebounce(
             Long userId,
             Long documentId,
@@ -43,6 +48,7 @@ public class UserActivityRedisGateway {
                 at.toEpochMilli()
         );
 
+        // Remove the oldest documents and retain the newest 5
         redis.opsForZSet()
                 .removeRange(key, 0, -6);
     }
