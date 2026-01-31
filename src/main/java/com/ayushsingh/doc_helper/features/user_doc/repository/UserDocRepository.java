@@ -1,7 +1,8 @@
 package com.ayushsingh.doc_helper.features.user_doc.repository;
 
-import java.util.Optional;
-
+import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
+import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
+import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocNameProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +10,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
-import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 public interface UserDocRepository extends JpaRepository<UserDoc, Long> {
 
@@ -68,4 +70,15 @@ public interface UserDocRepository extends JpaRepository<UserDoc, Long> {
             @Param("userId") Long userId,
             @Param("query") String query,
             Pageable pageable);
+
+    @Query("""
+                    SELECT new com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocNameProjection(
+                    d.id,
+                    d.originalFilename
+                    )
+                    FROM UserDoc d
+                    WHERE d.id IN :ids
+            """)
+    List<UserDocNameProjection> findAllByIdIn(Collection<Long> ids);
+
 }

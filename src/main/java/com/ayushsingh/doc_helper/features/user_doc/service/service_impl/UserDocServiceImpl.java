@@ -9,14 +9,17 @@ import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
 import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 import com.ayushsingh.doc_helper.features.user.entity.User;
+import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
+import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileUploadResponse;
 import com.ayushsingh.doc_helper.features.user_doc.dto.UserDocDetailsListDto;
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import com.ayushsingh.doc_helper.features.user_doc.entity.UserDoc;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
+import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
+import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocNameProjection;
 import com.ayushsingh.doc_helper.features.user_doc.service.UserDocService;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -28,9 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
-
-import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocDetails;
 
 @Slf4j
 @Service
@@ -42,6 +45,7 @@ public class UserDocServiceImpl implements UserDocService {
     private final EmbeddingService embeddingService;
     private final ChatService chatService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserActivityRecorder userActivityRecorder;
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "text/plain",
@@ -72,6 +76,8 @@ public class UserDocServiceImpl implements UserDocService {
                 resource);
 
         clearUserSearchCache(authUser.getUser().getId());
+
+        userActivityRecorder.record(authUser.getUser().getId(),savedFile.getId(), UserActivityType.DOCUMENT_UPLOAD);
 
         return new FileUploadResponse(savedFile.getFileName(), savedFile.getFileName());
     }
@@ -204,6 +210,11 @@ public class UserDocServiceImpl implements UserDocService {
         log.debug("Cached result for key: {} for TTL: {}s", cacheKey, SEARCH_CACHE_TTL.toSeconds());
 
         return searchResponse;
+    }
+
+    @Override
+    public List<UserDocNameProjection> findAllDocNamesByIdIn(Collection<Long> ids) {
+        return userDocRepository.findAllByIdIn(ids);
     }
 
     private UserDocDetailsListDto getCachedSearchResult(String cacheKey) {
