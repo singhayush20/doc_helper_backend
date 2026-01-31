@@ -19,5 +19,9 @@ public final class RedisKeys {
     public static String recentDocsKey(Long userId) {
         return "recent:documents:%d".formatted(userId);
     }
+
+    public static String homeFeatures(Long userId) {
+        return "features:home:user:" + userId;
+    }
 }
 
