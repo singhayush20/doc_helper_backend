@@ -113,4 +113,16 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             @Param("user") User user,
             @Param("now") Instant now);
 
+    @Query("""
+                select bp.id
+                from Subscription s
+                join s.billingPrice p
+                join p.product bp
+                where s.user.id = :userId
+                  and s.status = 'ACTIVE'
+            """)
+    Optional<Long> findActiveBillingProductIdByUserId(
+            @Param("userId") Long userId
+    );
+
 }

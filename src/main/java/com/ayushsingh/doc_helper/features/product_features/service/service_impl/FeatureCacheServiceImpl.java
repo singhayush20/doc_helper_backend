@@ -2,14 +2,12 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.core.caching.RedisKeys;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
-import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -33,21 +31,13 @@ public class FeatureCacheServiceImpl implements FeatureCacheService {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public FeatureResponse getCachedProductFeatures(Long userId) {
 
         long version = getCurrentVersion();
 
-        List<ProductFeatureDto> cached =
-                (List<ProductFeatureDto>) redisTemplate
-                        .opsForValue()
-                        .get(RedisKeys.productFeatureKey(userId, version));
-
-        if (cached == null) {
-            return null;
-        }
-
-        return new FeatureResponse(cached);
+        return (FeatureResponse) redisTemplate
+                .opsForValue()
+                .get(RedisKeys.productFeatureKey(userId, version));
     }
 
     @Override
@@ -59,7 +49,7 @@ public class FeatureCacheServiceImpl implements FeatureCacheService {
 
         redisTemplate.opsForValue().set(
                 RedisKeys.productFeatureKey(userId, version),
-                response.getFeatures(),
+                response,
                 PRODUCT_FEATURE_TTL
         );
     }
