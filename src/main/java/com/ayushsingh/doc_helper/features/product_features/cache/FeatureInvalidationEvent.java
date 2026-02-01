@@ -15,10 +15,4 @@ public class FeatureInvalidationEvent {
      * Optional – when null, invalidate globally
      */
     private Long userId;
-
-    public enum InvalidationType {
-        FEATURE_CONFIG_CHANGED,
-        SUBSCRIPTION_CHANGED,
-        QUOTA_RESET
-    }
 }

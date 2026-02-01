@@ -13,14 +13,14 @@ public class FeatureInvalidationPublisher {
 
     public void publishGlobalInvalidation() {
         publish(new FeatureInvalidationEvent(
-                FeatureInvalidationEvent.InvalidationType.FEATURE_CONFIG_CHANGED,
+                InvalidationType.FEATURE_CONFIG_CHANGED,
                 null
         ));
     }
 
     public void publishUserInvalidation(Long userId) {
         publish(new FeatureInvalidationEvent(
-                FeatureInvalidationEvent.InvalidationType.SUBSCRIPTION_CHANGED,
+                InvalidationType.SUBSCRIPTION_CHANGED,
                 userId
         ));
     }
