@@ -2,14 +2,13 @@ package com.ayushsingh.doc_helper.features.product_features.dto;
 
 import lombok.*;
 
-import java.util.List;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class FeatureResponse {
+public class FeatureUpdateRequestDto {
 
-    private List<ProductFeatureDto> features;
+    private String name;
+    private String description;
+    private String type;
 }

@@ -1,12 +1,14 @@
 package com.ayushsingh.doc_helper.features.product_features.dto;
 
 import com.ayushsingh.doc_helper.features.product_features.entity.ActionKind;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.util.Map;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class FeatureActionDto {
 

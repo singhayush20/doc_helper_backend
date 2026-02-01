@@ -49,5 +49,6 @@ public final class ExceptionCodes {
     public static final String FEATURE_DISABLED_ERROR = "E0043";
     public static final String FEATURE_NOT_ALLOWED_ERROR = "E0044";
     public static final String FEATURE_NOT_FOUND = "EOO45";
+    public static final String DUPLICATE_FEATURE_ERROR = "EOO46";
 
 }

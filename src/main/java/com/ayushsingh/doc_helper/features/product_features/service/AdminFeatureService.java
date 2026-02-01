@@ -1,14 +1,23 @@
 package com.ayushsingh.doc_helper.features.product_features.service;
 
-import com.ayushsingh.doc_helper.features.product_features.dto.FeatureActionUpdateRequest;
-import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUIUpdateRequest;
+import com.ayushsingh.doc_helper.features.product_features.dto.*;
 
 public interface AdminFeatureService {
+
+    ProductFeatureDto createFeature(FeatureCreateRequestDto request);
+
+    ProductFeatureDto updateFeature(
+            String featureCode,
+            FeatureUpdateRequestDto request
+    );
+
+    void deleteFeature(String featureCode);
+
     void enableFeature(String featureCode);
     
     void disableFeature(String featureCode);
     
-    void updateUI(String featureCode, FeatureUIUpdateRequest req);
+    FeatureUIConfigDto updateUI(String featureCode, FeatureUIUpdateRequest req);
     
-    void updateAction(String featureCode, FeatureActionUpdateRequest req);
+    FeatureActionDto updateAction(String featureCode, FeatureActionUpdateRequest req);
 }

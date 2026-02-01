@@ -1,9 +1,6 @@
 package com.ayushsingh.doc_helper.features.product_features.service.service_impl;
 
-import com.ayushsingh.doc_helper.features.product_features.dto.FeatureActionDto;
-import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
-import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUIConfigDto;
-import com.ayushsingh.doc_helper.features.product_features.dto.UsageQuotaDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.*;
 import com.ayushsingh.doc_helper.features.product_features.entity.*;
 import com.ayushsingh.doc_helper.features.product_features.repository.*;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
@@ -34,28 +31,24 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
     private final FeatureCacheService featureCacheService;
 
     @Override
-    public List<FeatureResponse> getProductFeatures(Long userId) {
+    public FeatureResponse getProductFeatures(Long userId) {
 
-        // 1️⃣ Cache-first
-        List<FeatureResponse> cached =
+        FeatureResponse cached =
                 featureCacheService.getCachedProductFeatures(userId);
 
         if (cached != null) {
             return cached;
         }
 
-        // 2️⃣ Resolve billing product
         Long billingProductId = resolveBillingProduct(userId);
 
-        // 3️⃣ Enabled feature mappings
         List<BillingProductFeature> mappings =
                 productFeatureRepo.findEnabledByBillingProduct(billingProductId);
 
         if (mappings.isEmpty()) {
-            return List.of();
+            return new FeatureResponse(List.of());
         }
 
-        // 4️⃣ Fetch features
         List<Long> featureIds = mappings.stream()
                 .map(BillingProductFeature::getFeatureId)
                 .toList();
@@ -67,14 +60,12 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
         Map<Long, Feature> featureMap = features.stream()
                 .collect(Collectors.toMap(Feature::getId, f -> f));
 
-        // 5️⃣ Fetch UI configs
         Map<Long, FeatureUIConfig> uiMap =
                 uiRepo.findAllById(featureIds).stream()
                         .collect(Collectors.toMap(
                                 FeatureUIConfig::getFeatureId, ui -> ui
                         ));
 
-        // 6️⃣ Fetch actions
         Map<Long, FeatureAction> actionMap =
                 actionRepo.findAll().stream()
                         .filter(a -> featureIds.contains(a.getFeatureId()))
@@ -83,7 +74,6 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                 FeatureAction::getFeatureId, a -> a
                         ));
 
-        // 7️⃣ Fetch quotas
         List<String> featureCodes = features.stream()
                 .map(Feature::getCode)
                 .toList();
@@ -95,8 +85,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                 UsageQuota::getFeatureCode, q -> q
                         ));
 
-        // 8️⃣ Build response
-        List<FeatureResponse> response = mappings.stream()
+        List<ProductFeatureDto> productFeatureDtoList = mappings.stream()
                 .sorted(Comparator.comparing(
                         BillingProductFeature::getPriority,
                         Comparator.nullsLast(Integer::compareTo)
@@ -109,7 +98,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                     FeatureAction action = actionMap.get(feature.getId());
                     UsageQuota quota = quotaMap.get(feature.getCode());
 
-                    return FeatureResponse.builder()
+                    return ProductFeatureDto.builder()
                             .code(feature.getCode())
                             .name(feature.getName())
                             .uiConfig(mapUi(ui))
@@ -120,11 +109,10 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                 .filter(Objects::nonNull)
                 .filter(fr -> fr.getUiConfig() == null || fr.getUiConfig().isVisible())
                 .toList();
+        var featureResponse = new FeatureResponse(productFeatureDtoList);
+        featureCacheService.cacheProductFeatures(userId, featureResponse);
 
-        // 9️⃣ Cache result
-        featureCacheService.cacheProductFeatures(userId, response);
-
-        return response;
+        return featureResponse;
     }
 
     private Long resolveBillingProduct(Long userId) {
@@ -144,7 +132,6 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                 .badgeText(ui.getBadgeText())
                 .sortOrder(ui.getSortOrder())
                 .visible(ui.isVisible())
-                .showInPremiumGrid(ui.isShowInPremiumGrid())
                 .build();
     }
 
@@ -180,7 +167,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
         try {
             return new ObjectMapper().readValue(json, Map.class);
         } catch (JsonProcessingException e) {
-            log.error("Error occurred when parsing feature action json: {}",json,e);
+            log.error("Error occurred when parsing feature action json: {}", json, e);
         }
         return Map.of();
     }

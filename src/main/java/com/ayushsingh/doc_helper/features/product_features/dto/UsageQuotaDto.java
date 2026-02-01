@@ -1,9 +1,11 @@
 package com.ayushsingh.doc_helper.features.product_features.dto;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
-@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 @Builder
 public class UsageQuotaDto {
 

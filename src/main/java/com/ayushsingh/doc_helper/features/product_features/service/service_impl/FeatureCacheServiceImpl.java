@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.core.caching.RedisKeys;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
+import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -16,31 +17,58 @@ public class FeatureCacheServiceImpl implements FeatureCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private static final Duration PRODUCT_FEATURE_TTL = Duration.ofMinutes(5);
+    private static final Duration PRODUCT_FEATURE_TTL =
+            Duration.ofMinutes(5);
 
-    @SuppressWarnings("unchecked")
     @Override
-    public List<FeatureResponse> getCachedProductFeatures(Long userId) {
-        return (List<FeatureResponse>) redisTemplate.opsForValue()
-                .get(RedisKeys.productFeatureKey(userId));
+    public void bumpGlobalVersion() {
+        redisTemplate.opsForValue()
+                .increment(RedisKeys.FEATURE_CACHE_VERSION_KEY);
+    }
+
+    private long getCurrentVersion() {
+        Long version = (Long) redisTemplate.opsForValue()
+                .get(RedisKeys.FEATURE_CACHE_VERSION_KEY);
+        return version != null ? version : 1L;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public FeatureResponse getCachedProductFeatures(Long userId) {
+
+        long version = getCurrentVersion();
+
+        List<ProductFeatureDto> cached =
+                (List<ProductFeatureDto>) redisTemplate
+                        .opsForValue()
+                        .get(RedisKeys.productFeatureKey(userId, version));
+
+        if (cached == null) {
+            return null;
+        }
+
+        return new FeatureResponse(cached);
     }
 
     @Override
     public void cacheProductFeatures(
             Long userId,
-            List<FeatureResponse> response
+            FeatureResponse response
     ) {
+        long version = getCurrentVersion();
+
         redisTemplate.opsForValue().set(
-                RedisKeys.productFeatureKey(userId),
-                response,
+                RedisKeys.productFeatureKey(userId, version),
+                response.getFeatures(),
                 PRODUCT_FEATURE_TTL
         );
     }
 
     @Override
     public void evictProductFeatures(Long userId) {
+        long version = getCurrentVersion();
         redisTemplate.delete(
-                RedisKeys.productFeatureKey(userId)
+                RedisKeys.productFeatureKey(userId, version)
         );
     }
 }

@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/v1/features")
 @RequiredArgsConstructor
@@ -19,7 +17,7 @@ public class FeatureController {
     private final FeatureQueryService featureQueryService;
 
     @GetMapping("/product-features")
-    public List<FeatureResponse> getProductFeatures() {
+    public FeatureResponse getProductFeatures() {
         AuthUser user = UserContext.getCurrentUser();
         return featureQueryService.getProductFeatures(user.getUser().getId());
     }

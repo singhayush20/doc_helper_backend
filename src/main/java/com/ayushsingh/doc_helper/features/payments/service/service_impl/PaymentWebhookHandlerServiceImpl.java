@@ -143,7 +143,6 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
                 .orElse(null);
 
         if (subscription == null) {
-            // TODO: Check the logic here why Subscription is not found for events?
             log.error("Subscription not found for providerSubId: {}, providerPaymentId: {}",providerSubId, providerPaymentId);
             throw new BaseException(
                     "No local subscription found for payment",
@@ -205,7 +204,6 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
             // pending or halted state. If a Subscription moves to the active state from the pending or halted state,
             // only the subsequent invoices that are generated are charged.
             // Existing invoices that were already generated are not charged.
-            // TODO: Handle the activated state gracefully - payment is still not made
             case "subscription.activated" -> handleActivated(subscription, rawPayload);
             // Sent every time a successful charge is made on the subscription.
             // This is mapped to ACTIVE SubscriptionStatus and used to reset quotas and fetch active subscription for users
@@ -213,12 +211,10 @@ public class PaymentWebhookHandlerServiceImpl implements PaymentWebhookHandlerSe
             // Sent when the subscription moves to the pending state. This happens when a charge on the card fails.
             // We try to charge the card on a periodic basis while it is in the pending state.
             // If the payment fails again, the Webhook is triggered again.
-            // TODO: Handle this state gracefully - how to manage the user quota during this time?
             case "subscription.pending" -> handlePending(subscription);
             // Sent when all retries have been exhausted and the subscription moves from the pending state to the halted state.
             // The customer has to manually retry the charge or change the card linked to the subscription,
             // for the subscription to move back to the active state.
-            // TODO: Handle this state gracefully - how to handle the user quotas?
             case "subscription.halted" -> handleHalted(subscription);
             // Sent when a subscription is cancelled and moved to the cancelled state.
             case "subscription.cancelled" -> handleCancelled(subscription);

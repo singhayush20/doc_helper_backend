@@ -1,9 +1,15 @@
 package com.ayushsingh.doc_helper.features.product_features.dto;
 
 import com.ayushsingh.doc_helper.features.product_features.entity.ActionKind;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class FeatureActionUpdateRequest {
 
     private ActionKind kind;

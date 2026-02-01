@@ -31,9 +31,9 @@ public class FeatureInvalidationSubscriber
             if (event.getUserId() != null) {
                 cacheService.evictProductFeatures(event.getUserId());
             } else {
-                // global invalidation – conservative
-                // optional: maintain index of active users
-                // TODO: Handle else case
+                // GLOBAL invalidation
+                cacheService.bumpGlobalVersion();
+                log.info("Global feature cache version bumped");
             }
 
         } catch (Exception e) {
