@@ -18,10 +18,10 @@ public class FeatureController {
 
     private final FeatureQueryService featureQueryService;
 
-    @GetMapping("/home")
-    public List<FeatureResponse> homeFeatures() {
+    @GetMapping("/product-features")
+    public List<FeatureResponse> getProductFeatures() {
         AuthUser user = UserContext.getCurrentUser();
-        return featureQueryService.getHomeFeatures(user.getUser().getId());
+        return featureQueryService.getProductFeatures(user.getUser().getId());
     }
 }
 

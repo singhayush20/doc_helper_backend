@@ -5,9 +5,9 @@ import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
 import java.util.List;
 
 public interface FeatureCacheService {
-    List<FeatureResponse> getCachedHomeFeatures(Long userId);
+    List<FeatureResponse> getCachedProductFeatures(Long userId);
     
-    void cacheHomeFeatures(Long userId, List<FeatureResponse> response);
+    void cacheProductFeatures(Long userId, List<FeatureResponse> response);
     
-    void evictHomeFeatures(Long userId);
+    void evictProductFeatures(Long userId);
 }

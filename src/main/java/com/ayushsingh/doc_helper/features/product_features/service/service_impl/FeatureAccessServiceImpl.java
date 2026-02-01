@@ -16,6 +16,7 @@ public class FeatureAccessServiceImpl implements FeatureAccessService {
     private final FeatureRepository featureRepository;
     private final BillingProductFeatureRepository productFeatureRepo;
 
+    @Override
     public void assertFeatureAccess(Long userId, String featureCode) {
         Feature feature = featureRepository
                 .findByCodeAndActiveTrue(featureCode)

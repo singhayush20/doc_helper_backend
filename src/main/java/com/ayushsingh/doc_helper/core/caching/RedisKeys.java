@@ -20,8 +20,8 @@ public final class RedisKeys {
         return "recent:documents:%d".formatted(userId);
     }
 
-    public static String homeFeatures(Long userId) {
-        return "features:home:user:" + userId;
+    public static String productFeatureKey(Long userId) {
+        return "features:product:user:" + userId;
     }
 }
 

@@ -1,5 +1,7 @@
 package com.ayushsingh.doc_helper.features.product_features.service.service_impl;
 
+import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
+import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.product_features.cache.FeatureInvalidationPublisher;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureActionUpdateRequest;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUIUpdateRequest;
@@ -24,6 +26,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     private final FeatureInvalidationPublisher invalidationPublisher;
 
     @Transactional
+    @Override
     public void enableFeature(String featureCode) {
         Feature feature = getFeature(featureCode);
         feature.setActive(true);
@@ -33,6 +36,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     }
 
     @Transactional
+    @Override
     public void disableFeature(String featureCode) {
         Feature feature = getFeature(featureCode);
         feature.setActive(false);
@@ -42,6 +46,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     }
 
     @Transactional
+    @Override
     public void updateUI(
             String featureCode,
             FeatureUIUpdateRequest req
@@ -65,6 +70,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     }
 
     @Transactional
+    @Override
     public void updateAction(
             String featureCode,
             FeatureActionUpdateRequest req
@@ -89,6 +95,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     private Feature getFeature(String code) {
         return featureRepo.findByCodeAndActiveTrue(code)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Feature not found"));
+                        new BaseException("Feature not found", ExceptionCodes.FEATURE_NOT_FOUND));
     }
 }

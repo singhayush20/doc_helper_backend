@@ -5,5 +5,5 @@ import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
 import java.util.List;
 
 public interface FeatureQueryService {
-    List<FeatureResponse> getHomeFeatures(Long userId);
+    List<FeatureResponse> getProductFeatures(Long userId);
 }

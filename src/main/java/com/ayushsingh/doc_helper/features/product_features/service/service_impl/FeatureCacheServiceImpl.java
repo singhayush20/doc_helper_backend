@@ -16,28 +16,31 @@ public class FeatureCacheServiceImpl implements FeatureCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private static final Duration HOME_TTL = Duration.ofMinutes(5);
+    private static final Duration PRODUCT_FEATURE_TTL = Duration.ofMinutes(5);
 
     @SuppressWarnings("unchecked")
-    public List<FeatureResponse> getCachedHomeFeatures(Long userId) {
+    @Override
+    public List<FeatureResponse> getCachedProductFeatures(Long userId) {
         return (List<FeatureResponse>) redisTemplate.opsForValue()
-                .get(RedisKeys.homeFeatures(userId));
+                .get(RedisKeys.productFeatureKey(userId));
     }
 
-    public void cacheHomeFeatures(
+    @Override
+    public void cacheProductFeatures(
             Long userId,
             List<FeatureResponse> response
     ) {
         redisTemplate.opsForValue().set(
-                RedisKeys.homeFeatures(userId),
+                RedisKeys.productFeatureKey(userId),
                 response,
-                HOME_TTL
+                PRODUCT_FEATURE_TTL
         );
     }
 
-    public void evictHomeFeatures(Long userId) {
+    @Override
+    public void evictProductFeatures(Long userId) {
         redisTemplate.delete(
-                RedisKeys.homeFeatures(userId)
+                RedisKeys.productFeatureKey(userId)
         );
     }
 }

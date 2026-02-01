@@ -29,7 +29,7 @@ public class FeatureInvalidationSubscriber
                     );
 
             if (event.getUserId() != null) {
-                cacheService.evictHomeFeatures(event.getUserId());
+                cacheService.evictProductFeatures(event.getUserId());
             } else {
                 // global invalidation – conservative
                 // optional: maintain index of active users

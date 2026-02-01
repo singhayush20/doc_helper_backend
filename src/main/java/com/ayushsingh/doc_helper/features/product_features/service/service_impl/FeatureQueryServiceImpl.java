@@ -2,15 +2,19 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureActionDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
+import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUIConfigDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.UsageQuotaDto;
 import com.ayushsingh.doc_helper.features.product_features.entity.*;
 import com.ayushsingh.doc_helper.features.product_features.repository.*;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureQueryService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -18,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FeatureQueryServiceImpl implements FeatureQueryService {
 
     private final BillingProductFeatureRepository productFeatureRepo;
@@ -28,11 +33,12 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
 
     private final FeatureCacheService featureCacheService;
 
-    public List<FeatureResponse> getHomeFeatures(Long userId) {
+    @Override
+    public List<FeatureResponse> getProductFeatures(Long userId) {
 
         // 1️⃣ Cache-first
         List<FeatureResponse> cached =
-                featureCacheService.getCachedHomeFeatures(userId);
+                featureCacheService.getCachedProductFeatures(userId);
 
         if (cached != null) {
             return cached;
@@ -106,17 +112,17 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                     return FeatureResponse.builder()
                             .code(feature.getCode())
                             .name(feature.getName())
-                            .ui(mapUi(ui))
+                            .uiConfig(mapUi(ui))
                             .action(mapAction(action))
                             .quota(mapQuota(quota))
                             .build();
                 })
                 .filter(Objects::nonNull)
-                .filter(fr -> fr.getUi() == null || fr.getUi().isVisible())
+                .filter(fr -> fr.getUiConfig() == null || fr.getUiConfig().isVisible())
                 .toList();
 
         // 9️⃣ Cache result
-        featureCacheService.cacheHomeFeatures(userId, response);
+        featureCacheService.cacheProductFeatures(userId, response);
 
         return response;
     }
@@ -128,10 +134,10 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
 
     /* -------- Mapping helpers -------- */
 
-    private FeatureUI mapUi(FeatureUIConfig ui) {
+    private FeatureUIConfigDto mapUi(FeatureUIConfig ui) {
         if (ui == null) return null;
 
-        return FeatureUI.builder()
+        return FeatureUIConfigDto.builder()
                 .icon(ui.getIcon())
                 .backgroundColor(ui.getBackgroundColor())
                 .textColor(ui.getTextColor())
@@ -167,9 +173,15 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                 .build();
     }
 
+    @SuppressWarnings("unchecked")
     private Map<String, Object> parseJson(String json) {
         if (json == null) return Map.of();
         // ObjectMapper injected in real code
-        return new ObjectMapper().readValue(json, Map.class);
+        try {
+            return new ObjectMapper().readValue(json, Map.class);
+        } catch (JsonProcessingException e) {
+            log.error("Error occurred when parsing feature action json: {}",json,e);
+        }
+        return Map.of();
     }
 }
