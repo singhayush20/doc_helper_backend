@@ -19,4 +19,6 @@ public interface FeatureRepository extends JpaRepository<Feature, Long> {
           and f.active = true
     """)
     List<Feature> findActiveByIds(@Param("ids") Collection<Long> ids);
+
+    Optional<Object> findByCode(String code);
 }

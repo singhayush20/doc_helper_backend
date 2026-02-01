@@ -9,5 +9,7 @@ public interface FeatureActionRepository
         extends JpaRepository<FeatureAction, Long> {
 
     Optional<FeatureAction> findByFeatureIdAndEnabledTrue(Long featureId);
+
+    void deleteByFeatureId(Long id);
 }
 
