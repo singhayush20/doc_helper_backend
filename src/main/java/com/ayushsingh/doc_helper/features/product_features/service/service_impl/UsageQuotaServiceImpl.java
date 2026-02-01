@@ -2,7 +2,6 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
 import com.ayushsingh.doc_helper.features.product_features.repository.UsageQuotaRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 import jakarta.transaction.Transactional;
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UsageQuotaServiceImpl implements UsageQuotaService {
 
-    private final UsageQuotaRepository quotaRepo;
+    private final UsageQuotaRepository usageQuotaRepository;
 
     @Transactional
     @Override
@@ -23,7 +22,7 @@ public class UsageQuotaServiceImpl implements UsageQuotaService {
             String metric,
             long amount
     ) {
-        UsageQuota quota = quotaRepo
+        var quota = usageQuotaRepository
                 .findByUserIdAndFeatureCodeAndMetric(userId, featureCode, metric)
                 .orElseThrow(() -> new BaseException("Quota not configured",ExceptionCodes.QUOTA_NOT_FOUND));
 
@@ -32,6 +31,6 @@ public class UsageQuotaServiceImpl implements UsageQuotaService {
         }
 
         quota.setUsed(quota.getUsed() + amount);
-        quotaRepo.save(quota);
+        usageQuotaRepository.save(quota);
     }
 }

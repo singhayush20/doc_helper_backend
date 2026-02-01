@@ -6,6 +6,7 @@ import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureAccessService;
+import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +15,8 @@ import org.springframework.stereotype.Service;
 public class FeatureAccessServiceImpl implements FeatureAccessService {
 
     private final FeatureRepository featureRepository;
-    private final BillingProductFeatureRepository productFeatureRepo;
+    private final BillingProductFeatureRepository billingProductFeatureRepository;
+    private final SubscriptionService subscriptionService;
 
     @Override
     public void assertFeatureAccess(Long userId, String featureCode) {
@@ -22,10 +24,9 @@ public class FeatureAccessServiceImpl implements FeatureAccessService {
                 .findByCodeAndActiveTrue(featureCode)
                 .orElseThrow(() -> new BaseException("Feature disabled", ExceptionCodes.FEATURE_DISABLED_ERROR));
 
-        // billingProductId resolved from subscription
         Long billingProductId = resolveBillingProduct(userId);
 
-        boolean enabled = productFeatureRepo
+        boolean enabled = billingProductFeatureRepository
                 .findByBillingProductIdAndEnabledTrue(billingProductId)
                 .stream()
                 .anyMatch(pf -> pf.getFeatureId().equals(feature.getId()));
@@ -36,7 +37,6 @@ public class FeatureAccessServiceImpl implements FeatureAccessService {
     }
 
     private Long resolveBillingProduct(Long userId) {
-        // existing subscription logic
-        return 1L;
+        return subscriptionService.getBillingProductIdBySubscriptionId(userId);
     }
 }

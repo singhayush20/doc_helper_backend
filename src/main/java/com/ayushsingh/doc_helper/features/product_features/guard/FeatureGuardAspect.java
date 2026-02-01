@@ -1,7 +1,6 @@
 package com.ayushsingh.doc_helper.features.product_features.guard;
 
 import com.ayushsingh.doc_helper.core.security.UserContext;
-import com.ayushsingh.doc_helper.features.auth.entity.AuthUser;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureAccessService;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 import lombok.RequiredArgsConstructor;
@@ -22,21 +21,33 @@ public class FeatureGuardAspect {
     private final UsageQuotaService usageQuotaService;
     private final SpelExpressionParser parser = new SpelExpressionParser();
 
+    // Intercepts any method annotated with @RequireFeature
     @Around("@annotation(requireFeature)")
     public Object guard(
-            ProceedingJoinPoint pjp,
+            // Represents the intercepted method call
+            ProceedingJoinPoint proceedingJoinPoint,
+            // The annotation placed on the intercepted method
             RequireFeature requireFeature
     ) throws Throwable {
 
-        AuthUser user = UserContext.getCurrentUser();
+        var user = UserContext.getCurrentUser();
 
+        /*
+        Verifies:
+            User has an active subscription.
+            Subscription’s billing product allows this feature
+            Throws exception if not allowed.
+            Method execution stops here if access is denied
+         */
         featureAccessService.assertFeatureAccess(
                 user.getUser().getId(),
                 requireFeature.code()
         );
 
-        long amount = evaluateAmount(requireFeature.amount(), pjp);
+        // Different features consume usage differently
+        long amount = evaluateAmount(requireFeature.amount(), proceedingJoinPoint);
 
+        // Quota is enforced before business logic executes
         usageQuotaService.consume(
                 user.getUser().getId(),
                 requireFeature.code(),
@@ -44,19 +55,40 @@ public class FeatureGuardAspect {
                 amount
         );
 
-        return pjp.proceed();
+        return proceedingJoinPoint.proceed();
     }
 
     private long evaluateAmount(String expression, ProceedingJoinPoint pjp) {
+        // Holds variables available to the SpEL expression
         StandardEvaluationContext ctx = new StandardEvaluationContext();
+        // Actual runtime arguments passed to the method
         Object[] args = pjp.getArgs();
+        // Extracts parameter names using reflection
         String[] names = ((MethodSignature) pjp.getSignature()).getParameterNames();
 
+        // Bind parameters to SpEL variables
         for (int i = 0; i < names.length; i++) {
             ctx.setVariable(names[i], args[i]);
         }
 
-        return parser.parseExpression(expression).getValue(ctx, Long.class);
+        // Parses the expression string
+        Long value = parser.parseExpression(expression).getValue(ctx, Long.class);
+
+        if (value == null) {
+            throw new IllegalStateException(
+                    "SpEL expression '" + expression +
+                            "' evaluated to null. " +
+                            "Check @RequireFeature.amount configuration."
+            );
+        }
+
+        if (value < 0) {
+            throw new IllegalArgumentException(
+                    "Usage amount cannot be negative: " + value
+            );
+        }
+
+        return value;
     }
 }
 
