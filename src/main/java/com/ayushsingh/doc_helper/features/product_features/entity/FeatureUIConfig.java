@@ -1,65 +1,59 @@
 package com.ayushsingh.doc_helper.features.product_features.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
-import java.util.Objects;
 
-@Entity
-@Table(name = "feature_ui_config")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "feature_ui_config",
+        indexes = {
+                @Index(
+                        name = "idx_feature_ui_active_screen",
+                        columnList = "feature_id, screen_name, active"
+                ),
+                @Index(
+                        name = "idx_feature_ui_feature_version",
+                        columnList = "feature_id, feature_ui_version"
+                )
+        }
+)
 public class FeatureUIConfig {
-
     @Id
-    @Column(name="feature_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // The feature with which this UIConfig is associated with - can be a product feature or any info ui component
+    @Column(name = "feature_id", nullable = false)
     private Long featureId;
 
-    private String icon;
+    @Column(name = "component_type", nullable = false)
+    private UIComponentType componentType;
 
-    private String backgroundColor;
-    private String textColor;
-    private String badgeText;
+    @Column(nullable = false)
+    private int featureUiVersion;
 
-    private Integer sortOrder;
-    private boolean visible;
+    @Column(columnDefinition = "jsonb", nullable = false)
+    private String uiJson;
+
+    @Column(nullable = false)
+    private boolean active;
+
+    @Column(name = "screen_name", nullable = true)
+    // This can be used to configure similar different UI components on different screens
+    private String screen;
 
     @CreationTimestamp
     private Instant createdAt;
 
     @UpdateTimestamp
     private Instant updatedAt;
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        FeatureUIConfig that = (FeatureUIConfig) o;
-        return Objects.equals(featureId, that.featureId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(featureId);
-    }
-
-    @Override
-    public String toString() {
-        return "FeatureUIConfig{" +
-                "featureId=" + featureId +
-                ", icon='" + icon + '\'' +
-                ", backgroundColor='" + backgroundColor + '\'' +
-                ", textColor='" + textColor + '\'' +
-                ", badgeText='" + badgeText + '\'' +
-                ", sortOrder=" + sortOrder +
-                ", visible=" + visible +
-                '}';
-    }
 }
-

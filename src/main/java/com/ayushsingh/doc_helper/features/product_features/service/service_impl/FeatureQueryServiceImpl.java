@@ -1,16 +1,22 @@
 package com.ayushsingh.doc_helper.features.product_features.service.service_impl;
 
-import com.ayushsingh.doc_helper.features.product_features.dto.*;
-import com.ayushsingh.doc_helper.features.product_features.entity.*;
-import com.ayushsingh.doc_helper.features.product_features.repository.*;
+import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
+import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.UsageQuotaDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui.FeatureScreenResponse;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui.FeatureWithUiDto;
+import com.ayushsingh.doc_helper.features.product_features.entity.BillingProductFeature;
+import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
+import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
+import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
+import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
+import com.ayushsingh.doc_helper.features.product_features.repository.UsageQuotaRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureQueryService;
+import com.ayushsingh.doc_helper.features.product_features.service.UIComponentService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -21,126 +27,91 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class FeatureQueryServiceImpl implements FeatureQueryService {
 
     private final BillingProductFeatureRepository billingProductFeatureRepository;
     private final FeatureRepository featureRepository;
-    private final FeatureUIConfigRepository featureUIConfigRepository;
-    private final FeatureActionRepository featureActionRepository;
     private final UsageQuotaRepository usageQuotaRepository;
     private final SubscriptionService subscriptionService;
     private final FeatureCacheService featureCacheService;
-    private final ModelMapper modelMapper;
-    private final ObjectMapper objectMapper;
+    private final UIComponentService uiComponentService;
 
     @Override
     public FeatureResponse getProductFeatures(Long userId) {
 
-        FeatureResponse cachedFeatureResponse =
+        FeatureResponse cached =
                 featureCacheService.getCachedProductFeatures(userId);
-
-        if (cachedFeatureResponse != null) {
-            return cachedFeatureResponse;
+        if (cached != null) {
+            return cached;
         }
 
-        Long billingProductId = resolveBillingProduct(userId);
+        Long billingProductId =
+                subscriptionService.getBillingProductIdBySubscriptionId(userId);
 
-        List<BillingProductFeature> billingProductFeatureMapping =
-                billingProductFeatureRepository.findEnabledByBillingProduct(billingProductId);
+        List<BillingProductFeature> mappings =
+                billingProductFeatureRepository
+                        .findEnabledByBillingProduct(billingProductId);
 
-        if (billingProductFeatureMapping.isEmpty()) {
+        if (mappings.isEmpty()) {
             return new FeatureResponse(List.of());
         }
 
-        List<Long> featureIds = billingProductFeatureMapping.stream()
-                .map(BillingProductFeature::getFeatureId)
-                .toList();
+        List<Long> featureIds =
+                mappings.stream()
+                        .map(BillingProductFeature::getFeatureId)
+                        .toList();
 
-        List<Feature> features =
-                featureRepository.findActiveByIds(featureIds);
-
-        // Map featureId → Feature
-        Map<Long, Feature> featureMap = features.stream()
-                .collect(Collectors.toMap(Feature::getId, f -> f));
-
-        Map<Long, FeatureUIConfig> uiMap =
-                featureUIConfigRepository.findAllById(featureIds).stream()
+        Map<Long, Feature> featureMap =
+                featureRepository.findActiveByIds(featureIds)
+                        .stream()
                         .collect(Collectors.toMap(
-                                FeatureUIConfig::getFeatureId, ui -> ui
+                                Feature::getId, f -> f
                         ));
-
-        Map<Long, FeatureAction> actionMap =
-                featureActionRepository.findAll().stream()
-                        .filter(a -> featureIds.contains(a.getFeatureId()))
-                        .filter(FeatureAction::isEnabled)
-                        .collect(Collectors.toMap(
-                                FeatureAction::getFeatureId, a -> a
-                        ));
-
-        List<String> featureCodes = features.stream()
-                .map(Feature::getCode)
-                .toList();
 
         Map<String, UsageQuota> quotaMap =
-                usageQuotaRepository.findByUserAndFeatureCodes(userId, featureCodes)
+                usageQuotaRepository
+                        .findByUserAndFeatureCodes(
+                                userId,
+                                featureMap.values()
+                                        .stream()
+                                        .map(Feature::getCode)
+                                        .toList()
+                        )
                         .stream()
                         .collect(Collectors.toMap(
                                 UsageQuota::getFeatureCode, q -> q
                         ));
 
-        List<ProductFeatureDto> productFeatureDtoList = billingProductFeatureMapping.stream()
-                .sorted(Comparator.comparing(
-                        BillingProductFeature::getPriority,
-                        Comparator.nullsLast(Integer::compareTo)
-                ))
-                .map(billingProductFeature -> {
-                    var feature = featureMap.get(billingProductFeature.getFeatureId());
-                    if (feature == null) return null;
+        List<ProductFeatureDto> result =
+                mappings.stream()
+                        .sorted(Comparator.comparing(
+                                BillingProductFeature::getPriority,
+                                Comparator.nullsLast(Integer::compareTo)
+                        ))
+                        .map(mapping -> {
+                            Feature feature =
+                                    featureMap.get(mapping.getFeatureId());
+                            if (feature == null) return null;
 
-                    var ui = uiMap.get(feature.getId());
-                    var action = actionMap.get(feature.getId());
-                    var quota = quotaMap.get(feature.getCode());
+                            return ProductFeatureDto.builder()
+                                    .featureId(feature.getId())
+                                    .code(feature.getCode())
+                                    .name(feature.getName())
+                                    .quota(toQuotaDto(
+                                            quotaMap.get(feature.getCode())))
+                                    .build();
+                        })
+                        .filter(Objects::nonNull)
+                        .toList();
 
-                    return ProductFeatureDto.builder()
-                            .code(feature.getCode())
-                            .name(feature.getName())
-                            .uiConfig(featureUiConfigToDto(ui))
-                            .action(featureActionToDto(action))
-                            .quota(userQuotaToDto(quota))
-                            .build();
-                })
-                .filter(Objects::nonNull)
-                .filter(productFeatureDto ->
-                        productFeatureDto.getUiConfig() == null ||
-                        productFeatureDto.getUiConfig().isVisible())
-                .toList();
-        var featureResponse = new FeatureResponse(productFeatureDtoList);
-        featureCacheService.cacheProductFeatures(userId, featureResponse);
+        FeatureResponse response =
+                new FeatureResponse(result);
 
-        return featureResponse;
+        featureCacheService.cacheProductFeatures(userId, response);
+        return response;
     }
 
-    private Long resolveBillingProduct(Long userId) {
-        return subscriptionService.getBillingProductIdBySubscriptionId(userId);
-    }
-
-    private FeatureUIConfigDto featureUiConfigToDto(FeatureUIConfig featureUiConfig) {
-        if (featureUiConfig == null) return null;
-        return modelMapper.map(featureUiConfig,FeatureUIConfigDto.class);
-    }
-
-    private FeatureActionDto featureActionToDto(FeatureAction action) {
-        if (action == null) return null;
-
-        return FeatureActionDto.builder()
-                .kind(action.getKind())
-                .destination(action.getDestination())
-                .payload(parseJson(action.getPayload()))
-                .build();
-    }
-
-    private UsageQuotaDto userQuotaToDto(UsageQuota quota) {
+    private UsageQuotaDto toQuotaDto(UsageQuota quota) {
         if (quota == null) return null;
 
         return UsageQuotaDto.builder()
@@ -155,15 +126,34 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                 .build();
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null) return Map.of();
-        // ObjectMapper injected in real code
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (JsonProcessingException e) {
-            log.error("Error occurred when parsing feature action json: {}", json, e);
-        }
-        return Map.of();
+    public FeatureScreenResponse getFeatureGrid(
+            Long userId,
+            String screen
+    ) {
+        FeatureResponse featureResponse =
+                getProductFeatures(userId);
+
+        List<Long> featureIds =
+                featureResponse.getFeatures()
+                        .stream()
+                        .map(ProductFeatureDto::getFeatureId)
+                        .toList();
+
+        Map<Long, JsonNode> uiMap =
+                uiComponentService
+                        .getUIForFeatures(featureIds, screen);
+
+        List<FeatureWithUiDto> composed =
+                featureResponse.getFeatures()
+                        .stream()
+                        .map(feature ->
+                                FeatureWithUiDto.builder()
+                                        .feature(feature)
+                                        .ui(uiMap.get(feature.getFeatureId()))
+                                        .build()
+                        )
+                        .toList();
+
+        return new FeatureScreenResponse(composed);
     }
 }

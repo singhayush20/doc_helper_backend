@@ -1,8 +1,13 @@
 package com.ayushsingh.doc_helper.features.product_features.controller;
 
-import com.ayushsingh.doc_helper.features.product_features.dto.*;
+import com.ayushsingh.doc_helper.features.product_features.dto.FeatureCreateRequestDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUpdateRequestDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentCreateRequestDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentDetailsDto;
 import com.ayushsingh.doc_helper.features.product_features.service.AdminFeatureService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +38,7 @@ public class AdminFeatureController {
     @DeleteMapping("/{code}")
     public ResponseEntity<Void> delete(@PathVariable String code) {
         adminFeatureService.deleteFeature(code);
-        return  ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{featureCode}/enable")
@@ -52,21 +57,11 @@ public class AdminFeatureController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{featureCode}/ui")
-    public ResponseEntity<FeatureUIConfigDto> updateUI(
-            @PathVariable String featureCode,
-            @RequestBody FeatureUIUpdateRequest request
+    @PostMapping("/ui-component")
+    public ResponseEntity<UIComponentDetailsDto> createUIComponentForFeature(
+            @RequestBody UIComponentCreateRequestDto dto
     ) {
-        var uiConfigDto = adminFeatureService.updateUI(featureCode, request);
-        return  ResponseEntity.ok(uiConfigDto);
-    }
-
-    @PutMapping("/{featureCode}/action")
-    public ResponseEntity<FeatureActionDto> updateAction(
-            @PathVariable String featureCode,
-            @RequestBody FeatureActionUpdateRequest request
-    ) {
-        var updatedAction = adminFeatureService.updateAction(featureCode, request);
-        return ResponseEntity.ok(updatedAction);
+        var component = adminFeatureService.createUIComponent(dto);
+        return new ResponseEntity<UIComponentDetailsDto>(component, HttpStatus.CREATED);
     }
 }

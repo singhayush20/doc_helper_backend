@@ -11,17 +11,36 @@ public class FeatureInvalidationPublisher {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public void publishGlobalInvalidation() {
+    /* Feature list changed */
+    public void publishFeatureListInvalidation() {
         publish(new FeatureInvalidationEvent(
-                InvalidationType.FEATURE_CONFIG_CHANGED,
+                InvalidationType.FEATURE_LIST_CHANGED,
+                null,
                 null
         ));
     }
 
+    /* UI changed */
+    public void publishUIInvalidation(
+            Long featureId,
+            String screen,
+            Integer featureUIVersion
+    ) {
+        publish(new FeatureInvalidationEvent(
+                InvalidationType.FEATURE_UI_CHANGED,
+                null,
+                new UIInvalidationPayload(
+                        featureId, screen, featureUIVersion
+                )
+        ));
+    }
+
+    /* Subscription-specific */
     public void publishUserInvalidation(Long userId) {
         publish(new FeatureInvalidationEvent(
                 InvalidationType.SUBSCRIPTION_CHANGED,
-                userId
+                userId,
+                null
         ));
     }
 

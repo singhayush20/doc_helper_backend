@@ -15,42 +15,34 @@ public class FeatureCacheServiceImpl implements FeatureCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private static final Duration PRODUCT_FEATURE_TTL =
-            Duration.ofMinutes(5);
+    private static final Duration TTL = Duration.ofMinutes(5);
 
     @Override
     public void bumpGlobalVersion() {
         redisTemplate.opsForValue()
-                .increment(RedisKeys.FEATURE_CACHE_VERSION_KEY);
+                .increment(RedisKeys.FEATURE_LIST_CACHE_VERSION_KEY);
     }
 
     private long getCurrentVersion() {
         Long version = (Long) redisTemplate.opsForValue()
-                .get(RedisKeys.FEATURE_CACHE_VERSION_KEY);
+                .get(RedisKeys.FEATURE_LIST_CACHE_VERSION_KEY);
         return version != null ? version : 1L;
     }
 
     @Override
     public FeatureResponse getCachedProductFeatures(Long userId) {
-
         long version = getCurrentVersion();
-
-        return (FeatureResponse) redisTemplate
-                .opsForValue()
+        return (FeatureResponse) redisTemplate.opsForValue()
                 .get(RedisKeys.productFeatureKey(userId, version));
     }
 
     @Override
-    public void cacheProductFeatures(
-            Long userId,
-            FeatureResponse response
-    ) {
+    public void cacheProductFeatures(Long userId, FeatureResponse response) {
         long version = getCurrentVersion();
-
         redisTemplate.opsForValue().set(
                 RedisKeys.productFeatureKey(userId, version),
                 response,
-                PRODUCT_FEATURE_TTL
+                TTL
         );
     }
 

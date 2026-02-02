@@ -3,15 +3,16 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.product_features.cache.FeatureInvalidationPublisher;
-import com.ayushsingh.doc_helper.features.product_features.dto.*;
+import com.ayushsingh.doc_helper.features.product_features.dto.FeatureCreateRequestDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUpdateRequestDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentCreateRequestDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentDetailsDto;
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
-import com.ayushsingh.doc_helper.features.product_features.entity.FeatureAction;
 import com.ayushsingh.doc_helper.features.product_features.entity.FeatureType;
-import com.ayushsingh.doc_helper.features.product_features.entity.FeatureUIConfig;
-import com.ayushsingh.doc_helper.features.product_features.repository.FeatureActionRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
-import com.ayushsingh.doc_helper.features.product_features.repository.FeatureUIConfigRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.AdminFeatureService;
+import com.ayushsingh.doc_helper.features.product_features.service.UIComponentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -22,10 +23,9 @@ import org.springframework.stereotype.Service;
 public class AdminFeatureServiceImpl implements AdminFeatureService {
 
     private final FeatureRepository featureRepository;
-    private final FeatureUIConfigRepository featureUIConfigRepository;
-    private final FeatureActionRepository featureActionRepository;
     private final FeatureInvalidationPublisher invalidationPublisher;
     private final ModelMapper modelMapper;
+    private final UIComponentService uiComponentService;
 
     @Override
     public ProductFeatureDto createFeature(FeatureCreateRequestDto featureCreateRequestDto) {
@@ -47,7 +47,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
 
         var savedFeature = featureRepository.save(feature);
 
-        invalidationPublisher.publishGlobalInvalidation();
+        invalidationPublisher.publishFeatureListInvalidation();
 
         return modelMapper.map(savedFeature, ProductFeatureDto.class);
     }
@@ -65,7 +65,8 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
 
         var updatedFeature = featureRepository.save(feature);
 
-        invalidationPublisher.publishGlobalInvalidation();
+        invalidationPublisher.publishFeatureListInvalidation();
+
 
         return modelMapper.map(updatedFeature, ProductFeatureDto.class);
     }
@@ -77,7 +78,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         feature.setActive(true);
         featureRepository.save(feature);
 
-        invalidationPublisher.publishGlobalInvalidation();
+        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     @Transactional
@@ -87,55 +88,28 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         feature.setActive(false);
         featureRepository.save(feature);
 
-        invalidationPublisher.publishGlobalInvalidation();
+        invalidationPublisher.publishFeatureListInvalidation();
     }
 
-    @Transactional
     @Override
-    public FeatureUIConfigDto updateUI(
-            String featureCode,
-            FeatureUIUpdateRequest featureUIUpdateRequest
-    ) {
-        var feature = getFeature(featureCode);
+    public UIComponentDetailsDto createUIComponent(UIComponentCreateRequestDto dto) {
+        var uiConfig = dto.getUiConfig();
+        var productFeatureId = dto.getProductFeatureId();
+        var isProductPresent = featureRepository.existsById(productFeatureId);
 
-        var featureUiConfig = featureUIConfigRepository.findById(feature.getId())
-                .orElse(new FeatureUIConfig());
+        if (!isProductPresent) {
+            throw new BaseException("Product with id " + productFeatureId + " is not present", ExceptionCodes.FEATURE_NOT_FOUND);
+        }
 
-        featureUiConfig.setFeatureId(feature.getId());
-        featureUiConfig.setIcon(featureUIUpdateRequest.getIcon());
-        featureUiConfig.setBackgroundColor(featureUIUpdateRequest.getBackgroundColor());
-        featureUiConfig.setTextColor(featureUIUpdateRequest.getTextColor());
-        featureUiConfig.setBadgeText(featureUIUpdateRequest.getBadgeText());
-        featureUiConfig.setVisible(featureUIUpdateRequest.isVisible());
-
-        var uiConfig = featureUIConfigRepository.save(featureUiConfig);
-        invalidationPublisher.publishGlobalInvalidation();
-
-        return modelMapper.map(uiConfig, FeatureUIConfigDto.class);
-    }
-
-    @Transactional
-    @Override
-    public FeatureActionDto updateAction(
-            String featureCode,
-            FeatureActionUpdateRequest req
-    ) {
-        var feature = getFeature(featureCode);
-
-        var action = featureActionRepository
-                .findByFeatureIdAndEnabledTrue(feature.getId())
-                .orElse(new FeatureAction());
-
-        action.setFeatureId(feature.getId());
-        action.setKind(req.getKind());
-        action.setDestination(req.getDestination());
-        action.setPayload(req.getPayload());
-        action.setEnabled(true);
-
-        var updatedAction = featureActionRepository.save(action);
-        invalidationPublisher.publishGlobalInvalidation();
-
-        return modelMapper.map(updatedAction, FeatureActionDto.class);
+        var uiComponentDetailsDto =
+                uiComponentService.createUIComponent(uiConfig,
+                        productFeatureId,dto.getUiComponentType(),
+                        dto.getVersion(),dto.getUiFeatureVersion(),dto.getScreen());
+        invalidationPublisher.publishUIInvalidation(
+                productFeatureId,
+                dto.getScreen(),
+                dto.getUiFeatureVersion());
+        return uiComponentDetailsDto;
     }
 
     @Override
@@ -146,11 +120,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         feature.setActive(false);
         featureRepository.save(feature);
 
-        // clean configs
-        featureUIConfigRepository.deleteById(feature.getId());
-        featureActionRepository.deleteByFeatureId(feature.getId());
-
-        invalidationPublisher.publishGlobalInvalidation();
+        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     private Feature getFeature(String code) {

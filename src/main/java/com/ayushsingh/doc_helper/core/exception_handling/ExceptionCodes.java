@@ -50,5 +50,8 @@ public final class ExceptionCodes {
     public static final String FEATURE_NOT_ALLOWED_ERROR = "E0044";
     public static final String FEATURE_NOT_FOUND = "EOO45";
     public static final String DUPLICATE_FEATURE_ERROR = "EOO46";
+    public static final String UNSUPPORTED_UI_COMPONENT = "E0047";
+    public static final String DUPLICATE_UI_CONFIG_FOUND = "EOO48";
+    public static final String INVALID_UI_CONFIG = "E0049";
 
 }

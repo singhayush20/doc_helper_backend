@@ -10,7 +10,6 @@ import lombok.*;
 public class ProductFeatureDto {
     private String code;
     private String name;
-    private FeatureUIConfigDto uiConfig;
-    private FeatureActionDto action;
     private UsageQuotaDto quota;
+    private Long featureId;
 }

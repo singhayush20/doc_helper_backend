@@ -15,4 +15,6 @@ public class FeatureInvalidationEvent {
      * Optional – when null, invalidate globally
      */
     private Long userId;
+
+    private Object payload;
 }

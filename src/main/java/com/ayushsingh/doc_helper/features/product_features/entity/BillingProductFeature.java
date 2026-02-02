@@ -14,7 +14,17 @@ import java.util.Objects;
         name = "billing_product_features",
         uniqueConstraints = @UniqueConstraint(
                 columnNames = {"billingProductId", "featureId"}
-        )
+        ),
+        indexes = {
+                @Index(
+                        name = "idx_bpf_product_enabled",
+                        columnList = "billing_product_id, enabled"
+                ),
+                @Index(
+                        name = "idx_bpf_product_priority",
+                        columnList = "billing_product_id, priority"
+                )
+        }
 )
 @Getter
 @Setter

@@ -9,8 +9,24 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * Feature is a logical/business entity.
+ * UI Components are a presentation of Feature.
+ * It is pure domain.
+ * The feature can be an actual product functionality or a pure UI component to be shown
+ * which itself is actually a feature
+ */
 @Entity
-@Table(name = "features")
+@Table(name = "features", indexes = {
+        @Index(
+                name = "idx_features_active_id",
+                columnList = "active, id"
+        ),
+        @Index(
+                name = "idx_features_code",
+                columnList = "code"
+        )
+})
 @Getter
 @Setter
 public class Feature {
@@ -22,7 +38,7 @@ public class Feature {
     @Column(unique = true, nullable = false, updatable = false)
     private String code;
 
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     private String name;
 
     @Column(nullable = false)

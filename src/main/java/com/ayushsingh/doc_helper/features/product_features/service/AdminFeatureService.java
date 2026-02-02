@@ -1,6 +1,8 @@
 package com.ayushsingh.doc_helper.features.product_features.service;
 
 import com.ayushsingh.doc_helper.features.product_features.dto.*;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentCreateRequestDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentDetailsDto;
 
 public interface AdminFeatureService {
 
@@ -16,8 +18,6 @@ public interface AdminFeatureService {
     void enableFeature(String featureCode);
     
     void disableFeature(String featureCode);
-    
-    FeatureUIConfigDto updateUI(String featureCode, FeatureUIUpdateRequest req);
-    
-    FeatureActionDto updateAction(String featureCode, FeatureActionUpdateRequest req);
+
+    UIComponentDetailsDto createUIComponent(UIComponentCreateRequestDto dto);
 }
