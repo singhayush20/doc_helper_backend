@@ -14,7 +14,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.ayushsingh.doc_helper.features.user.entity.User;
-import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 
 @Entity
 @Table(name = "user_token_quota", indexes = {
