@@ -44,7 +44,7 @@ public class UIComponentServiceImpl implements UIComponentService {
                 uiComponentRegistry.resolve(uiComponentType, version);
 
         /*
-         * 3. Parse JSON → concrete UI record
+         * 3. Parse JSON to concrete UI record
          *    This IS the validation step
          */
         try {

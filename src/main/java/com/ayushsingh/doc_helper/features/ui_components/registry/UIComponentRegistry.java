@@ -13,41 +13,34 @@ import java.util.Map;
 @Component
 public class UIComponentRegistry {
 
-    private final Map<RegistryKey, Class<? extends UIComponent>> registry =
-            new HashMap<>();
+        // using HashMap since the map is constructed only once at the start-up
+        // if this is changed to support dynamic registration, consider using ConcurrentHashMap
+        private final Map<RegistryKey, Class<? extends UIComponent>> registry = new HashMap<>();
 
-    public UIComponentRegistry() {
-        register(UIComponentType.CARD, 1, FeatureCard.class);
-//        register(UIComponentType.BANNER, 1, FeatureCard.class);
-//        register(UIComponentType.DIALOG,1, FeatureCard.class);
-//        register(UIComponentType.MODAL, 1, FeatureCard.class);
-    }
-
-    public Class<? extends UIComponent> resolve(
-            UIComponentType type,
-            int version
-    ) {
-        Class<? extends UIComponent> uiComponentClass =
-                registry.get(new RegistryKey(type, version));
-
-        if (uiComponentClass == null) {
-            throw new BaseException(
-                    "Unsupported UI component: " + type + " v" + version,
-                    ExceptionCodes.UNSUPPORTED_UI_COMPONENT
-            );
+        public UIComponentRegistry() {
+                register(UIComponentType.CARD, 1, FeatureCard.class);
         }
-        return uiComponentClass;
-    }
 
-    private void register(
-            UIComponentType type,
-            int version,
-            Class<? extends UIComponent> uiComponentClass
-    ) {
-        registry.put(new RegistryKey(type, version), uiComponentClass);
-    }
+        public Class<? extends UIComponent> resolve(
+                        UIComponentType type,
+                        int version) {
+                Class<? extends UIComponent> uiComponentClass = registry.get(new RegistryKey(type, version));
 
-    private record RegistryKey(UIComponentType type, int version) {
-    }
+                if (uiComponentClass == null) {
+                        throw new BaseException(
+                                        "Unsupported UI component: " + type + " v" + version,
+                                        ExceptionCodes.UNSUPPORTED_UI_COMPONENT);
+                }
+                return uiComponentClass;
+        }
+
+        private void register(
+                        UIComponentType type,
+                        int version,
+                        Class<? extends UIComponent> uiComponentClass) {
+                registry.put(new RegistryKey(type, version), uiComponentClass);
+        }
+
+        private record RegistryKey(UIComponentType type, int version) {
+        }
 }
-
