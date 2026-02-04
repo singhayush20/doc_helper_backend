@@ -8,8 +8,9 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.context.expression.MethodBasedEvaluationContext;
+import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 
 @Aspect
@@ -59,17 +60,13 @@ public class FeatureGuardAspect {
     }
 
     private long evaluateAmount(String expression, ProceedingJoinPoint pjp) {
-        // Holds variables available to the SpEL expression
-        StandardEvaluationContext ctx = new StandardEvaluationContext();
-        // Actual runtime arguments passed to the method
-        Object[] args = pjp.getArgs();
-        // Extracts parameter names using reflection
-        String[] names = ((MethodSignature) pjp.getSignature()).getParameterNames();
-
-        // Bind parameters to SpEL variables
-        for (int i = 0; i < names.length; i++) {
-            ctx.setVariable(names[i], args[i]);
-        }
+        MethodSignature signature = (MethodSignature) pjp.getSignature();
+        MethodBasedEvaluationContext ctx = new MethodBasedEvaluationContext(
+                pjp.getTarget(),
+                signature.getMethod(),
+                pjp.getArgs(),
+                new DefaultParameterNameDiscoverer()
+        );
 
         // Parses the expression string
         Long value = parser.parseExpression(expression).getValue(ctx, Long.class);

@@ -3,8 +3,6 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
 import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.UsageQuotaDto;
-import com.ayushsingh.doc_helper.features.product_features.dto.ui.FeatureScreenResponse;
-import com.ayushsingh.doc_helper.features.product_features.dto.ui.FeatureWithUiDto;
 import com.ayushsingh.doc_helper.features.product_features.entity.BillingProductFeature;
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
@@ -13,9 +11,7 @@ import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRep
 import com.ayushsingh.doc_helper.features.product_features.repository.UsageQuotaRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureQueryService;
-import com.ayushsingh.doc_helper.features.product_features.service.UIComponentService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +30,6 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
     private final UsageQuotaRepository usageQuotaRepository;
     private final SubscriptionService subscriptionService;
     private final FeatureCacheService featureCacheService;
-    private final UIComponentService uiComponentService;
 
     @Override
     public FeatureResponse getProductFeatures(Long userId) {
@@ -124,36 +119,5 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                 : null
                 )
                 .build();
-    }
-
-    public FeatureScreenResponse getFeatureGrid(
-            Long userId,
-            String screen
-    ) {
-        FeatureResponse featureResponse =
-                getProductFeatures(userId);
-
-        List<Long> featureIds =
-                featureResponse.getFeatures()
-                        .stream()
-                        .map(ProductFeatureDto::getFeatureId)
-                        .toList();
-
-        Map<Long, JsonNode> uiMap =
-                uiComponentService
-                        .getUIForFeatures(featureIds, screen);
-
-        List<FeatureWithUiDto> composed =
-                featureResponse.getFeatures()
-                        .stream()
-                        .map(feature ->
-                                FeatureWithUiDto.builder()
-                                        .feature(feature)
-                                        .ui(uiMap.get(feature.getFeatureId()))
-                                        .build()
-                        )
-                        .toList();
-
-        return new FeatureScreenResponse(composed);
     }
 }

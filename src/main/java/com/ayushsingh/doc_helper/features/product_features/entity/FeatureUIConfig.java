@@ -26,6 +26,7 @@ import java.time.Instant;
                 )
         }
 )
+@Entity
 public class FeatureUIConfig {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,9 +34,13 @@ public class FeatureUIConfig {
 
     // The feature with which this UIConfig is associated with - can be a product feature or any info ui component
     @Column(name = "feature_id", nullable = false)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "feature_id", insertable = false, updatable = false)
     private Long featureId;
 
     @Column(name = "component_type", nullable = false)
+    @Enumerated(EnumType.STRING)
     private UIComponentType componentType;
 
     @Column(nullable = false)

@@ -13,7 +13,7 @@ import java.util.Objects;
 @Table(
         name = "billing_product_features",
         uniqueConstraints = @UniqueConstraint(
-                columnNames = {"billingProductId", "featureId"}
+                columnNames = {"billing_product_id", "feature_id"}
         ),
         indexes = {
                 @Index(

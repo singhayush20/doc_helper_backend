@@ -13,7 +13,7 @@ import java.util.Objects;
 @Table(
         name = "usage_quota",
         uniqueConstraints = @UniqueConstraint(
-                columnNames = {"userId", "featureCode", "metric"}
+                columnNames = {"user_id", "feature_code", "metric"}
         )
 )
 @Getter

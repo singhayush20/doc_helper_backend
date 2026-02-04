@@ -124,7 +124,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     }
 
     private Feature getFeature(String code) {
-        return featureRepository.findByCodeAndActiveTrue(code)
+        return featureRepository.findByCode(code)
                 .orElseThrow(() ->
                         new BaseException("Feature not found", ExceptionCodes.FEATURE_NOT_FOUND));
     }

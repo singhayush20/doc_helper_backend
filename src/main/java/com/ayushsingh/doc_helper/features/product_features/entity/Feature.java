@@ -7,7 +7,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Feature is a logical/business entity.
@@ -48,7 +50,16 @@ public class Feature {
     @Enumerated(EnumType.STRING)
     private FeatureType type;
 
+    @Column(nullable = false)
     private boolean active;
+
+    @OneToMany(
+            mappedBy = "featureId",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    private Set<FeatureUIConfig> uiConfigs = new HashSet<>();
 
     @CreationTimestamp
     private Instant createdAt;

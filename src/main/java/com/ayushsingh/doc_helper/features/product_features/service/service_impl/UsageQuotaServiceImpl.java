@@ -22,15 +22,23 @@ public class UsageQuotaServiceImpl implements UsageQuotaService {
             String metric,
             long amount
     ) {
+        int updated = usageQuotaRepository.consumeIfAvailable(
+                userId, featureCode, metric, amount
+        );
+
+        if (updated > 0) {
+            return;
+        }
+
         var quota = usageQuotaRepository
                 .findByUserIdAndFeatureCodeAndMetric(userId, featureCode, metric)
-                .orElseThrow(() -> new BaseException("Quota not configured",ExceptionCodes.QUOTA_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(
+                        "Quota not configured",
+                        ExceptionCodes.QUOTA_NOT_FOUND
+                ));
 
         if (quota.getUsed() + amount > quota.getLimit()) {
             throw new BaseException("Quota exceeded", ExceptionCodes.QUOTA_EXCEEDED);
         }
-
-        quota.setUsed(quota.getUsed() + amount);
-        usageQuotaRepository.save(quota);
     }
 }

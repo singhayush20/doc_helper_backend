@@ -1,9 +1,10 @@
 package com.ayushsingh.doc_helper.features.product_features.repository;
 
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -25,6 +26,22 @@ public interface UsageQuotaRepository
     List<UsageQuota> findByUserAndFeatureCodes(
             @Param("userId") Long userId,
             @Param("featureCodes") Collection<String> featureCodes
+    );
+
+    @Modifying
+    @Query("""
+        update UsageQuota q
+        set q.used = q.used + :amount
+        where q.userId = :userId
+          and q.featureCode = :featureCode
+          and q.metric = :metric
+          and q.used + :amount <= q.limit
+    """)
+    int consumeIfAvailable(
+            @Param("userId") Long userId,
+            @Param("featureCode") String featureCode,
+            @Param("metric") String metric,
+            @Param("amount") long amount
     );
 }
 
