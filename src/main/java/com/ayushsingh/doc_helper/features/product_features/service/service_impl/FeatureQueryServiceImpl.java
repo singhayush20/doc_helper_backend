@@ -6,11 +6,11 @@ import com.ayushsingh.doc_helper.features.product_features.dto.UsageQuotaDto;
 import com.ayushsingh.doc_helper.features.product_features.entity.BillingProductFeature;
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
-import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
-import com.ayushsingh.doc_helper.features.product_features.repository.UsageQuotaRepository;
+import com.ayushsingh.doc_helper.features.product_features.service.BillingProductFeatureService;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureQueryService;
+import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,99 +25,113 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FeatureQueryServiceImpl implements FeatureQueryService {
 
-    private final BillingProductFeatureRepository billingProductFeatureRepository;
-    private final FeatureRepository featureRepository;
-    private final UsageQuotaRepository usageQuotaRepository;
-    private final SubscriptionService subscriptionService;
-    private final FeatureCacheService featureCacheService;
+        private final FeatureRepository featureRepository;
+        private final SubscriptionService subscriptionService;
+        private final FeatureCacheService featureCacheService;
+        private final BillingProductFeatureService billingProductFeatureService;
+        private final UsageQuotaService usageQuotaService;
 
-    @Override
-    public FeatureResponse getProductFeatures(Long userId) {
+        @Override
+        public FeatureResponse getProductFeatures(Long userId) {
 
-        FeatureResponse cached =
-                featureCacheService.getCachedProductFeatures(userId);
-        if (cached != null) {
-            return cached;
+                FeatureResponse cachedFeatureResponse = featureCacheService.getCachedProductFeatures(userId);
+                if (cachedFeatureResponse != null) {
+                        return cachedFeatureResponse;
+                }
+
+                List<BillingProductFeature> billingProductFeatures =
+                                fetchEnabledMappings(userId);
+
+                if (billingProductFeatures.isEmpty()) {
+                        return new FeatureResponse(List.of());
+                }
+
+                Map<Long, Feature> featureMap =
+                                fetchActiveFeatures(billingProductFeatures);
+
+                Map<String, UsageQuota> quotaMap =
+                                fetchUsageQuotas(userId, featureMap);
+
+                List<ProductFeatureDto> result =
+                                composeFeatures(billingProductFeatures, featureMap, quotaMap);
+
+                FeatureResponse response = new FeatureResponse(result);
+                featureCacheService.cacheProductFeatures(userId, response);
+                return response;
         }
 
-        Long billingProductId =
-                subscriptionService.getBillingProductIdBySubscriptionId(userId);
-
-        List<BillingProductFeature> mappings =
-                billingProductFeatureRepository
-                        .findEnabledByBillingProduct(billingProductId);
-
-        if (mappings.isEmpty()) {
-            return new FeatureResponse(List.of());
+        private List<BillingProductFeature> fetchEnabledMappings(Long userId) {
+                Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId);
+                return billingProductFeatureService.getEnabledByBillingProductId(billingProductId);
         }
 
-        List<Long> featureIds =
-                mappings.stream()
-                        .map(BillingProductFeature::getFeatureId)
-                        .toList();
+        private Map<Long, Feature> fetchActiveFeatures(
+                        List<BillingProductFeature> billingProductFeatures
+        ) {
+                List<Long> featureIds = billingProductFeatures.stream()
+                                .map(BillingProductFeature::getFeatureId)
+                                .toList();
 
-        Map<Long, Feature> featureMap =
-                featureRepository.findActiveByIds(featureIds)
-                        .stream()
-                        .collect(Collectors.toMap(
-                                Feature::getId, f -> f
-                        ));
+                return featureRepository.findActiveByIds(featureIds)
+                                .stream()
+                                .collect(Collectors.toMap(
+                                                Feature::getId, f -> f));
+        }
 
-        Map<String, UsageQuota> quotaMap =
-                usageQuotaRepository
-                        .findByUserAndFeatureCodes(
-                                userId,
-                                featureMap.values()
-                                        .stream()
-                                        .map(Feature::getCode)
-                                        .toList()
-                        )
-                        .stream()
-                        .collect(Collectors.toMap(
-                                UsageQuota::getFeatureCode, q -> q
-                        ));
+        private Map<String, UsageQuota> fetchUsageQuotas(
+                        Long userId,
+                        Map<Long, Feature> featureMap
+        ) {
+                List<String> featureCodes = featureMap.values()
+                                .stream()
+                                .map(Feature::getCode)
+                                .toList();
 
-        List<ProductFeatureDto> result =
-                mappings.stream()
-                        .sorted(Comparator.comparing(
-                                BillingProductFeature::getPriority,
-                                Comparator.nullsLast(Integer::compareTo)
-                        ))
-                        .map(mapping -> {
-                            Feature feature =
-                                    featureMap.get(mapping.getFeatureId());
-                            if (feature == null) return null;
+                return usageQuotaService
+                                .findByUserAndFeatureCodes(userId, featureCodes)
+                                .stream()
+                                .collect(Collectors.toMap(
+                                                UsageQuota::getFeatureCode, q -> q));
+        }
 
-                            return ProductFeatureDto.builder()
-                                    .featureId(feature.getId())
-                                    .code(feature.getCode())
-                                    .name(feature.getName())
-                                    .quota(toQuotaDto(
-                                            quotaMap.get(feature.getCode())))
-                                    .build();
-                        })
-                        .filter(Objects::nonNull)
-                        .toList();
+        private List<ProductFeatureDto> composeFeatures(
+                        List<BillingProductFeature> billingProductFeatures,
+                        Map<Long, Feature> featureMap,
+                        Map<String, UsageQuota> quotaMap
+        ) {
+                return billingProductFeatures.stream()
+                                .sorted(Comparator.comparing(
+                                                BillingProductFeature::getPriority,
+                                                Comparator.nullsLast(Integer::compareTo)))
+                                .map(mapping -> {
+                                        Feature feature = featureMap.get(mapping.getFeatureId());
+                                        if (feature == null)
+                                                return null;
 
-        FeatureResponse response =
-                new FeatureResponse(result);
+                                        return ProductFeatureDto.builder()
+                                                        .featureId(feature.getId())
+                                                        .code(feature.getCode())
+                                                        .name(feature.getName())
+                                                        .quota(toQuotaDto(
+                                                                        quotaMap.get(feature.getCode())))
+                                                        .build();
+                                })
+                                .filter(Objects::nonNull)
+                                .toList();
+        }
 
-        featureCacheService.cacheProductFeatures(userId, response);
-        return response;
-    }
+        private UsageQuotaDto toQuotaDto(UsageQuota quota) {
+                if (quota == null)
+                        return null;
 
-    private UsageQuotaDto toQuotaDto(UsageQuota quota) {
-        if (quota == null) return null;
-
-        return UsageQuotaDto.builder()
-                .metric(quota.getMetric())
-                .used(quota.getUsed())
-                .limit(quota.getLimit())
-                .resetAtEpochMillis(
-                        quota.getResetAt() != null
-                                ? quota.getResetAt().toEpochMilli()
-                                : null
-                )
-                .build();
-    }
+                return UsageQuotaDto.builder()
+                                .metric(quota.getMetric())
+                                .used(quota.getUsed())
+                                .limit(quota.getLimit())
+                                .resetAtEpochMillis(
+                                                quota.getResetAt() != null
+                                                                ? quota.getResetAt().toEpochMilli()
+                                                                : null)
+                                .build();
+        }
 }
