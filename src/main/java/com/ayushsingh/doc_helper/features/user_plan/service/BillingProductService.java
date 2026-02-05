@@ -1,13 +1,8 @@
 package com.ayushsingh.doc_helper.features.user_plan.service;
 
-import com.ayushsingh.doc_helper.features.user_plan.dto.BillingPriceDetailsDto;
-import com.ayushsingh.doc_helper.features.user_plan.dto.BillingPricesResponse;
-import com.ayushsingh.doc_helper.features.user_plan.dto.BillingProductDetailsDto;
-import com.ayushsingh.doc_helper.features.user_plan.dto.BillingProductsResponse;
-import com.ayushsingh.doc_helper.features.user_plan.dto.CreatePriceRequest;
-import com.ayushsingh.doc_helper.features.user_plan.dto.CreateProductRequest;
-import com.ayushsingh.doc_helper.features.user_plan.dto.UpdatePriceRequest;
-import com.ayushsingh.doc_helper.features.user_plan.dto.UpdateProductRequest;
+import com.ayushsingh.doc_helper.features.user_plan.dto.*;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
+
 public interface BillingProductService {
 
     BillingProductDetailsDto createProduct(CreateProductRequest request);
@@ -33,4 +28,6 @@ public interface BillingProductService {
     void deactivatePrice(Long priceId);
 
     void deleteBillingPriceFromProduct(Long priceId);
+
+    Long getProductIdByTier(AccountTier tier);
 }

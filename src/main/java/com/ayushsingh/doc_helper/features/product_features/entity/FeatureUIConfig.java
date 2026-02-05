@@ -43,8 +43,10 @@ public class FeatureUIConfig {
     @Enumerated(EnumType.STRING)
     private UIComponentType componentType;
 
-    @Column(nullable = false)
-    private int featureUiVersion;
+    @Column(name="feature_ui_version",nullable = false)
+    private int featureUiVersion; // this is the version of the ui which is
+    // enabled for a particular feature, there can be multiple ui versions
+    // for a feature
 
     @Column(columnDefinition = "jsonb", nullable = false)
     private String uiJson;

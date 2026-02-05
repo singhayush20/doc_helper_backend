@@ -40,8 +40,16 @@ public class BillingProductFeature {
     @Column(name="feature_id",nullable = false)
     private Long featureId;
 
+    // The version of the feature that is enabled for this billing product <>
+    // feature. Match this version with the FeatureUIConfig featureUIVersion,
+    // to get the ui config for a particular version
+    @Column(name = "enabled_version",nullable=false)
+    private Long enabledVersion;
+
+    @Column(nullable = false)
     private boolean enabled;
 
+    @Column(nullable = false)
     private Integer priority;
 
     @CreationTimestamp

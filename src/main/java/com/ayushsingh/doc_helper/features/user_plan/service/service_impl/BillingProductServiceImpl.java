@@ -1,25 +1,11 @@
 package com.ayushsingh.doc_helper.features.user_plan.service.service_impl;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.payments.config.RazorpayProperties;
 import com.ayushsingh.doc_helper.features.payments.service.PaymentProviderClient;
-import com.ayushsingh.doc_helper.features.user_plan.dto.BillingPriceDetailsDto;
-import com.ayushsingh.doc_helper.features.user_plan.dto.BillingPricesResponse;
-import com.ayushsingh.doc_helper.features.user_plan.dto.BillingProductDetailsDto;
-import com.ayushsingh.doc_helper.features.user_plan.dto.BillingProductsResponse;
-import com.ayushsingh.doc_helper.features.user_plan.dto.CreatePriceRequest;
-import com.ayushsingh.doc_helper.features.user_plan.dto.CreateProductRequest;
-import com.ayushsingh.doc_helper.features.user_plan.dto.UpdatePriceRequest;
-import com.ayushsingh.doc_helper.features.user_plan.dto.UpdateProductRequest;
+import com.ayushsingh.doc_helper.features.user_plan.dto.*;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingPrice;
 import com.ayushsingh.doc_helper.features.user_plan.entity.BillingProduct;
 import com.ayushsingh.doc_helper.features.user_plan.entity.SubscriptionStatus;
@@ -27,9 +13,15 @@ import com.ayushsingh.doc_helper.features.user_plan.repository.BillingPriceRepos
 import com.ayushsingh.doc_helper.features.user_plan.repository.BillingProductRepository;
 import com.ayushsingh.doc_helper.features.user_plan.repository.SubscriptionRepository;
 import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -255,6 +247,13 @@ public class BillingProductServiceImpl implements BillingProductService {
 
         // 3. Safe to delete
         priceRepository.delete(price);
+    }
+
+    @Override
+    public Long getProductIdByTier(AccountTier tier) {
+        return productRepository.getProductIdByAccountTier(tier)
+                .orElseThrow(() ->
+                        new BaseException("Failed to fetch product id for free tier", ExceptionCodes.PRODUCT_NOT_FOUND));
     }
 
     @Override

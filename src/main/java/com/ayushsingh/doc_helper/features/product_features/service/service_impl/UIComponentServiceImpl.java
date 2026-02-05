@@ -2,19 +2,28 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui.FeatureScreenResponse;
+import com.ayushsingh.doc_helper.features.product_features.dto.ui.FeatureWithUiDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentDetailsDto;
+import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.FeatureUIConfig;
 import com.ayushsingh.doc_helper.features.product_features.entity.UIComponentType;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureUIConfigRepository;
+import com.ayushsingh.doc_helper.features.product_features.repository.FeatureUiConfigView;
 import com.ayushsingh.doc_helper.features.product_features.service.UIComponentCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.UIComponentService;
 import com.ayushsingh.doc_helper.features.ui_components.models.UIComponent;
 import com.ayushsingh.doc_helper.features.ui_components.registry.UIComponentRegistry;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
+import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
+import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,6 +36,8 @@ public class UIComponentServiceImpl implements UIComponentService {
     private final UIComponentRegistry uiComponentRegistry;
     private final ObjectMapper objectMapper;
     private final UIComponentCacheService uiComponentCacheService;
+    private final SubscriptionService subscriptionService;
+    private final BillingProductService billingProductService;
 
     @Override
     public UIComponentDetailsDto createUIComponent(
@@ -37,16 +48,11 @@ public class UIComponentServiceImpl implements UIComponentService {
             Integer featureUIVersion,
             String screen
     ) {
-        /*
-         * 2. Resolve concrete Java type BEFORE parsing
-         */
+        // Resolve concrete Java type BEFORE parsing
         Class<? extends UIComponent> targetClass =
                 uiComponentRegistry.resolve(uiComponentType, version);
 
-        /*
-         * 3. Parse JSON to concrete UI record
-         *    This IS the validation step
-         */
+        //  Parse JSON to concrete UI record - This IS the validation step
         try {
             objectMapper.treeToValue(uiConfig, targetClass);
         } catch (Exception e) {
@@ -66,9 +72,7 @@ public class UIComponentServiceImpl implements UIComponentService {
                     ExceptionCodes.DUPLICATE_UI_CONFIG_FOUND);
         }
 
-        /*
-         * 4. Persist JSON as-is (validated snapshot)
-         */
+        // Persist JSON as-is (validated snapshot)
         FeatureUIConfig entity = new FeatureUIConfig();
         entity.setFeatureId(productFeatureId);
         entity.setComponentType(uiComponentType);
@@ -80,10 +84,7 @@ public class UIComponentServiceImpl implements UIComponentService {
         FeatureUIConfig saved =
                 featureUIConfigRepository.save(entity);
 
-        /*
-         * 5. Return minimal metadata DTO
-         */
-
+        // Return minimal metadata DTO
         JsonNode uiConfigNode;
         try {
             uiConfigNode = objectMapper.readTree(saved.getUiJson());
@@ -104,7 +105,7 @@ public class UIComponentServiceImpl implements UIComponentService {
                 .build();
     }
 
-    public Map<Long, JsonNode> getUIForFeatures(
+    public Map<Long, JsonNode> getAllUIVersionsForFeatureAndScreen(
             List<Long> featureIds,
             String screen
     ) {
@@ -118,6 +119,75 @@ public class UIComponentServiceImpl implements UIComponentService {
                         FeatureUIConfig::getFeatureId,
                         this::resolveAndValidateUI
                 ));
+    }
+
+
+    @Override
+    public FeatureScreenResponse getUIFeatures(
+            Long userId,
+            String screen,
+            UIComponentType componentType
+    ) {
+        // TODO: Optimize this by caching the response- also handle cache
+        //  eviction/updation in case ui configs are updated
+        Long billingProductId =
+                subscriptionService.getBillingProductIdBySubscriptionId(userId);
+
+        if (billingProductId == null) {
+            // if the subscription was not found, then find out the product id
+            // for free tier accounts
+            billingProductId =
+                    billingProductService.getProductIdByTier(AccountTier.FREE);
+        }
+
+        List<FeatureUiConfigView> configs =
+                featureUIConfigRepository.findEnabledUiConfigsForProduct(
+                        billingProductId, screen, componentType);
+
+        if (configs.isEmpty()) {
+            return new FeatureScreenResponse(List.of());
+        }
+
+        List<FeatureWithUiDto> result = configs.stream()
+                .sorted(Comparator.comparing(
+                                FeatureUiConfigView::getPriority,
+                                Comparator.nullsLast(Integer::compareTo))
+                        .thenComparing(view -> view.getFeature().getId()))
+                .map(view -> {
+                    Feature feature = view.getFeature();
+                    return FeatureWithUiDto.builder()
+                            .feature(ProductFeatureDto.builder()
+                                    .featureId(feature.getId())
+                                    .code(feature.getCode())
+                                    .name(feature.getName())
+                                    .build())
+                            .ui(validateJsonNode(view.getUiConfig()))
+                            .build();
+                })
+                .toList();
+
+        return new FeatureScreenResponse(result);
+    }
+
+    private JsonNode validateJsonNode(FeatureUIConfig config) {
+        try {
+            // parse raw JSON
+            JsonNode jsonNode =
+                    objectMapper.readTree(config.getUiJson());
+
+            validateJsonNodeDeserialization(config, jsonNode);
+
+            return jsonNode;
+
+        } catch (Exception e) {
+            throw new BaseException(
+                    "Error reading json tree " +
+                            config.getFeatureId() +
+                            " (" + config.getComponentType() +
+                            " v" + config.getFeatureUiVersion() + ")",
+                    ExceptionCodes.INVALID_UI_CONFIG
+            );
+        }
     }
 
     /**
@@ -138,21 +208,12 @@ public class UIComponentServiceImpl implements UIComponentService {
         }
 
         try {
-            // Step 1: parse raw JSON
+            // parse raw JSON
             JsonNode jsonNode =
                     objectMapper.readTree(config.getUiJson());
 
-            // Step 2: resolve concrete UI type
-            Class<? extends UIComponent> targetClass =
-                    uiComponentRegistry.resolve(
-                            config.getComponentType(),
-                            config.getFeatureUiVersion()
-                    );
-
-            // Step 3: validate by deserialization
-            objectMapper.treeToValue(jsonNode, targetClass);
-
-            // Step 4: cache validated JSON
+            validateJsonNodeDeserialization(config, jsonNode);
+            // cache validated JSON
             uiComponentCacheService.cacheUI(
                     config.getFeatureId(),
                     config.getScreen(),
@@ -163,12 +224,36 @@ public class UIComponentServiceImpl implements UIComponentService {
             return jsonNode;
 
         } catch (Exception e) {
-            throw new IllegalStateException(
+            throw new BaseException(
+                    "Error reading json tree " +
+                            config.getFeatureId() +
+                            " (" + config.getComponentType() +
+                            " v" + config.getFeatureUiVersion() + ")",
+                    ExceptionCodes.INVALID_UI_CONFIG
+            );
+        }
+    }
+
+    private void validateJsonNodeDeserialization(FeatureUIConfig config,
+                                                 JsonNode jsonNode) {
+        // resolve concrete UI type
+        Class<? extends UIComponent> targetClass =
+                uiComponentRegistry.resolve(
+                        config.getComponentType(),
+                        config.getFeatureUiVersion()
+                );
+
+        // validate by deserialization
+        try {
+            objectMapper.treeToValue(jsonNode, targetClass);
+
+        } catch (Exception e) {
+            throw new BaseException(
                     "Invalid UI config for feature " +
                             config.getFeatureId() +
                             " (" + config.getComponentType() +
                             " v" + config.getFeatureUiVersion() + ")",
-                    e
+                    ExceptionCodes.INVALID_UI_CONFIG
             );
         }
     }

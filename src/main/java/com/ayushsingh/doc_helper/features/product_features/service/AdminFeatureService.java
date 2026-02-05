@@ -1,6 +1,8 @@
 package com.ayushsingh.doc_helper.features.product_features.service;
 
 import com.ayushsingh.doc_helper.features.product_features.dto.*;
+import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureDetailsDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureMapRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentCreateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentDetailsDto;
 
@@ -20,4 +22,16 @@ public interface AdminFeatureService {
     void disableFeature(String featureCode);
 
     UIComponentDetailsDto createUIComponent(UIComponentCreateRequestDto dto);
+
+    BillingProductFeatureDetailsDto addFeatureToBillingProduct(
+            BillingProductFeatureMapRequestDto dto
+    );
+
+    BillingProductFeatureDetailsDto updateProductFeatureConfig(
+            BillingProductFeatureDetailsDto dto
+    );
+
+    void removeFeatureFromBillingProduct(
+            BillingProductFeatureMapRequestDto dto
+    );
 }
