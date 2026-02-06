@@ -30,12 +30,12 @@ public class UsageQuota {
     @Column(name="feature_code",nullable = false)
     private String featureCode;
 
-    @Column(name = "used",nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    @Column(name = "used", nullable = false, columnDefinition = "BIGINT DEFAULT 0")
     private Long used;
 
     @Column(name = "metric", nullable = false)
     private String metric;
-
+    
     @Column(name = "quota_limit")
     private Long limit;
 
