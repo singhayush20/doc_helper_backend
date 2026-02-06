@@ -3,6 +3,7 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
+import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureAccessService;
@@ -19,7 +20,7 @@ public class FeatureAccessServiceImpl implements FeatureAccessService {
     private final SubscriptionService subscriptionService;
 
     @Override
-    public void assertFeatureAccess(Long userId, String featureCode) {
+    public void assertFeatureAccess(Long userId, FeatureCodes featureCode) {
         Feature feature = featureRepository
                 .findByCodeAndActiveTrue(featureCode)
                 .orElseThrow(() -> new BaseException("Feature disabled", ExceptionCodes.FEATURE_DISABLED_ERROR));

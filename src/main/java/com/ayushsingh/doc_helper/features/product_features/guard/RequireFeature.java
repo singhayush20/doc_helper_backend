@@ -11,7 +11,5 @@ import java.lang.annotation.Target;
 public @interface RequireFeature {
 
     String code();
-    String metric();
-    String amount();
 }
 

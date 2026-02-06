@@ -10,12 +10,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class FeatureExecutorRegistry {
 
-    private final Map<String, FeatureExecutor<?, ?>> registry;
+    private final Map<FeatureCodes, FeatureExecutor<?, ?>> registry;
 
     public FeatureExecutorRegistry(List<FeatureExecutor<?, ?>> executors) {
-        Map<String, FeatureExecutor<?, ?>> map = new HashMap<>();
+        Map<FeatureCodes, FeatureExecutor<?, ?>> map = new HashMap<>();
         for (FeatureExecutor<?, ?> executor : executors) {
-            String code = normalize(executor.featureCode());
+            FeatureCodes code = executor.featureCode();
             FeatureExecutor<?, ?> existing = map.put(code, executor);
             if (existing != null) {
                 throw new IllegalStateException(
@@ -26,22 +26,15 @@ public class FeatureExecutorRegistry {
     }
 
     @SuppressWarnings("unchecked")
-    public <I, O> FeatureExecutor<I, O> get(String featureCode) {
-        FeatureExecutor<?, ?> executor = registry.get(normalize(featureCode));
+    public <I, O> FeatureExecutor<I, O> get(FeatureCodes featureCode) {
+        FeatureExecutor<?, ?> executor = registry.get(featureCode);
         if (executor == null) {
             throw new IllegalStateException("No executor registered for feature: " + featureCode);
         }
         return (FeatureExecutor<I, O>) executor;
     }
 
-    public boolean hasExecutor(String featureCode) {
-        return registry.containsKey(normalize(featureCode));
-    }
-
-    private String normalize(String featureCode) {
-        if (featureCode == null) {
-            throw new IllegalArgumentException("Feature code cannot be null");
-        }
-        return featureCode.trim().toUpperCase();
+    public boolean hasExecutor(FeatureCodes featureCode) {
+        return registry.containsKey(featureCode);
     }
 }

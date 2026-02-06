@@ -1,12 +1,9 @@
 package com.ayushsingh.doc_helper.features.product_features.execution;
 
-public final class FeatureCodes {
-    public static final String DOC_CHAT = "DOC_CHAT";
-    public static final String LIVE_CHAT = "LIVE_CHAT";
-    public static final String SUMMARIZER = "SUMMARIZER";
-    public static final String OCR = "OCR";
-    public static final String DOC_SUMMARY = "DOC_SUMMARY";
-
-    private FeatureCodes() {
-    }
+public enum FeatureCodes {
+    DOC_CHAT,
+    LIVE_CHAT,
+    SUMMARIZER,
+    OCR,
+    DOC_SUMMARY
 }
