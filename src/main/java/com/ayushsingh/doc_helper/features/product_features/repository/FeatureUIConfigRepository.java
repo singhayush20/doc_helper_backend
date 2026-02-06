@@ -2,6 +2,8 @@ package com.ayushsingh.doc_helper.features.product_features.repository;
 
 import com.ayushsingh.doc_helper.features.product_features.entity.FeatureUIConfig;
 import com.ayushsingh.doc_helper.features.product_features.entity.UIComponentType;
+import com.ayushsingh.doc_helper.features.product_features.repository.projections.FeatureUiConfigView;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

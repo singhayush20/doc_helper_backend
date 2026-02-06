@@ -4,90 +4,79 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Feature is a logical/business entity.
  * UI Components are a presentation of Feature.
  * It is pure domain.
- * The feature can be an actual product functionality or a pure UI component to be shown
+ * The feature can be an actual product functionality or a pure UI component to
+ * be shown
  * which itself is actually a feature
  */
 @Entity
 @Table(name = "features", indexes = {
-        @Index(
-                name = "idx_features_active_id",
-                columnList = "active, id"
-        ),
-        @Index(
-                name = "idx_features_code",
-                columnList = "code"
-        )
+                @Index(name = "idx_features_active_id", columnList = "active, id"),
+                @Index(name = "idx_features_code", columnList = "code")
 })
 @Getter
 @Setter
 public class Feature {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
 
-    @Column(unique = true, nullable = false, updatable = false)
-    private String code;
+        @Column(unique = true, nullable = false, updatable = false)
+        private String code;
 
-    @Column(nullable = false, unique = true)
-    private String name;
+        @Column(nullable = false, unique = true)
+        private String name;
 
-    @Column(nullable = false)
-    private String description;
+        @Column(nullable = false)
+        private String description;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private FeatureType type;
+        @Column(nullable = false)
+        @Enumerated(EnumType.STRING)
+        @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+        private FeatureType type;
 
-    @Column(nullable = false)
-    private boolean active;
+        @Column(nullable = false)
+        private boolean active;
 
-    @OneToMany(
-            mappedBy = "featureId",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
-    )
-    private Set<FeatureUIConfig> uiConfigs = new HashSet<>();
+        @CreationTimestamp
+        private Instant createdAt;
 
-    @CreationTimestamp
-    private Instant createdAt;
+        @UpdateTimestamp
+        private Instant updatedAt;
 
-    @UpdateTimestamp
-    private Instant updatedAt;
+        @Override
+        public boolean equals(Object o) {
+                if (o == null || getClass() != o.getClass())
+                        return false;
+                Feature feature = (Feature) o;
+                return Objects.equals(id, feature.id);
+        }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        Feature feature = (Feature) o;
-        return Objects.equals(id, feature.id);
-    }
+        @Override
+        public int hashCode() {
+                return Objects.hashCode(id);
+        }
 
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(id);
-    }
-
-    @Override
-    public String toString() {
-        return "Feature{" +
-                "id=" + id +
-                ", code='" + code + '\'' +
-                ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", type=" + type +
-                ", active=" + active +
-                '}';
-    }
+        @Override
+        public String toString() {
+                return "Feature{" +
+                                "id=" + id +
+                                ", code='" + code + '\'' +
+                                ", name='" + name + '\'' +
+                                ", description='" + description + '\'' +
+                                ", type=" + type +
+                                ", active=" + active +
+                                '}';
+        }
 }

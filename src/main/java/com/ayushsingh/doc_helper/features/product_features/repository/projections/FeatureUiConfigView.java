@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.product_features.repository;
+package com.ayushsingh.doc_helper.features.product_features.repository.projections;
 
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.FeatureUIConfig;

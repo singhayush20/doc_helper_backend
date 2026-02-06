@@ -10,7 +10,7 @@ import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.FeatureUIConfig;
 import com.ayushsingh.doc_helper.features.product_features.entity.UIComponentType;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureUIConfigRepository;
-import com.ayushsingh.doc_helper.features.product_features.repository.FeatureUiConfigView;
+import com.ayushsingh.doc_helper.features.product_features.repository.projections.FeatureUiConfigView;
 import com.ayushsingh.doc_helper.features.product_features.service.UIComponentCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.UIComponentService;
 import com.ayushsingh.doc_helper.features.ui_components.models.UIComponent;
@@ -128,8 +128,7 @@ public class UIComponentServiceImpl implements UIComponentService {
             String screen,
             UIComponentType componentType
     ) {
-        // TODO: Optimize this by caching the response- also handle cache
-        //  eviction/updation in case ui configs are updated
+        // TODO: Optimize this by caching the response- also handle cache eviction/updation in case ui configs are updated
         Long billingProductId =
                 subscriptionService.getBillingProductIdBySubscriptionId(userId);
 

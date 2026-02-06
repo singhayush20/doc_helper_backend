@@ -34,6 +34,7 @@ public class UsageQuota {
 
     private Long used;
 
+    @Column(name = "quota_limit")
     private Long limit;
 
     @Column(name="reset_at",nullable = false)
