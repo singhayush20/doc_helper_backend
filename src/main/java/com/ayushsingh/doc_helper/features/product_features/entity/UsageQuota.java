@@ -66,6 +66,7 @@ public class UsageQuota {
                 "id=" + id +
                 ", userId=" + userId +
                 ", featureCode='" + featureCode + '\'' +
+                ", metric='" + metric + '\'' +
                 ", used=" + used +
                 ", limit=" + limit +
                 ", resetAt=" + resetAt +
