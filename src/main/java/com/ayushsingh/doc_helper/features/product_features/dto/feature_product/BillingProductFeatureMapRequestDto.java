@@ -16,4 +16,5 @@ public class BillingProductFeatureMapRequestDto {
     private Long featureId; // feature id
     private Long enabledVersion; // enabled ui version
     private Integer priority; // priority
+    private Long quotaLimit; // usage limit for the product feature
 }
