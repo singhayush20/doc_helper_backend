@@ -16,7 +16,6 @@ import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationR
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationService;
 import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
-import com.ayushsingh.doc_helper.features.product_features.service.FeatureAccessService;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
@@ -32,7 +31,6 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
 
     private final DocumentService documentService;
     private final DocumentSummaryRepository documentSummaryRepository;
-    private final FeatureAccessService featureAccessService;
     private final UsageQuotaService usageQuotaService;
     private final SummaryGenerationService summaryGenerationService;
 
@@ -55,14 +53,12 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         SummaryTone tone = parseTone(request.getTone());
         SummaryLength length = parseLength(request.getLength());
 
-        featureAccessService.assertFeatureAccess(userId, FeatureCodes.DOC_SUMMARY);
-
         long estimatedTokens = summaryGenerationService.estimateTokens(
                 document.getContentText(), length);
 
         usageQuotaService.assertQuotaAvailable(
                 userId,
-                FeatureCodes.DOC_SUMMARY,
+                FeatureCodes.DOC_SUMMARY.name(),
                 estimatedTokens
         );
 
@@ -84,7 +80,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
 
         usageQuotaService.consume(
                 userId,
-                FeatureCodes.DOC_SUMMARY,
+                FeatureCodes.DOC_SUMMARY.name(),
                 UsageMetric.TOKEN_COUNT,
                 result.tokensUsed()
         );
