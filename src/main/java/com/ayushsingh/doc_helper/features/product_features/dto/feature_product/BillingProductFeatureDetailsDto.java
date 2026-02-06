@@ -18,4 +18,5 @@ public class BillingProductFeatureDetailsDto {
     private Long enabledVersion;
     private Boolean enabled;
     private Integer priority;
+    private Long quotaLimit;
 }

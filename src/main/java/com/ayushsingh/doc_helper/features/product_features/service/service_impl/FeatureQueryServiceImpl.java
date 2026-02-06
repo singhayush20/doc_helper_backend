@@ -112,6 +112,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                                         .featureId(feature.getId())
                                                         .code(feature.getCode())
                                                         .name(feature.getName())
+                                                        .usageMetric(feature.getUsageMetric())
                                                         .quota(toQuotaDto(
                                                                         quotaMap.get(feature.getCode())))
                                                         .build();

@@ -13,6 +13,7 @@ import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UICo
 import com.ayushsingh.doc_helper.features.product_features.entity.BillingProductFeature;
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.FeatureType;
+import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureUIConfigRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
@@ -52,6 +53,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         feature.setName(featureCreateRequestDto.getName());
         feature.setDescription(featureCreateRequestDto.getDescription());
         feature.setType(FeatureType.valueOf(featureCreateRequestDto.getType()));
+        feature.setUsageMetric(requireUsageMetric(featureCreateRequestDto.getUsageMetric()));
         feature.setActive(false); // default false
 
         var savedFeature = featureRepository.save(feature);
@@ -71,6 +73,9 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         feature.setName(req.getName());
         feature.setDescription(req.getDescription());
         feature.setType(FeatureType.valueOf(req.getType()));
+        if (req.getUsageMetric() != null) {
+            feature.setUsageMetric(UsageMetric.valueOf(req.getUsageMetric()));
+        }
 
         var updatedFeature = featureRepository.save(feature);
 
@@ -158,6 +163,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         mapping.setBillingProductId(dto.getProductId());
         mapping.setFeatureId(dto.getFeatureId());
         mapping.setEnabledVersion(enabledVersion);
+        mapping.setQuotaLimit(requireQuotaLimit(dto.getQuotaLimit()));
         mapping.setPriority(dto.getPriority() != null ? dto.getPriority() : 0);
         mapping.setEnabled(true);
 
@@ -188,6 +194,10 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
 
         if (dto.getEnabled() != null) {
             mapping.setEnabled(dto.getEnabled());
+        }
+
+        if (dto.getQuotaLimit() != null) {
+            mapping.setQuotaLimit(dto.getQuotaLimit());
         }
 
         BillingProductFeature saved =
@@ -278,6 +288,26 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         }
     }
 
+    private UsageMetric requireUsageMetric(String usageMetric) {
+        if (usageMetric == null || usageMetric.isBlank()) {
+            throw new BaseException(
+                    "Usage metric is required",
+                    ExceptionCodes.INVALID_FEATURE_CONFIG
+            );
+        }
+        return UsageMetric.valueOf(usageMetric);
+    }
+
+    private Long requireQuotaLimit(Long quotaLimit) {
+        if (quotaLimit == null) {
+            throw new BaseException(
+                    "Quota limit is required",
+                    ExceptionCodes.INVALID_FEATURE_CONFIG
+            );
+        }
+        return quotaLimit;
+    }
+
     private BillingProductFeatureDetailsDto toDetailsDto(
             BillingProductFeature mapping
     ) {
@@ -288,6 +318,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                 .enabledVersion(mapping.getEnabledVersion())
                 .enabled(mapping.isEnabled())
                 .priority(mapping.getPriority())
+                .quotaLimit(mapping.getQuotaLimit())
                 .build();
     }
 

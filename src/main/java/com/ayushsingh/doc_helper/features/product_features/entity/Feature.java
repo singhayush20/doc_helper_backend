@@ -46,6 +46,11 @@ public class Feature {
         @JdbcTypeCode(SqlTypes.NAMED_ENUM)
         private FeatureType type;
 
+        @Column(name="usage_metric",nullable = false)
+        @Enumerated(EnumType.STRING)
+        @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+        private UsageMetric usageMetric;
+
         @Column(nullable = false)
         private boolean active;
 

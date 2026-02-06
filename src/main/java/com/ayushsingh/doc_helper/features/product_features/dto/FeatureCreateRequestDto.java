@@ -12,4 +12,5 @@ public class FeatureCreateRequestDto {
     private String name;
     private String description;
     private String type;        // LLM, OCR, AGENT
+    private String usageMetric; // TOKEN_COUNT, etc
 }

@@ -159,6 +159,7 @@ public class UIComponentServiceImpl implements UIComponentService {
                                     .featureId(feature.getId())
                                     .code(feature.getCode())
                                     .name(feature.getName())
+                                    .usageMetric(feature.getUsageMetric())
                                     .build())
                             .ui(validateJsonNode(view.getUiConfig()))
                             .build();

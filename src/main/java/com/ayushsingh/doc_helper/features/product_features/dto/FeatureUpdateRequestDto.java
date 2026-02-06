@@ -11,4 +11,5 @@ public class FeatureUpdateRequestDto {
     private String name;
     private String description;
     private String type;
+    private String usageMetric;
 }

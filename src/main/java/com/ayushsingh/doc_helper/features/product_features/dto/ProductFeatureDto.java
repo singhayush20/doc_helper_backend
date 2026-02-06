@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.product_features.dto;
 
+import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import lombok.*;
 
 @Getter
@@ -12,4 +13,5 @@ public class ProductFeatureDto {
     private String name;
     private UsageQuotaDto quota;
     private Long featureId;
+    private UsageMetric usageMetric;
 }

@@ -46,6 +46,9 @@
         @Column(name = "enabled_version",nullable=false)
         private Long enabledVersion;
 
+        @Column(name = "quota_limit",nullable=false)
+        private Long quotaLimit;
+
         @Column(nullable = false)
         private boolean enabled;
 
