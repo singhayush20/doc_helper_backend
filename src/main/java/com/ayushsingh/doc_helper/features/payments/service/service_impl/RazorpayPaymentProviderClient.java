@@ -122,7 +122,7 @@ public class RazorpayPaymentProviderClient implements PaymentProviderClient {
             JSONObject params = new JSONObject();
             params.put("cancel_at_cycle_end", true);
 
-            var updatedSubscription = razorpayClient.subscriptions.cancel(providerSubscriptionId, params);
+             razorpayClient.subscriptions.cancel(providerSubscriptionId, params);
 
         } catch (RazorpayException ex) {
             log.error("Failed to cancel Razorpay subscription at period end: {}",

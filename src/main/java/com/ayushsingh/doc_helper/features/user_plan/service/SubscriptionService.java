@@ -13,4 +13,6 @@ public interface SubscriptionService {
     void cancelCurrentSubscriptionAtPeriodEnd();
 
     void cancelCheckout(SubscriptionCancelRequest request);
+
+    Long getBillingProductIdBySubscriptionId(Long userId);
 }

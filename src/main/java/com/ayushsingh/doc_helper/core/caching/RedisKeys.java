@@ -7,6 +7,7 @@ public final class RedisKeys {
     private RedisKeys() {
     }
 
+
     public static String debounceKey(
             Long userId,
             Long documentId,
@@ -18,6 +19,21 @@ public final class RedisKeys {
 
     public static String recentDocsKey(Long userId) {
         return "recent:documents:%d".formatted(userId);
+    }
+
+    public static final String FEATURE_LIST_CACHE_VERSION_KEY =
+            "features:list:cache:version";
+
+    public static String productFeatureKey(Long userId, long version) {
+        return "features:list:v%d:user:%d".formatted(version, userId);
+    }
+    public static String featureUIKey(
+            Long featureId,
+            String screen,
+            Integer featureUIVersion
+    ) {
+        return "feature-ui:%d:%s:%d"
+                .formatted(featureId, screen, featureUIVersion);
     }
 }
 

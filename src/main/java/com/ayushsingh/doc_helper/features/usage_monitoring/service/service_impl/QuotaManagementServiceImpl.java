@@ -2,10 +2,12 @@ package com.ayushsingh.doc_helper.features.usage_monitoring.service.service_impl
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.features.usage_monitoring.config.PlanConfig;
 import com.ayushsingh.doc_helper.features.usage_monitoring.entity.UserTokenQuota;
 import com.ayushsingh.doc_helper.features.usage_monitoring.repository.UserTokenQuotaRepository;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,8 +23,8 @@ import java.time.*;
 @Slf4j
 public class QuotaManagementServiceImpl implements QuotaManagementService {
 
-    private static final long DEFAULT_MONTHLY_TOKEN_LIMIT = 10000;
     private final UserTokenQuotaRepository quotaRepository;
+    private final PlanConfig planConfig;
 
     @Override
     @Transactional(readOnly = true)
@@ -112,7 +114,7 @@ public class QuotaManagementServiceImpl implements QuotaManagementService {
     public void applyFreeQuota(Long userId) {
         UserTokenQuota quota = getQuota(userId);
 
-        quota.setMonthlyLimit(DEFAULT_MONTHLY_TOKEN_LIMIT);
+        quota.setMonthlyLimit(planConfig.getLimits(AccountTier.FREE).getMonthlyTokenLimit());
         quota.setCurrentMonthlyUsage(0L);
         quota.setResetDate(oneMonthFromNow());
         quota.setIsActive(true);

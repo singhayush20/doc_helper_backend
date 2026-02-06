@@ -66,7 +66,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription = subscriptionRepository.save(subscription);
 
         String providerSubId = paymentProviderClient
-                .createSubscription(price, user, subscription.getId(),price.getBillingPeriod());
+                .createSubscription(price, user, subscription.getId(), price.getBillingPeriod());
 
         subscription.setProviderSubscriptionId(providerSubId);
         subscriptionRepository.save(subscription);
@@ -166,7 +166,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     public void cancelCheckout(SubscriptionCancelRequest request) {
         var user = UserContext.getCurrentUser().getUser();
-        log.info("Payment Cancelled during checkout: {} {}",request.getPaymentFailureErrorCode(), request.getPaymentFailureErrorMessage());
+        log.info("Payment Cancelled during checkout: {} {}", request.getPaymentFailureErrorCode(), request.getPaymentFailureErrorMessage());
         var subscription = subscriptionRepository.findFirstByUserAndStatusInOrderByCreatedAtDesc(
                         user, List.of(SubscriptionStatus.INCOMPLETE))
                 .orElseThrow(() -> new BaseException(
@@ -177,13 +177,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             throw new BaseException(
                     "Subscription not linked with payment provider",
                     ExceptionCodes.SUBSCRIPTION_INVALID_STATE);
-        }
-        else {
+        } else {
             paymentProviderClient.cancelSubscriptionImmediately(
                     subscription.getProviderSubscriptionId());
         }
         subscription.setCanceledAt(Instant.now());
         subscription.setStatus(SubscriptionStatus.CANCELED);
         subscriptionRepository.save(subscription);
+    }
+
+    @Override
+    public Long getBillingProductIdBySubscriptionId(Long userId) {
+        return subscriptionRepository
+                .findActiveBillingProductIdByUserId(userId)
+                .orElseThrow(() -> new BaseException("Billing Product Not found", ExceptionCodes.PRODUCT_NOT_FOUND));
     }
 }

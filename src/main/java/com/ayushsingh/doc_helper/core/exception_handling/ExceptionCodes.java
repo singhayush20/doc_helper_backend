@@ -27,7 +27,6 @@ public final class ExceptionCodes {
     public static final String QUOTA_EXCEEDED = "E0019";
     public static final String USER_QUOTA_INACTIVE = "E0020";
     public static final String QUOTA_NOT_FOUND = "E0021";
-    public static final String ACCOUNT_UPGRADATION_FAILURE = "E0022";
     public static final String EMAIL_FAILURE = "E0023";
     public static final String EMAIL_NOT_VERIFIED = "E0024";
     public static final String UNKNOWN_MESSAGE_STREAM_ERROR = "E0025";
@@ -46,6 +45,14 @@ public final class ExceptionCodes {
     public static final String PLAN_GENERATION_ERROR = "E0038";
     public static final String ACTIVE_SUBSCRIPTION_PRICE_DELETION = "E0039";
     public static final String BILLING_PRODUCT_IN_USE = "E0040";
-    public static final String FREE_TIER_NOT_FOUND = "E0041";
     public static final String SUBSCRIPTION_WEBHOOK_DATA_INVALID_ERROR = "E0042";
+    public static final String FEATURE_DISABLED_ERROR = "E0043";
+    public static final String FEATURE_NOT_ALLOWED_ERROR = "E0044";
+    public static final String FEATURE_NOT_FOUND = "EOO45";
+    public static final String DUPLICATE_FEATURE_ERROR = "EOO46";
+    public static final String UNSUPPORTED_UI_COMPONENT = "E0047";
+    public static final String DUPLICATE_UI_CONFIG_FOUND = "EOO48";
+    public static final String INVALID_UI_CONFIG = "E0049";
+    public static final String INVALID_FEATURE_CONFIG = "E0050";
+
 }
