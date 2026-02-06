@@ -30,9 +30,11 @@ public class UsageQuota {
     @Column(name="feature_code",nullable = false)
     private String featureCode;
 
-    private String metric;
-
+    @Column(name = "used",nullable = false, columnDefinition = "BIGINT DEFAULT 0")
     private Long used;
+
+    @Column(name = "metric", nullable = false)
+    private String metric;
 
     @Column(name = "quota_limit")
     private Long limit;
@@ -64,7 +66,6 @@ public class UsageQuota {
                 "id=" + id +
                 ", userId=" + userId +
                 ", featureCode='" + featureCode + '\'' +
-                ", metric='" + metric + '\'' +
                 ", used=" + used +
                 ", limit=" + limit +
                 ", resetAt=" + resetAt +
