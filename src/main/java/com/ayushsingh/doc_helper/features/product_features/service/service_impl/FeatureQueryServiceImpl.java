@@ -126,7 +126,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                         return null;
 
                 return UsageQuotaDto.builder()
-                                .metric(quota.getMetric())
+                                .metric(quota.getMetric().name())
                                 .used(quota.getUsed())
                                 .limit(quota.getLimit())
                                 .resetAtEpochMillis(

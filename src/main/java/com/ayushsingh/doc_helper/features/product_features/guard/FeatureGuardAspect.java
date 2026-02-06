@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.product_features.guard;
 
 import com.ayushsingh.doc_helper.core.security.UserContext;
+import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureAccessService;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +53,7 @@ public class FeatureGuardAspect {
         usageQuotaService.consume(
                 user.getUser().getId(),
                 requireFeature.code(),
-                requireFeature.metric(),
+                UsageMetric.valueOf(requireFeature.metric()),
                 amount
         );
 

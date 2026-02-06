@@ -3,7 +3,7 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
-import com.ayushsingh.doc_helper.features.product_features.execution.FeatureUsageMetrics;
+import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import com.ayushsingh.doc_helper.features.product_features.repository.UsageQuotaRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 import jakarta.transaction.Transactional;
@@ -24,7 +24,7 @@ public class UsageQuotaServiceImpl implements UsageQuotaService {
     public void consume(
             Long userId,
             String featureCode,
-            String metric,
+            UsageMetric metric,
             long amount) {
         int updated = usageQuotaRepository.consumeIfAvailable(
                 userId, featureCode, metric, amount);
@@ -47,7 +47,10 @@ public class UsageQuotaServiceImpl implements UsageQuotaService {
     @Override
     public void assertQuotaAvailable(Long userId, String featureCode, long amount) {
         var quota = usageQuotaRepository
-                .findByUserIdAndFeatureCodeAndMetric(userId, featureCode, FeatureUsageMetrics.TOKENS)
+                .findByUserIdAndFeatureCodeAndMetric(
+                        userId,
+                        featureCode,
+                        UsageMetric.TOKEN_COUNT)
                 .orElseThrow(() -> new BaseException(
                         "Quota not configured",
                         ExceptionCodes.QUOTA_NOT_FOUND));

@@ -15,7 +15,7 @@ import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentSummarySer
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationResult;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationService;
 import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
-import com.ayushsingh.doc_helper.features.product_features.execution.FeatureUsageMetrics;
+import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureAccessService;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
@@ -85,7 +85,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         usageQuotaService.consume(
                 userId,
                 FeatureCodes.DOC_SUMMARY,
-                FeatureUsageMetrics.TOKENS,
+                UsageMetric.TOKEN_COUNT,
                 result.tokensUsed()
         );
 
