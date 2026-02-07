@@ -14,6 +14,7 @@ import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentService;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentSummaryService;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationResult;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationService;
+import com.ayushsingh.doc_helper.features.doc_util.DocService;
 import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
@@ -21,9 +22,12 @@ import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.reader.tika.TikaDocumentReader;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
     private final DocumentSummaryRepository documentSummaryRepository;
     private final UsageQuotaService usageQuotaService;
     private final SummaryGenerationService summaryGenerationService;
+    private final DocService docService;
 
     @Transactional
     @Override
@@ -43,7 +48,8 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         Long userId = UserContext.getCurrentUser().getUser().getId();
 
         Document document = documentService.getByIdForUser(documentId, userId);
-        if (document.getContentText() == null || document.getContentText().isBlank()) {
+        String documentText = extractText(document);
+        if (documentText == null || documentText.isBlank()) {
             throw new BaseException(
                     "Document content is empty",
                     ExceptionCodes.DOCUMENT_PARSING_FAILED
@@ -54,7 +60,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         SummaryLength length = parseLength(request.getLength());
 
         long estimatedTokens = summaryGenerationService.estimateTokens(
-                document.getContentText(), length);
+                documentText, length);
 
         usageQuotaService.assertQuotaAvailable(
                 userId,
@@ -64,7 +70,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
 
         SummaryGenerationResult result =
                 summaryGenerationService.generate(
-                        document.getContentText(), tone, length);
+                        documentText, tone, length);
 
         Integer nextVersion = resolveNextVersion(documentId);
 
@@ -161,6 +167,30 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
             throw new BaseException(
                     "Invalid length value",
                     ExceptionCodes.INVALID_FEATURE_CONFIG
+            );
+        }
+    }
+
+    private String extractText(Document document) {
+        try {
+            Resource resource = docService.loadFileAsResource(document.getFileName());
+            TikaDocumentReader reader = new TikaDocumentReader(resource);
+            List<org.springframework.ai.document.Document> documents = reader.get();
+            if (documents.isEmpty()) {
+                throw new BaseException(
+                        "Failed to parse document",
+                        ExceptionCodes.DOCUMENT_PARSING_FAILED
+                );
+            }
+            return documents.stream()
+                    .map(org.springframework.ai.document.Document::getFormattedContent)
+                    .filter(s -> s != null && !s.isBlank())
+                    .collect(Collectors.joining("\n"))
+                    .trim();
+        } catch (Exception e) {
+            throw new BaseException(
+                    "Failed to parse document",
+                    ExceptionCodes.DOCUMENT_PARSING_FAILED
             );
         }
     }

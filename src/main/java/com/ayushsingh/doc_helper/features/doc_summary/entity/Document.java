@@ -1,7 +1,10 @@
 package com.ayushsingh.doc_helper.features.doc_summary.entity;
 
+import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -19,7 +22,7 @@ import java.util.Objects;
         name = "documents",
         indexes = {
                 @Index(name = "idx_documents_user", columnList = "user_id"),
-                @Index(name = "idx_documents_user_created", columnList = "user_id, createdAt")
+                @Index(name = "idx_documents_user_created", columnList = "user_id, created_at")
         }
 )
 @Getter
@@ -33,10 +36,18 @@ public class Document {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "content_text", nullable = false, columnDefinition = "TEXT")
-    private String contentText;
+    @Column(name = "file_name", nullable = false, length = 1024)
+    private String fileName;
+
+    @Column(name = "original_file_name", nullable = false, length = 1024)
+    private String originalFilename;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DocumentStatus status;
 
     @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Override

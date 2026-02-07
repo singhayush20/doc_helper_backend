@@ -5,19 +5,17 @@ import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseExceptio
 import com.ayushsingh.doc_helper.features.doc_summary.entity.Document;
 import com.ayushsingh.doc_helper.features.doc_summary.repository.DocumentRepository;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentService;
+import com.ayushsingh.doc_helper.features.doc_util.DocService;
+import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
+import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.reader.tika.TikaDocumentReader;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
 import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class DocumentServiceImpl implements DocumentService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
@@ -27,15 +25,18 @@ public class DocumentServiceImpl implements DocumentService {
     );
 
     private final DocumentRepository documentRepository;
+    private final DocService docService;
 
     @Override
     public Document createFromUpload(Long userId, MultipartFile file) {
         validateFile(file);
-        String text = extractText(file);
+        DocSaveResponse saved = docService.saveFile(file);
 
         Document doc = new Document();
         doc.setUserId(userId);
-        doc.setContentText(text);
+        doc.setFileName(saved.storedFileName());
+        doc.setOriginalFilename(saved.originalFileName());
+        doc.setStatus(DocumentStatus.UPLOADED);
         return documentRepository.save(doc);
     }
 
@@ -63,28 +64,4 @@ public class DocumentServiceImpl implements DocumentService {
         }
     }
 
-    private String extractText(MultipartFile file) {
-        try {
-            ByteArrayResource resource = new ByteArrayResource(file.getBytes());
-            TikaDocumentReader reader = new TikaDocumentReader(resource);
-            List<org.springframework.ai.document.Document> documents = reader.get();
-            if (documents.isEmpty()) {
-                throw new BaseException(
-                        "Failed to parse document",
-                        ExceptionCodes.DOCUMENT_PARSING_FAILED
-                );
-            }
-            return documents.stream()
-                    .map(org.springframework.ai.document.Document::getFormattedContent)
-                    .filter(s -> s != null && !s.isBlank())
-                    .reduce("", (a, b) -> a + "\n" + b)
-                    .trim();
-        } catch (Exception e) {
-            log.error("Failed to parse document", e);
-            throw new BaseException(
-                    "Failed to parse document",
-                    ExceptionCodes.DOCUMENT_PARSING_FAILED
-            );
-        }
-    }
 }
