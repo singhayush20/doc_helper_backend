@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface DocumentRepository extends JpaRepository<Document, Long> {
     Optional<Document> findByIdAndUserId(Long id, Long userId);
+
+    boolean existsByIdAndUserId(Long documentId, Long userId);
 }

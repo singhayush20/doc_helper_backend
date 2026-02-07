@@ -10,5 +10,7 @@ public interface UsageQuotaService {
 
     void assertQuotaAvailable(Long userId, String featureCode, long amount);
 
+    long getRemainingTokens(Long userId, String featureCode);
+
     List<UsageQuota> findByUserAndFeatureCodes(Long userId, List<String> featureCodes);
 }

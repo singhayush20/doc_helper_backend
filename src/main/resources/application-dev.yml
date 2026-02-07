@@ -74,6 +74,12 @@ spring:
 summarizer:
   model: gemini-2.5-flash-lite
 
+doc-summary:
+  model: ${DOC_SUMMARY_MODEL:gemini-2.5-flash-lite}
+  temperature: ${DOC_SUMMARY_TEMPERATURE:0.2}
+  default-max-tokens: ${DOC_SUMMARY_DEFAULT_MAX_TOKENS:300}
+  token-estimator: ${DOC_SUMMARY_TOKEN_ESTIMATOR:approx}
+
 
 web:
   search:

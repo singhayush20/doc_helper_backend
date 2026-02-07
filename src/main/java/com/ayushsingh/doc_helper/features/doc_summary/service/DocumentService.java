@@ -5,7 +5,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface DocumentService {
     
-    Document createFromUpload(Long userId, MultipartFile file);
+    Document uploadDocument(Long userId, MultipartFile file);
 
     Document getByIdForUser(Long documentId, Long userId);
+
+    boolean existsByIdAndUserId(Long documentId, Long userId);
 }

@@ -28,7 +28,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocService docService;
 
     @Override
-    public Document createFromUpload(Long userId, MultipartFile file) {
+    public Document uploadDocument(Long userId, MultipartFile file) {
         validateFile(file);
         DocSaveResponse saved = docService.saveFile(file);
 
@@ -62,6 +62,11 @@ public class DocumentServiceImpl implements DocumentService {
                     ExceptionCodes.WRONG_FILE_FORMAT
             );
         }
+    }
+
+    @Override
+    public boolean existsByIdAndUserId(Long documentId, Long userId) {
+        return documentRepository.existsByIdAndUserId(documentId, userId);
     }
 
 }

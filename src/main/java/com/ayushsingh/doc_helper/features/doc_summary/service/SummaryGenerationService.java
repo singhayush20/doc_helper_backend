@@ -3,8 +3,17 @@ package com.ayushsingh.doc_helper.features.doc_summary.service;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryLength;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryTone;
 
-public interface SummaryGenerationService {
-    SummaryGenerationResult generate(String documentText, SummaryTone tone, SummaryLength length);
+import java.util.List;
+import java.util.function.LongConsumer;
 
-    long estimateTokens(String documentText, SummaryLength length);
+public interface SummaryGenerationService {
+    SummaryGenerationResult generate(
+            List<String> chunks,
+            SummaryTone tone,
+            SummaryLength length,
+            long remainingTokens,
+            LongConsumer tokenConsumer
+    );
+
+    long estimateTokens(List<String> chunks);
 }

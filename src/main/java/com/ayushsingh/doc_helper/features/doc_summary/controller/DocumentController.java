@@ -24,7 +24,7 @@ public class DocumentController {
             @RequestParam("file") MultipartFile file
     ) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
-        Document doc = documentService.createFromUpload(userId, file);
+        Document doc = documentService.uploadDocument(userId, file);
         return ResponseEntity.ok(
                 DocumentUploadResponseDto.builder()
                         .documentId(doc.getId())

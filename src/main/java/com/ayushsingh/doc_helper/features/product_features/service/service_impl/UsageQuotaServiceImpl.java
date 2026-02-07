@@ -61,6 +61,21 @@ public class UsageQuotaServiceImpl implements UsageQuotaService {
     }
 
     @Override
+    public long getRemainingTokens(Long userId, String featureCode) {
+        var quota = usageQuotaRepository
+                .findByUserIdAndFeatureCodeAndMetric(
+                        userId,
+                        featureCode,
+                        UsageMetric.TOKEN_COUNT)
+                .orElseThrow(() -> new BaseException(
+                        "Quota not configured",
+                        ExceptionCodes.QUOTA_NOT_FOUND));
+
+        long remaining = quota.getLimit() - quota.getUsed();
+        return Math.max(0, remaining);
+    }
+
+    @Override
     public List<UsageQuota> findByUserAndFeatureCodes(Long userId, List<String> featureCodes) {
         return usageQuotaRepository.findByUserAndFeatureCodes(userId, featureCodes);
     }
