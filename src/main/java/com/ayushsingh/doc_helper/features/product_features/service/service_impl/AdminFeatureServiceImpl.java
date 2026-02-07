@@ -14,6 +14,7 @@ import com.ayushsingh.doc_helper.features.product_features.entity.BillingProduct
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.FeatureType;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
+import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureUIConfigRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
@@ -236,7 +237,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     }
 
     private Feature getFeature(String code) {
-        return featureRepository.findByCode(code)
+        return featureRepository.findByCode(parseFeatureCode(code))
                 .orElseThrow(() ->
                         new BaseException("Feature not found", ExceptionCodes.FEATURE_NOT_FOUND));
     }
@@ -306,6 +307,17 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
             );
         }
         return quotaLimit;
+    }
+
+    private FeatureCodes parseFeatureCode(String code) {
+        try {
+            return FeatureCodes.valueOf(code);
+        } catch (Exception e) {
+            throw new BaseException(
+                    "Invalid feature code",
+                    ExceptionCodes.INVALID_FEATURE_CONFIG
+            );
+        }
     }
 
     private BillingProductFeatureDetailsDto toDetailsDto(

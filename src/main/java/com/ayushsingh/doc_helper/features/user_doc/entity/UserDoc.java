@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "documents")
+@Table(name = "user_chat_documents")
 @Getter
 @Setter
 @NoArgsConstructor

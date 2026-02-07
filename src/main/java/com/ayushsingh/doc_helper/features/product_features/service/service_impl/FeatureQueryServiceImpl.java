@@ -84,7 +84,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
         ) {
                 List<String> featureCodes = featureMap.values()
                                 .stream()
-                                .map(Feature::getCode)
+                                .map(feature -> feature.getCode().name())
                                 .toList();
 
                 return usageQuotaService
@@ -114,7 +114,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                                         .name(feature.getName())
                                                         .usageMetric(feature.getUsageMetric())
                                                         .quota(toQuotaDto(
-                                                                        quotaMap.get(feature.getCode())))
+                                                                        quotaMap.get(feature.getCode().name())))
                                                         .build();
                                 })
                                 .filter(Objects::nonNull)
@@ -126,7 +126,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                         return null;
 
                 return UsageQuotaDto.builder()
-                                .metric(quota.getMetric())
+                                .metric(quota.getMetric().name())
                                 .used(quota.getUsed())
                                 .limit(quota.getLimit())
                                 .resetAtEpochMillis(

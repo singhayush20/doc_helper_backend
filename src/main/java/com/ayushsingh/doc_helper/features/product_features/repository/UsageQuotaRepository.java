@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.product_features.repository;
 
+import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,7 +15,7 @@ public interface UsageQuotaRepository
         extends JpaRepository<UsageQuota, Long> {
 
     Optional<UsageQuota> findByUserIdAndFeatureCodeAndMetric(
-            Long userId, String featureCode, String metric
+            Long userId, String featureCode, UsageMetric metric
     );
 
     @Query("""
@@ -40,7 +41,7 @@ public interface UsageQuotaRepository
     int consumeIfAvailable(
             @Param("userId") Long userId,
             @Param("featureCode") String featureCode,
-            @Param("metric") String metric,
+            @Param("metric") UsageMetric metric,
             @Param("amount") long amount
     );
 }

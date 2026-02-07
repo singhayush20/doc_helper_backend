@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.product_features.entity;
 
 import jakarta.persistence.*;
+import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -33,7 +34,9 @@ public class Feature {
         private Long id;
 
         @Column(unique = true, nullable = false, updatable = false)
-        private String code;
+        @Enumerated(EnumType.STRING)
+        @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+        private FeatureCodes code;
 
         @Column(nullable = false, unique = true)
         private String name;
