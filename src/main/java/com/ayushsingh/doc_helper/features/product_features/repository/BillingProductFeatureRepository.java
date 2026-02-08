@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.product_features.repository;
 
 import com.ayushsingh.doc_helper.features.product_features.entity.BillingProductFeature;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -26,5 +27,18 @@ public interface BillingProductFeatureRepository
     Optional<BillingProductFeature> findByBillingProductIdAndFeatureId(
             Long billingProductId,
             Long featureId
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update BillingProductFeature pf
+        set pf.enabled = :enabled
+        where pf.billingProductId = :billingProductId
+          and pf.featureId = :featureId
+    """)
+    int updateEnabledForProductFeature(
+            @Param("billingProductId") Long billingProductId,
+            @Param("featureId") Long featureId,
+            @Param("enabled") boolean enabled
     );
 }

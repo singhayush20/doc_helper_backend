@@ -18,8 +18,10 @@ import com.ayushsingh.doc_helper.features.ui_components.registry.UIComponentRegi
 import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -54,7 +56,7 @@ public class UIComponentServiceImpl implements UIComponentService {
 
         //  Parse JSON to concrete UI record - This IS the validation step
         try {
-            objectMapper.treeToValue(uiConfig, targetClass);
+            validateConfig(uiConfig, targetClass);
         } catch (Exception e) {
             throw new BaseException(
                     "Invalid UI configuration for " +
@@ -245,7 +247,7 @@ public class UIComponentServiceImpl implements UIComponentService {
 
         // validate by deserialization
         try {
-            objectMapper.treeToValue(jsonNode, targetClass);
+            validateConfig(jsonNode, targetClass);
 
         } catch (Exception e) {
             throw new BaseException(
@@ -256,6 +258,12 @@ public class UIComponentServiceImpl implements UIComponentService {
                     ExceptionCodes.INVALID_UI_CONFIG
             );
         }
+    }
+
+    private <T> T validateConfig(JsonNode jsonNode, Class<T> targetClass) throws Exception {
+        ObjectReader reader = objectMapper.readerFor(targetClass)
+                .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        return reader.readValue(jsonNode);
     }
 }
 

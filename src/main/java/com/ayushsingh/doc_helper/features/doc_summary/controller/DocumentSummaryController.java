@@ -21,14 +21,14 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/summarizer")
 @RequiredArgsConstructor
 public class DocumentSummaryController {
 
     private final DocumentSummaryService documentSummaryService;
     private final FeatureExecutionService featureExecutionService;
 
-    @PostMapping("/documents/{documentId}/summaries")
+    @PostMapping("/documents/{documentId}")
     @RequireFeature(code = "DOC_SUMMARY")
     public ResponseEntity<SummaryCreateResponseDto> createSummary(
             @PathVariable Long documentId,
@@ -41,7 +41,7 @@ public class DocumentSummaryController {
         );
     }
 
-    @GetMapping("/documents/{documentId}/summaries")
+    @GetMapping("/documents/{documentId}")
     @RequireFeature(code = "DOC_SUMMARY")
     public ResponseEntity<List<SummaryMetadataDto>> getSummaries(
             @PathVariable Long documentId
@@ -51,7 +51,7 @@ public class DocumentSummaryController {
         );
     }
 
-    @GetMapping("/summaries/{summaryId}")
+    @GetMapping("/{summaryId}")
     @RequireFeature(code = "DOC_SUMMARY")
     public ResponseEntity<SummaryContentDto> getSummary(
             @PathVariable Long summaryId
