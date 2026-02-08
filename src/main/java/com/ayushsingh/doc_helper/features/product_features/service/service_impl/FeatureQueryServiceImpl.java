@@ -11,6 +11,8 @@ import com.ayushsingh.doc_helper.features.product_features.service.BillingProduc
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureQueryService;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
+import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
         private final FeatureCacheService featureCacheService;
         private final BillingProductFeatureService billingProductFeatureService;
         private final UsageQuotaService usageQuotaService;
+        private final BillingProductService billingProductService;
 
         @Override
         public FeatureResponse getProductFeatures(Long userId) {
@@ -61,7 +64,9 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
         }
 
         private List<BillingProductFeature> fetchEnabledMappings(Long userId) {
-                Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId);
+                Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId).orElse(
+                                billingProductService.getProductIdByTier(AccountTier.FREE));
+                                
                 return billingProductFeatureService.getEnabledByBillingProductId(billingProductId);
         }
 

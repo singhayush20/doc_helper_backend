@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -187,9 +188,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public Long getBillingProductIdBySubscriptionId(Long userId) {
+    public Optional<Long> getBillingProductIdBySubscriptionId(Long userId) {
         return subscriptionRepository
-                .findActiveBillingProductIdByUserId(userId)
-                .orElseThrow(() -> new BaseException("Billing Product Not found", ExceptionCodes.PRODUCT_NOT_FOUND));
+                .findActiveBillingProductIdByUserId(userId);
     }
 }

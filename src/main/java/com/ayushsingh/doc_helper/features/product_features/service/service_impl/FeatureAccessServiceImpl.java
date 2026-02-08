@@ -7,6 +7,8 @@ import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCode
 import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureAccessService;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
+import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ public class FeatureAccessServiceImpl implements FeatureAccessService {
     private final FeatureRepository featureRepository;
     private final BillingProductFeatureRepository billingProductFeatureRepository;
     private final SubscriptionService subscriptionService;
+    private final BillingProductService billingProductService;
 
     @Override
     public void assertFeatureAccess(Long userId, FeatureCodes featureCode) {
@@ -38,6 +41,8 @@ public class FeatureAccessServiceImpl implements FeatureAccessService {
     }
 
     private Long resolveBillingProduct(Long userId) {
-        return subscriptionService.getBillingProductIdBySubscriptionId(userId);
+        Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId).orElse(
+                billingProductService.getProductIdByTier(AccountTier.FREE));
+        return billingProductId;
     }
 }

@@ -36,7 +36,6 @@ public class UsageQuota {
     private Long used;
 
     @Column(name = "metric", nullable = false)
-    @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private UsageMetric metric;
     

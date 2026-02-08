@@ -34,7 +34,6 @@ public class Feature {
         private Long id;
 
         @Column(unique = true, nullable = false, updatable = false)
-        @Enumerated(EnumType.STRING)
         @JdbcTypeCode(SqlTypes.NAMED_ENUM)
         private FeatureCodes code;
 
@@ -45,12 +44,10 @@ public class Feature {
         private String description;
 
         @Column(nullable = false)
-        @Enumerated(EnumType.STRING)
         @JdbcTypeCode(SqlTypes.NAMED_ENUM)
         private FeatureType type;
 
         @Column(name="usage_metric",nullable = false)
-        @Enumerated(EnumType.STRING)
         @JdbcTypeCode(SqlTypes.NAMED_ENUM)
         private UsageMetric usageMetric;
 

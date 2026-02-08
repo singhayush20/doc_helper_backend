@@ -32,7 +32,6 @@ public class FeatureUIConfig {
         private Long featureId;
 
         @Column(name = "component_type", nullable = false)
-        @Enumerated(EnumType.STRING)
         @JdbcTypeCode(SqlTypes.NAMED_ENUM)
         private UIComponentType componentType;
 

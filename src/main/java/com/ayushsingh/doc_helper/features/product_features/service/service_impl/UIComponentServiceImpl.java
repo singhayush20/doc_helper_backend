@@ -131,15 +131,8 @@ public class UIComponentServiceImpl implements UIComponentService {
             UIComponentType componentType
     ) {
         // TODO: Optimize this by caching the response- also handle cache eviction/updation in case ui configs are updated
-        Long billingProductId =
-                subscriptionService.getBillingProductIdBySubscriptionId(userId);
-
-        if (billingProductId == null) {
-            // if the subscription was not found, then find out the product id
-            // for free tier accounts
-            billingProductId =
-                    billingProductService.getProductIdByTier(AccountTier.FREE);
-        }
+        Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId).orElse(
+                        billingProductService.getProductIdByTier(AccountTier.FREE));
 
         List<FeatureUiConfigView> configs =
                 featureUIConfigRepository.findEnabledUiConfigsForProduct(

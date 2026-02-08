@@ -48,7 +48,6 @@ public class BillingProduct {
     @Column(name = "display_name", nullable = false, length = 100)
     private String displayName;
 
-    @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "tier", nullable = false, length = 50)
     private AccountTier tier;
