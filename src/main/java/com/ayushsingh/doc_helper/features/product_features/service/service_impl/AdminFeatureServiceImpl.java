@@ -174,7 +174,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                     );
                 });
 
-        Long enabledVersion = requireEnabledVersion(dto.getEnabledVersion());
+        Integer enabledVersion = requireEnabledVersion(dto.getEnabledVersion());
         validateUiVersion(dto.getFeatureId(), enabledVersion);
 
         BillingProductFeature mapping = new BillingProductFeature();
@@ -315,7 +315,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         }
     }
 
-    private Long requireEnabledVersion(Long enabledVersion) {
+    private Integer requireEnabledVersion(Integer enabledVersion) {
         if (enabledVersion == null) {
             throw new BaseException(
                     "Enabled version is required",
@@ -325,7 +325,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         return enabledVersion;
     }
 
-    private void validateUiVersion(Long featureId, Long enabledVersion) {
+    private void validateUiVersion(Long featureId, Integer enabledVersion) {
         boolean exists =
                 featureUIConfigRepository.existsByFeatureIdAndFeatureUiVersion(
                         featureId,
