@@ -40,12 +40,12 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         "[format_sql]": false # Disable SQL formatting since we're using JSON format
-        "[trace_level]": OFF # Disable parameter logging at Hibernate level
+        # "[trace_level]": OFF # Disable parameter logging at Hibernate level
 
   servlet:
     multipart:
@@ -102,9 +102,9 @@ logging:
     "[net.logstash]": WARN
     "[org.hibernate]": WARN
     "[org.hibernate.SQL]": DEBUG
-    "[org.hibernate.orm.jdbc.bind]": OFF
-    "[org.hibernate.type]": OFF
-    "[org.hibernate.engine.jdbc]": OFF
+    "[org.hibernate.orm.jdbc.bind]": TRACE
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE
+    "[org.hibernate.engine.jdbc]": DEBUG
     "[org.springframework.data.mongodb.core.MongoTemplate]": INFO
     "[org.mongodb.driver]": INFO
     "[com.p6spy]": DEBUG
@@ -114,6 +114,7 @@ logging:
     "[org.springframework.data.redis.core.RedisTemplate]": DEBUG
     "[org.springframework.data.redis.connection]": DEBUG
     "[org.springframework.data.redis.listener]": DEBUG
+    "[org.springframework.data.redis.core.RedisConnectionUtils]": WARN
   file:
     path: logs
   config: null

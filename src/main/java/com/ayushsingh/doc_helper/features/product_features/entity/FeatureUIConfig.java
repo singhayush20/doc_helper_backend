@@ -32,11 +32,12 @@ public class FeatureUIConfig {
         private Long featureId;
 
         @Column(name = "component_type", nullable = false)
+        @Enumerated(EnumType.STRING)
         @JdbcTypeCode(SqlTypes.NAMED_ENUM)
         private UIComponentType componentType;
 
         @Column(name = "feature_ui_version", nullable = false)
-        private int featureUiVersion; // this is the version of the ui which is
+        private Integer featureUiVersion; // this is the version of the ui which is
         // enabled for a particular feature, there can be multiple ui versions
         // for a feature
 

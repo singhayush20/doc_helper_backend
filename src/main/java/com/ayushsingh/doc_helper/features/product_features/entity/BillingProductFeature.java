@@ -44,7 +44,7 @@
         // feature. Match this version with the FeatureUIConfig featureUIVersion,
         // to get the ui config for a particular version
         @Column(name = "enabled_version",nullable=false)
-        private Long enabledVersion;
+        private Integer enabledVersion;
 
         @Column(name = "quota_limit",nullable=false)
         private Long quotaLimit;
