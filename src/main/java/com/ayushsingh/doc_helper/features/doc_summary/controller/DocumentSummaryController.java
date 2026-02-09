@@ -4,11 +4,8 @@ import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryContentDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateRequestDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateResponseDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryMetadataDto;
-import com.ayushsingh.doc_helper.features.doc_summary.executor_command.DocSummaryCommand;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentSummaryService;
 import com.ayushsingh.doc_helper.features.product_features.guard.RequireFeature;
-import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
-import com.ayushsingh.doc_helper.features.product_features.execution.FeatureExecutionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,18 +23,17 @@ import java.util.List;
 public class DocumentSummaryController {
 
     private final DocumentSummaryService documentSummaryService;
-    private final FeatureExecutionService featureExecutionService;
 
     @PostMapping("/documents/{documentId}")
     @RequireFeature(code = "DOC_SUMMARY")
     public ResponseEntity<SummaryCreateResponseDto> createSummary(
             @PathVariable Long documentId,
-            @RequestBody SummaryCreateRequestDto request
+            @RequestBody SummaryCreateRequestDto summaryCreateRequestDto
     ) {
         return ResponseEntity.ok(
-                featureExecutionService.execute(
-                        FeatureCodes.DOC_SUMMARY,
-                        new DocSummaryCommand(documentId, request))
+                        documentSummaryService.createSummary(
+                        documentId,
+                        summaryCreateRequestDto)
         );
     }
 
