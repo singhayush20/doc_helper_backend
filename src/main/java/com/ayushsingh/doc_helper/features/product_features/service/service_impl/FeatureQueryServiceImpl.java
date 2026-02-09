@@ -8,7 +8,6 @@ import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.BillingProductFeatureService;
-import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureQueryService;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
@@ -29,18 +28,12 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
 
         private final FeatureRepository featureRepository;
         private final SubscriptionService subscriptionService;
-        private final FeatureCacheService featureCacheService;
         private final BillingProductFeatureService billingProductFeatureService;
         private final UsageQuotaService usageQuotaService;
         private final BillingProductService billingProductService;
 
         @Override
         public FeatureResponse getProductFeatures(Long userId) {
-
-                FeatureResponse cachedFeatureResponse = featureCacheService.getCachedProductFeatures(userId);
-                if (cachedFeatureResponse != null) {
-                        return cachedFeatureResponse;
-                }
 
                 List<BillingProductFeature> billingProductFeatures =
                                 fetchEnabledMappings(userId);
@@ -59,7 +52,6 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                 composeFeatures(billingProductFeatures, featureMap, quotaMap);
 
                 FeatureResponse response = new FeatureResponse(result);
-                featureCacheService.cacheProductFeatures(userId, response);
                 return response;
         }
 

@@ -2,7 +2,6 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.features.product_features.cache.FeatureInvalidationPublisher;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureCreateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUpdateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
@@ -35,7 +34,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     private final BillingProductFeatureRepository billingProductFeatureRepository;
     private final BillingProductRepository billingProductRepository;
     private final FeatureUIConfigRepository featureUIConfigRepository;
-    private final FeatureInvalidationPublisher invalidationPublisher;
     private final ModelMapper modelMapper;
     private final UIComponentService uiComponentService;
 
@@ -60,8 +58,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
 
         var savedFeature = featureRepository.save(feature);
 
-        invalidationPublisher.publishFeatureListInvalidation();
-
         return modelMapper.map(savedFeature, ProductFeatureDto.class);
     }
 
@@ -81,9 +77,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
 
         var updatedFeature = featureRepository.save(feature);
 
-        invalidationPublisher.publishFeatureListInvalidation();
-
-
         return modelMapper.map(updatedFeature, ProductFeatureDto.class);
     }
 
@@ -101,8 +94,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                     ExceptionCodes.FEATURE_NOT_FOUND
             );
         }
-
-        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     @Transactional
@@ -120,7 +111,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
             );
         }
 
-        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     @Override
@@ -137,10 +127,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                 uiComponentService.createUIComponent(uiConfig,
                         productFeatureId,dto.getUiComponentType(),
                         dto.getVersion(),dto.getUiFeatureVersion(),dto.getScreen());
-        invalidationPublisher.publishUIInvalidation(
-                productFeatureId,
-                dto.getScreen(),
-                dto.getUiFeatureVersion());
+      
         return uiComponentDetailsDto;
     }
 
@@ -148,11 +135,9 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     public void deleteFeature(String featureCode) {
         var feature = getFeature(featureCode);
 
-        // Soft delete (recommended)
+        // Soft delete
         feature.setActive(false);
         featureRepository.save(feature);
-
-        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     @Transactional
@@ -188,8 +173,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         BillingProductFeature saved =
                 billingProductFeatureRepository.save(mapping);
 
-        invalidationPublisher.publishFeatureListInvalidation();
-
         return toDetailsDto(saved);
     }
 
@@ -221,8 +204,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         BillingProductFeature saved =
                 billingProductFeatureRepository.save(mapping);
 
-        invalidationPublisher.publishFeatureListInvalidation();
-
         return toDetailsDto(saved);
     }
 
@@ -241,7 +222,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         }
 
         billingProductFeatureRepository.delete(mapping);
-        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     @Transactional
@@ -261,8 +241,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                     ExceptionCodes.FEATURE_NOT_FOUND
             );
         }
-
-        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     @Transactional
@@ -282,8 +260,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                     ExceptionCodes.FEATURE_NOT_FOUND
             );
         }
-
-        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     private Feature getFeature(String code) {
