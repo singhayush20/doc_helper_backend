@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "DocHelperApplication (DEV)",
+            "request": "launch",
+            "mainClass": "com.ayushsingh.doc_helper.DocHelperApplication",
+            "projectName": "doc_helper",
+            "args": [
+                "--spring.profiles.active=dev"
+            ],
+            "console": "internalConsole"
+        },
+        {
+            "type": "java",
+            "name": "DocHelperApplication (PROD)",
+            "request": "launch",
+            "mainClass": "com.ayushsingh.doc_helper.DocHelperApplication",
+            "projectName": "doc_helper",
+            "args": [
+                "--spring.profiles.active=prod"
+            ],
+            "console": "internalConsole"
+        }
+    ]
+}

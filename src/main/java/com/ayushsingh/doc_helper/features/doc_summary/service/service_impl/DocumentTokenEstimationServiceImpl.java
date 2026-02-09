@@ -5,15 +5,18 @@ import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentTokenEstimationService;
+
 @Component
 @Slf4j
-public class SummaryTokenEstimator {
+public class DocumentTokenEstimationServiceImpl implements DocumentTokenEstimationService {
 
     private final JTokkitTokenCountEstimator estimator = new JTokkitTokenCountEstimator();
 
     @Value("${doc-summary.token-estimator:approx}")
     private String estimatorMode;
 
+    @Override
     public int estimateTokens(String text) {
         if (text == null || text.isBlank()) {
             return 0;

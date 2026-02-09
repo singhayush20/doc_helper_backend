@@ -43,13 +43,11 @@ public class ChatModelConfig {
     public ChatClient docSummaryChatClient(
             ChatClient.Builder builder,
             @Value("${doc-summary.model}") String modelName,
-            @Value("${doc-summary.temperature:0.2}") double temperature,
-            @Value("${doc-summary.default-max-tokens:300}") int defaultMaxTokens) {
+            @Value("${doc-summary.temperature:0.2}") double temperature) {
 
         OpenAiChatOptions summarizerOptions = OpenAiChatOptions.builder()
                 .model(modelName)
                 .temperature(temperature)
-                .maxTokens(defaultMaxTokens)
                 .build();
 
         return builder

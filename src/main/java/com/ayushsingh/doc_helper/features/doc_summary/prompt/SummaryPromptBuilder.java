@@ -1,15 +1,13 @@
-package com.ayushsingh.doc_helper.features.doc_summary.service.service_impl;
+package com.ayushsingh.doc_helper.features.doc_summary.prompt;
 
 import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryLength;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryTone;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
-public class SummaryPromptBuilder {
+public final class SummaryPromptBuilder {
 
-    public String buildChunkPrompt(String chunk, SummaryTone tone, SummaryLength length) {
+    public static String buildChunkPrompt(String chunk, SummaryTone tone, SummaryLength length) {
         return """
                 You are a summarization assistant.
                 Tone: %s
@@ -21,7 +19,7 @@ public class SummaryPromptBuilder {
                 """.formatted(tone.name(), length.name(), chunk);
     }
 
-    public String buildAggregatePrompt(List<String> summaries, SummaryTone tone, SummaryLength length, boolean finalPass) {
+    public static String buildAggregatePrompt(List<String> summaries, SummaryTone tone, SummaryLength length, boolean finalPass) {
         String joined = String.join("\n\n---\n\n", summaries);
 
         String mode = finalPass

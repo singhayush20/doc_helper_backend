@@ -9,15 +9,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
+import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryLlmService;
 
 @Component
-public class SummaryLlmService {
+public class SummaryLlmServiceImpl implements SummaryLlmService{
 
     private final ChatClient docSummaryChatClient;
     private final String docSummaryModel;
     private final double docSummaryTemperature;
 
-    public SummaryLlmService(
+    public SummaryLlmServiceImpl(
             @Qualifier("docSummaryChatClient") ChatClient docSummaryChatClient,
             @Value("${doc-summary.model}") String docSummaryModel,
             @Value("${doc-summary.temperature:0.2}") double docSummaryTemperature
@@ -27,6 +28,7 @@ public class SummaryLlmService {
         this.docSummaryTemperature = docSummaryTemperature;
     }
 
+    @Override
     public SummaryLlmResponse generate(String prompt, Integer maxTokens) {
         var spec = docSummaryChatClient.prompt(prompt);
         if (maxTokens != null) {

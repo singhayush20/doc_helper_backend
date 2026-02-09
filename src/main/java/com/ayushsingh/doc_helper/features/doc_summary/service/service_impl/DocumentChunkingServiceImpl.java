@@ -4,21 +4,25 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.stereotype.Component;
 
+import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentChunkingService;
+
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class SummaryChunker {
+public class DocumentChunkingServiceImpl implements DocumentChunkingService {
 
     private static final int MAX_TOKENS_PER_CHUNK = 4096;
     private static final String TABLE_START = "[TABLE_START]";
     private static final String TABLE_END = "[TABLE_END]";
 
-    public List<String> splitForStorage(String text) {
+    @Override
+    public List<String> splitWithoutOverlap(String text) {
         // For RAG - WITHOUT overlap for context
         return splitWithConfig(text, 1000, 0);
     }
-    
+
+    @Override
     public List<String> splitWithOverlap(String text) {
         // For summarization - WITH overlap for context
         return splitWithConfig(text, 800, 100);
@@ -36,8 +40,7 @@ public class SummaryChunker {
                 overlap,
                 10,
                 MAX_TOKENS_PER_CHUNK,
-                true
-        );
+                true);
 
         List<Document> chunks = splitter.apply(List.of(new Document(merged)));
         return chunks.stream()

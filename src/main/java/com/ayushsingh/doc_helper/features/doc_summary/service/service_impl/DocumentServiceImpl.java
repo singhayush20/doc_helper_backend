@@ -21,7 +21,8 @@ public class DocumentServiceImpl implements DocumentService {
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "text/plain",
-            "application/octet-stream"
+            "application/octet-stream",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
 
     private final DocumentRepository documentRepository;
@@ -58,7 +59,7 @@ public class DocumentServiceImpl implements DocumentService {
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new BaseException(
-                    "Wrong file format! Only .pdf and .txt are allowed.",
+                    "Wrong file format! Only .pdf, .txt, and .docx are allowed.",
                     ExceptionCodes.WRONG_FILE_FORMAT
             );
         }

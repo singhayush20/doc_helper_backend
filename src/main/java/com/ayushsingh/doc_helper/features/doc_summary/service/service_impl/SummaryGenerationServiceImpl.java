@@ -3,8 +3,11 @@ package com.ayushsingh.doc_helper.features.doc_summary.service.service_impl;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryLength;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryTone;
+import com.ayushsingh.doc_helper.features.doc_summary.prompt.SummaryPromptBuilder;
+import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentTokenEstimationService;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationResult;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationService;
+import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryLlmService;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import lombok.RequiredArgsConstructor;
@@ -27,9 +30,8 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
     private static final Duration LLM_TIMEOUT = Duration.ofSeconds(45);
     private static final int TOKEN_SAFETY_BUFFER = 50;
 
-    private final SummaryPromptBuilder promptBuilder;
     private final SummaryLlmService llmService;
-    private final SummaryTokenEstimator tokenEstimator;
+    private final DocumentTokenEstimationService tokenEstimator;
 
     @Override
     public SummaryGenerationResult generate(
@@ -39,8 +41,7 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
             long remainingTokens,
             LongConsumer tokenConsumer
     ) {
-        LongConsumer usageConsumer = tokenConsumer != null ? tokenConsumer : tokens -> {
-        };
+        LongConsumer usageConsumer = tokenConsumer != null ? tokenConsumer : tokens -> {};
         List<String> normalizedChunks = normalizeChunks(chunks);
         if (normalizedChunks.isEmpty()) {
             throw new BaseException("Document content is empty", ExceptionCodes.DOCUMENT_PARSING_FAILED);
@@ -50,7 +51,7 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
         long totalTokens = 0;
 
         for (String chunk : normalizedChunks) {
-            String prompt = promptBuilder.buildChunkPrompt(chunk, tone, length);
+            String prompt = SummaryPromptBuilder.buildChunkPrompt(chunk, tone, length);
             int maxOutputTokens = resolveMaxOutputTokens(prompt, length, false, remainingTokens);
             SummaryLlmResponse response = callWithRetry(prompt, maxOutputTokens);
 
@@ -70,7 +71,7 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
             remainingTokens = agg.remainingTokens();
         }
 
-        String finalPrompt = promptBuilder.buildAggregatePrompt(
+        String finalPrompt = SummaryPromptBuilder.buildAggregatePrompt(
                 current, tone, length, true);
         int finalMaxOutputTokens = resolveMaxOutputTokens(finalPrompt, length, true, remainingTokens);
         SummaryLlmResponse finalResponse = callWithRetry(finalPrompt, finalMaxOutputTokens);
@@ -108,7 +109,7 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
         for (int i = 0; i < summaries.size(); i += groupSize) {
             List<String> group =
                     summaries.subList(i, Math.min(i + groupSize, summaries.size()));
-            String prompt = promptBuilder.buildAggregatePrompt(group, tone, length, finalPass);
+            String prompt = SummaryPromptBuilder.buildAggregatePrompt(group, tone, length, finalPass);
             int maxOutputTokens = resolveMaxOutputTokens(prompt, length, finalPass, remainingTokens);
             SummaryLlmResponse response = callWithRetry(prompt, maxOutputTokens);
             next.add(response.content());

@@ -13,6 +13,7 @@ import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryTone;
 import com.ayushsingh.doc_helper.features.doc_summary.repository.DocumentChunkRepository;
 import com.ayushsingh.doc_helper.features.doc_summary.repository.DocumentRepository;
 import com.ayushsingh.doc_helper.features.doc_summary.repository.DocumentSummaryRepository;
+import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentChunkingService;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentService;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentSummaryService;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryGenerationResult;
@@ -47,7 +48,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
     private final DocumentParsingService documentParsingService;
     private final DocumentRepository documentRepository;
     private final DocumentChunkRepository documentChunkRepository;
-    private final SummaryChunker summaryChunker;
+    private final DocumentChunkingService summaryChunker;
     private final ModelMapper modelMapper;
 
     @Transactional
