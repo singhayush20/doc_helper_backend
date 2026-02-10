@@ -29,6 +29,11 @@ public interface BillingProductFeatureRepository
             Long featureId
     );
 
+    Optional<BillingProductFeature> findByBillingProductIdAndFeatureIdAndEnabledTrue(
+            Long billingProductId,
+            Long featureId
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         update BillingProductFeature pf

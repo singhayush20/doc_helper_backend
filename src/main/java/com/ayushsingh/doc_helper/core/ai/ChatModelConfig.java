@@ -43,16 +43,14 @@ public class ChatModelConfig {
     public ChatClient docSummaryChatClient(
             ChatClient.Builder builder,
             @Value("${doc-summary.model}") String modelName,
-            @Value("${doc-summary.temperature:0.2}") double temperature) {
-
-        OpenAiChatOptions summarizerOptions = OpenAiChatOptions.builder()
+            @Value("${doc-summary.temperature}") Double temperature) {
+        OpenAiChatOptions docSummaryOptions = OpenAiChatOptions.builder()
                 .model(modelName)
                 .temperature(temperature)
                 .build();
 
         return builder
-                .defaultOptions(summarizerOptions)
+                .defaultOptions(docSummaryOptions)
                 .build();
     }
-
 }

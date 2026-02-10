@@ -15,4 +15,5 @@ public class SummaryCreateResponseDto {
     private Long summaryId;
     private Integer version;
     private Integer tokensUsed;
+    private String content;
 }

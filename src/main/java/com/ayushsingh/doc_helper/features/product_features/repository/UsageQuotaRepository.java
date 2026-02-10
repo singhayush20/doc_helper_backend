@@ -10,6 +10,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.time.Instant;
 
 public interface UsageQuotaRepository
         extends JpaRepository<UsageQuota, Long> {
@@ -27,6 +30,17 @@ public interface UsageQuotaRepository
     List<UsageQuota> findByUserAndFeatureCodes(
             @Param("userId") Long userId,
             @Param("featureCodes") Collection<String> featureCodes
+    );
+
+    @Query("""
+        select q
+        from UsageQuota q
+        where q.resetAt is not null
+          and q.resetAt <= :now
+    """)
+    Page<UsageQuota> findQuotasToResetPaginated(
+            @Param("now") Instant now,
+            Pageable pageable
     );
 
     @Modifying

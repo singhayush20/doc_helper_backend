@@ -103,6 +103,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
                 .summaryId(saved.getId())
                 .version(saved.getVersionNumber())
                 .tokensUsed(saved.getTokensUsed())
+                .content(saved.getContent())
                 .build();
     }
 

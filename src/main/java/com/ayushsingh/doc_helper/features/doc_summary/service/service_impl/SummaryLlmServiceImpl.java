@@ -1,59 +1,59 @@
 package com.ayushsingh.doc_helper.features.doc_summary.service.service_impl;
 
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.ayushsingh.doc_helper.core.ai.advisors.PromptMetadataLoggingAdvisor;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryLlmService;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Component
-public class SummaryLlmServiceImpl implements SummaryLlmService{
+@Slf4j
+public class SummaryLlmServiceImpl implements SummaryLlmService {
 
-    private final ChatClient docSummaryChatClient;
-    private final String docSummaryModel;
-    private final double docSummaryTemperature;
+        private final ChatClient chatClient;
+        private final PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor;
 
-    public SummaryLlmServiceImpl(
-            @Qualifier("docSummaryChatClient") ChatClient docSummaryChatClient,
-            @Value("${doc-summary.model}") String docSummaryModel,
-            @Value("${doc-summary.temperature:0.2}") double docSummaryTemperature
-    ) {
-        this.docSummaryChatClient = docSummaryChatClient;
-        this.docSummaryModel = docSummaryModel;
-        this.docSummaryTemperature = docSummaryTemperature;
-    }
-
-    @Override
-    public SummaryLlmResponse generate(String prompt, Integer maxTokens) {
-        var spec = docSummaryChatClient.prompt(prompt);
-        if (maxTokens != null) {
-            spec.options(OpenAiChatOptions.builder()
-                    .model(docSummaryModel)
-                    .temperature(docSummaryTemperature)
-                    .maxTokens(maxTokens)
-                    .build());
+        public SummaryLlmServiceImpl(
+                @Qualifier("docSummaryChatClient") ChatClient chatClient,
+                        PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor) {
+                this.chatClient = chatClient;
+                this.promptMetadataLoggingAdvisor = promptMetadataLoggingAdvisor;
         }
-        ChatClient.CallResponseSpec response = spec.call();
-        ChatResponse chatResponse = response.chatResponse();
 
-        Usage usage = chatResponse != null && chatResponse.getMetadata() != null
-                ? chatResponse.getMetadata().getUsage()
-                : null;
+        @Override
+        public SummaryLlmResponse generate(String prompt, Integer maxTokens) {
+                log.debug("Generating response for prompt: {} \n maxTokens: {}", prompt, maxTokens);
 
-        var promptTokens = usage != null ? usage.getPromptTokens() : null;
-        var completionTokens = usage != null ? usage.getCompletionTokens() : null;
-        var totalTokens = usage != null ? usage.getTotalTokens() : null;
+                var spec = chatClient
+                                .prompt(prompt)
+                                .options(OpenAiChatOptions.builder()
+                                                .maxTokens(maxTokens)
+                                                .build())
+                                .advisors(promptMetadataLoggingAdvisor);
 
-        return new SummaryLlmResponse(
-                response.content(),
-                promptTokens,
-                completionTokens,
-                totalTokens
-        );
-    }
+                var response = spec.call();
+                ChatResponse chatResponse = response.chatResponse();
+
+                Usage usage = chatResponse != null && chatResponse.getMetadata() != null
+                                ? chatResponse.getMetadata().getUsage()
+                                : null;
+
+                var promptTokens = usage != null ? usage.getPromptTokens() : null;
+                var completionTokens = usage != null ? usage.getCompletionTokens() : null;
+                var totalTokens = usage != null ? usage.getTotalTokens() : null;
+
+                return new SummaryLlmResponse(
+                                (chatResponse != null) ? chatResponse.getResult().getOutput().getText() : Strings.EMPTY,
+                                promptTokens,
+                                completionTokens,
+                                totalTokens);
+        }
 }

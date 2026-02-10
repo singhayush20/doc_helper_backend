@@ -15,6 +15,8 @@ import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManageme
 import com.ayushsingh.doc_helper.features.user_plan.entity.Subscription;
 import com.ayushsingh.doc_helper.features.user_plan.repository.SubscriptionRepository;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionFallbackService;
+import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
+import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SubscriptionAndQuotaScheduler {
 
     private final QuotaManagementService quotaManagementService;
+    private final UsageQuotaService usageQuotaService;
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionFallbackService subscriptionFallbackService;
 
@@ -39,6 +42,7 @@ public class SubscriptionAndQuotaScheduler {
         handleCheckoutExpiries(now);
         handleScheduledDowngrades(now);
         handleQuotaResets(now);
+        handleFeatureQuotaResets(now);
 
         log.info("=== Billing transition job completed ===");
     }
@@ -108,6 +112,31 @@ public class SubscriptionAndQuotaScheduler {
                 } catch (Exception ex) {
                     log.error("Quota reset failed for {}",
                             quota.getUserId(), ex);
+                }
+            }
+            page++;
+        } while (quotaPage.hasNext());
+    }
+
+    /* ---------------- Feature usage quota reset ---------------- */
+
+    private void handleFeatureQuotaResets(Instant now) {
+
+        int page = 0;
+        Page<UsageQuota> quotaPage;
+
+        do {
+            Pageable pageable = PageRequest.of(page, BATCH_SIZE);
+            quotaPage = usageQuotaService
+                    .findQuotasToResetPaginated(now, pageable);
+
+            for (UsageQuota quota : quotaPage.getContent()) {
+                try {
+                    usageQuotaService.resetQuotaForNewBillingCycle(
+                            quota.getId());
+                } catch (Exception ex) {
+                    log.error("Feature quota reset failed for usageQuotaId={}",
+                            quota.getId(), ex);
                 }
             }
             page++;
