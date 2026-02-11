@@ -44,8 +44,11 @@ doc_helper_backend/
           features/
             auth/              - auth endpoints + email flows
             chat/              - chat threads, messages, summaries
+            doc_summary/       - document summarizer
             doc_util/          - embeddings + local storage helpers
             payments/          - Razorpay webhook + payment records
+            product_features/  - dynamic product creation and backend driven ui binding with versions
+            ui_components/     - ui components contract (to be used with features)
             usage_monitoring/  - quotas, usage reports, schedulers
             user/              - user + role management
             user_activity/     - activity recording + aggregation
@@ -104,5 +107,5 @@ Default port is `8086`.
 
 **Notes**
 - Uploads are stored under `uploads/` by default.
-- Max upload size is 50MB per file and 100MB per request (see `application-dev.yml`).
+- Max upload size is 5MB per file and 10MB per request (see `application-dev.yml`).
 - Actuator endpoints are enabled in dev; adjust exposure for production.
