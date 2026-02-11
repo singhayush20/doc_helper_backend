@@ -56,14 +56,14 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY}
       base-url: ${OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:gemini-2.5-flash}
+          stream-usage: true        
       embedding:
         options:
           model: ${OPENAI_EMBEDDING_MODEL:gemini-embedding-001}
           dimensions: ${OPENAI_EMBEDDING_DIMENSIONS:1536}
-      chat:
-        options:
-          model: ${OPENAI_CHAT_MODEL:gemini-2.5-flash}
-          stream-usage: true
 
     vectorstore:
       pgvector:
@@ -71,13 +71,17 @@ spring:
         distance-type: COSINE_DISTANCE
         dimensions: 1536
         
+doc-chat:
+  model: gemma-3-1b-it
+  temperature: 0.2  
+
 summarizer:
   model: gemini-2.5-flash-lite
 
 doc-summary:
-  model: ${DOC_SUMMARY_MODEL:gemini-2.5-flash}
-  temperature: ${DOC_SUMMARY_TEMPERATURE:0.2}
-  token-estimator: ${DOC_SUMMARY_TOKEN_ESTIMATOR:approx}
+  model: gemma-3-1b-it
+  temperature: 0.2
+  token-estimator: approx
 
 
 web:

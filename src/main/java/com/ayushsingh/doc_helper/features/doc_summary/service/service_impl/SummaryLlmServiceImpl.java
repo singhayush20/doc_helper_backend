@@ -5,7 +5,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.ayushsingh.doc_helper.core.ai.advisors.PromptMetadataLoggingAdvisor;
@@ -20,9 +20,13 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
 
         private final ChatClient chatClient;
         private final PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor;
+        @Value("${doc-summary.model}")
+        String modelName;
+        @Value("${doc-summary.temperature}")
+        Double temperature;
 
         public SummaryLlmServiceImpl(
-                @Qualifier("docSummaryChatClient") ChatClient chatClient,
+                        ChatClient chatClient,
                         PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor) {
                 this.chatClient = chatClient;
                 this.promptMetadataLoggingAdvisor = promptMetadataLoggingAdvisor;
@@ -35,6 +39,8 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                 var spec = chatClient
                                 .prompt(prompt)
                                 .options(OpenAiChatOptions.builder()
+                                                .model(modelName)
+                                                .temperature(temperature)
                                                 .maxTokens(maxTokens)
                                                 .build())
                                 .advisors(promptMetadataLoggingAdvisor);

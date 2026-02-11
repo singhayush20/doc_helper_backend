@@ -14,6 +14,4 @@ public interface SummaryGenerationService {
             long remainingTokens,
             LongConsumer tokenConsumer
     );
-
-    long estimateTokens(List<String> chunks);
 }
