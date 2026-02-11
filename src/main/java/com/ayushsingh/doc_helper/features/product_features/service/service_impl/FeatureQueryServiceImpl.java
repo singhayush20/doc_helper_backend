@@ -8,9 +8,10 @@ import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageQuota;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.BillingProductFeatureService;
-import com.ayushsingh.doc_helper.features.product_features.service.FeatureCacheService;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureQueryService;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
+import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,17 +28,12 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
 
         private final FeatureRepository featureRepository;
         private final SubscriptionService subscriptionService;
-        private final FeatureCacheService featureCacheService;
         private final BillingProductFeatureService billingProductFeatureService;
         private final UsageQuotaService usageQuotaService;
+        private final BillingProductService billingProductService;
 
         @Override
         public FeatureResponse getProductFeatures(Long userId) {
-
-                FeatureResponse cachedFeatureResponse = featureCacheService.getCachedProductFeatures(userId);
-                if (cachedFeatureResponse != null) {
-                        return cachedFeatureResponse;
-                }
 
                 List<BillingProductFeature> billingProductFeatures =
                                 fetchEnabledMappings(userId);
@@ -56,12 +52,13 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                 composeFeatures(billingProductFeatures, featureMap, quotaMap);
 
                 FeatureResponse response = new FeatureResponse(result);
-                featureCacheService.cacheProductFeatures(userId, response);
                 return response;
         }
 
         private List<BillingProductFeature> fetchEnabledMappings(Long userId) {
-                Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId);
+                Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId).orElse(
+                                billingProductService.getProductIdByTier(AccountTier.FREE));
+                                
                 return billingProductFeatureService.getEnabledByBillingProductId(billingProductId);
         }
 
@@ -84,7 +81,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
         ) {
                 List<String> featureCodes = featureMap.values()
                                 .stream()
-                                .map(Feature::getCode)
+                                .map(feature -> feature.getCode().name())
                                 .toList();
 
                 return usageQuotaService
@@ -114,7 +111,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                                         .name(feature.getName())
                                                         .usageMetric(feature.getUsageMetric())
                                                         .quota(toQuotaDto(
-                                                                        quotaMap.get(feature.getCode())))
+                                                                        quotaMap.get(feature.getCode().name())))
                                                         .build();
                                 })
                                 .filter(Objects::nonNull)
@@ -126,7 +123,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                         return null;
 
                 return UsageQuotaDto.builder()
-                                .metric(quota.getMetric())
+                                .metric(quota.getMetric().name())
                                 .used(quota.getUsed())
                                 .limit(quota.getLimit())
                                 .resetAtEpochMillis(

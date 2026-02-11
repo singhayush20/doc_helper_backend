@@ -3,9 +3,12 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
+import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.service.FeatureAccessService;
+import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
+import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,9 +20,10 @@ public class FeatureAccessServiceImpl implements FeatureAccessService {
     private final FeatureRepository featureRepository;
     private final BillingProductFeatureRepository billingProductFeatureRepository;
     private final SubscriptionService subscriptionService;
+    private final BillingProductService billingProductService;
 
     @Override
-    public void assertFeatureAccess(Long userId, String featureCode) {
+    public void assertFeatureAccess(Long userId, FeatureCodes featureCode) {
         Feature feature = featureRepository
                 .findByCodeAndActiveTrue(featureCode)
                 .orElseThrow(() -> new BaseException("Feature disabled", ExceptionCodes.FEATURE_DISABLED_ERROR));
@@ -37,6 +41,8 @@ public class FeatureAccessServiceImpl implements FeatureAccessService {
     }
 
     private Long resolveBillingProduct(Long userId) {
-        return subscriptionService.getBillingProductIdBySubscriptionId(userId);
+        Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId).orElse(
+                billingProductService.getProductIdByTier(AccountTier.FREE));
+        return billingProductId;
     }
 }

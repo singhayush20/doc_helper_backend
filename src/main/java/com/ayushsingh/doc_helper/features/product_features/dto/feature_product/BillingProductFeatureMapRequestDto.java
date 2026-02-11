@@ -14,7 +14,7 @@ import lombok.Setter;
 public class BillingProductFeatureMapRequestDto {
     private Long productId; // product id
     private Long featureId; // feature id
-    private Long enabledVersion; // enabled ui version
+    private Integer enabledVersion; // enabled ui version
     private Integer priority; // priority
     private Long quotaLimit; // usage limit for the product feature
 }

@@ -2,11 +2,11 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
-import com.ayushsingh.doc_helper.features.product_features.cache.FeatureInvalidationPublisher;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureCreateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUpdateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureDetailsDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureKeyRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureMapRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentCreateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentDetailsDto;
@@ -14,6 +14,7 @@ import com.ayushsingh.doc_helper.features.product_features.entity.BillingProduct
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
 import com.ayushsingh.doc_helper.features.product_features.entity.FeatureType;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
+import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.FeatureUIConfigRepository;
 import com.ayushsingh.doc_helper.features.product_features.repository.BillingProductFeatureRepository;
@@ -33,7 +34,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     private final BillingProductFeatureRepository billingProductFeatureRepository;
     private final BillingProductRepository billingProductRepository;
     private final FeatureUIConfigRepository featureUIConfigRepository;
-    private final FeatureInvalidationPublisher invalidationPublisher;
     private final ModelMapper modelMapper;
     private final UIComponentService uiComponentService;
 
@@ -58,8 +58,6 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
 
         var savedFeature = featureRepository.save(feature);
 
-        invalidationPublisher.publishFeatureListInvalidation();
-
         return modelMapper.map(savedFeature, ProductFeatureDto.class);
     }
 
@@ -79,30 +77,40 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
 
         var updatedFeature = featureRepository.save(feature);
 
-        invalidationPublisher.publishFeatureListInvalidation();
-
-
         return modelMapper.map(updatedFeature, ProductFeatureDto.class);
     }
 
     @Transactional
     @Override
     public void enableFeature(String featureCode) {
-        Feature feature = getFeature(featureCode);
-        feature.setActive(true);
-        featureRepository.save(feature);
+        int updated = featureRepository.updateActiveByCode(
+                parseFeatureCode(featureCode),
+                true
+        );
 
-        invalidationPublisher.publishFeatureListInvalidation();
+        if (updated == 0) {
+            throw new BaseException(
+                    "Feature not found",
+                    ExceptionCodes.FEATURE_NOT_FOUND
+            );
+        }
     }
 
     @Transactional
     @Override
     public void disableFeature(String featureCode) {
-        Feature feature = getFeature(featureCode);
-        feature.setActive(false);
-        featureRepository.save(feature);
+        int updated = featureRepository.updateActiveByCode(
+                parseFeatureCode(featureCode),
+                false
+        );
 
-        invalidationPublisher.publishFeatureListInvalidation();
+        if (updated == 0) {
+            throw new BaseException(
+                    "Feature not found",
+                    ExceptionCodes.FEATURE_NOT_FOUND
+            );
+        }
+
     }
 
     @Override
@@ -119,10 +127,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                 uiComponentService.createUIComponent(uiConfig,
                         productFeatureId,dto.getUiComponentType(),
                         dto.getVersion(),dto.getUiFeatureVersion(),dto.getScreen());
-        invalidationPublisher.publishUIInvalidation(
-                productFeatureId,
-                dto.getScreen(),
-                dto.getUiFeatureVersion());
+      
         return uiComponentDetailsDto;
     }
 
@@ -130,11 +135,9 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     public void deleteFeature(String featureCode) {
         var feature = getFeature(featureCode);
 
-        // Soft delete (recommended)
+        // Soft delete
         feature.setActive(false);
         featureRepository.save(feature);
-
-        invalidationPublisher.publishFeatureListInvalidation();
     }
 
     @Transactional
@@ -156,7 +159,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                     );
                 });
 
-        Long enabledVersion = requireEnabledVersion(dto.getEnabledVersion());
+        Integer enabledVersion = requireEnabledVersion(dto.getEnabledVersion());
         validateUiVersion(dto.getFeatureId(), enabledVersion);
 
         BillingProductFeature mapping = new BillingProductFeature();
@@ -165,12 +168,10 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         mapping.setEnabledVersion(enabledVersion);
         mapping.setQuotaLimit(requireQuotaLimit(dto.getQuotaLimit()));
         mapping.setPriority(dto.getPriority() != null ? dto.getPriority() : 0);
-        mapping.setEnabled(true);
+        mapping.setEnabled(false);
 
         BillingProductFeature saved =
                 billingProductFeatureRepository.save(mapping);
-
-        invalidationPublisher.publishFeatureListInvalidation();
 
         return toDetailsDto(saved);
     }
@@ -203,26 +204,15 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         BillingProductFeature saved =
                 billingProductFeatureRepository.save(mapping);
 
-        invalidationPublisher.publishFeatureListInvalidation();
-
         return toDetailsDto(saved);
     }
 
     @Transactional
     @Override
     public void removeFeatureFromBillingProduct(
-            BillingProductFeatureMapRequestDto dto
+            BillingProductFeatureKeyRequestDto dto
     ) {
-        BillingProductFeature mapping =
-                billingProductFeatureRepository
-                        .findByBillingProductIdAndFeatureId(
-                                dto.getProductId(),
-                                dto.getFeatureId()
-                        )
-                        .orElseThrow(() -> new BaseException(
-                                "Feature mapping not found",
-                                ExceptionCodes.FEATURE_NOT_FOUND
-                        ));
+        BillingProductFeature mapping = resolveMapping(dto);
 
         if (mapping.isEnabled()) {
             throw new BaseException(
@@ -232,11 +222,48 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         }
 
         billingProductFeatureRepository.delete(mapping);
-        invalidationPublisher.publishFeatureListInvalidation();
+    }
+
+    @Transactional
+    @Override
+    public void enableFeatureForProduct(
+            BillingProductFeatureKeyRequestDto dto
+    ) {
+        int updated = billingProductFeatureRepository.updateEnabledForProductFeature(
+                requireProductId(dto),
+                requireFeatureId(dto),
+                true
+        );
+
+        if (updated == 0) {
+            throw new BaseException(
+                    "Feature mapping not found",
+                    ExceptionCodes.FEATURE_NOT_FOUND
+            );
+        }
+    }
+
+    @Transactional
+    @Override
+    public void disableFeatureForProduct(
+            BillingProductFeatureKeyRequestDto dto
+    ) {
+        int updated = billingProductFeatureRepository.updateEnabledForProductFeature(
+                requireProductId(dto),
+                requireFeatureId(dto),
+                false
+        );
+
+        if (updated == 0) {
+            throw new BaseException(
+                    "Feature mapping not found",
+                    ExceptionCodes.FEATURE_NOT_FOUND
+            );
+        }
     }
 
     private Feature getFeature(String code) {
-        return featureRepository.findByCode(code)
+        return featureRepository.findByCode(parseFeatureCode(code))
                 .orElseThrow(() ->
                         new BaseException("Feature not found", ExceptionCodes.FEATURE_NOT_FOUND));
     }
@@ -264,7 +291,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         }
     }
 
-    private Long requireEnabledVersion(Long enabledVersion) {
+    private Integer requireEnabledVersion(Integer enabledVersion) {
         if (enabledVersion == null) {
             throw new BaseException(
                     "Enabled version is required",
@@ -274,7 +301,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         return enabledVersion;
     }
 
-    private void validateUiVersion(Long featureId, Long enabledVersion) {
+    private void validateUiVersion(Long featureId, Integer enabledVersion) {
         boolean exists =
                 featureUIConfigRepository.existsByFeatureIdAndFeatureUiVersion(
                         featureId,
@@ -306,6 +333,17 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
             );
         }
         return quotaLimit;
+    }
+
+    private FeatureCodes parseFeatureCode(String code) {
+        try {
+            return FeatureCodes.valueOf(code);
+        } catch (Exception e) {
+            throw new BaseException(
+                    "Invalid feature code",
+                    ExceptionCodes.INVALID_FEATURE_CONFIG
+            );
+        }
     }
 
     private BillingProductFeatureDetailsDto toDetailsDto(
@@ -349,5 +387,39 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                         "Feature mapping not found",
                         ExceptionCodes.FEATURE_NOT_FOUND
                 ));
+    }
+
+    private BillingProductFeature resolveMapping(
+            BillingProductFeatureKeyRequestDto dto
+    ) {
+        return billingProductFeatureRepository
+                .findByBillingProductIdAndFeatureId(
+                        requireProductId(dto),
+                        requireFeatureId(dto)
+                )
+                .orElseThrow(() -> new BaseException(
+                        "Feature mapping not found",
+                        ExceptionCodes.FEATURE_NOT_FOUND
+                ));
+    }
+
+    private Long requireProductId(BillingProductFeatureKeyRequestDto dto) {
+        if (dto.getProductId() == null) {
+            throw new BaseException(
+                    "Product id is required",
+                    ExceptionCodes.FEATURE_NOT_FOUND
+            );
+        }
+        return dto.getProductId();
+    }
+
+    private Long requireFeatureId(BillingProductFeatureKeyRequestDto dto) {
+        if (dto.getFeatureId() == null) {
+            throw new BaseException(
+                    "Feature id is required",
+                    ExceptionCodes.FEATURE_NOT_FOUND
+            );
+        }
+        return dto.getFeatureId();
     }
 }

@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.product_features.dto;
 
+import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import lombok.*;
 
 @Getter
@@ -8,7 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 public class FeatureCreateRequestDto {
 
-    private String code;        // OCR, DOC_CHAT, etc (immutable)
+    private FeatureCodes code;        // OCR, DOC_CHAT, etc (immutable)
     private String name;
     private String description;
     private String type;        // LLM, OCR, AGENT

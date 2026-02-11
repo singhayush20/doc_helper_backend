@@ -5,13 +5,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-// must be placed on the boundary where a feature is executed, not on read APIs.
+// must be placed on the boundary where a feature is executed
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequireFeature {
 
     String code();
-    String metric();
-    String amount();
 }
-

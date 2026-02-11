@@ -1,6 +1,7 @@
 package com.ayushsingh.doc_helper.features.product_features.dto;
 
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
+import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import lombok.*;
 
 @Getter
@@ -9,7 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class ProductFeatureDto {
-    private String code;
+    private FeatureCodes code;
     private String name;
     private UsageQuotaDto quota;
     private Long featureId;

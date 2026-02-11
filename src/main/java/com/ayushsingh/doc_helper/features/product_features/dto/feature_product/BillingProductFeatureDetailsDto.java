@@ -15,7 +15,7 @@ public class BillingProductFeatureDetailsDto {
     private Long id;
     private Long productId;
     private Long featureId;
-    private Long enabledVersion;
+    private Integer enabledVersion;
     private Boolean enabled;
     private Integer priority;
     private Long quotaLimit;

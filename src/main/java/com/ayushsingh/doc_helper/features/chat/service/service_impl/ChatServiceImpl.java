@@ -33,8 +33,10 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -54,7 +56,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ChatServiceImpl implements ChatService {
 
-    private final ChatClient.Builder chatClientBuilder;
     private final VectorStore vectorStore;
     private final ChatThreadRepository chatThreadRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -67,14 +68,20 @@ public class ChatServiceImpl implements ChatService {
     private final ThreadTurnService threadTurnService;
     private final ChatSummaryService chatSummaryService;
     private final UserActivityRecorder userActivityRecorder;
+    private final ChatClient chatClient;
+
+    @Value("${doc-chat.model}")
+    String modelName;
+    @Value("${doc-chat.temperature}")
+    Double temperature;
 
     private final static Long DEFAULT_TOKEN_THRESHOLD = 6800L;
     private static final int MAX_RAG_CHARS = 2500;
 
     @Override
     public Flux<String> generateStreamingResponse(ChatRequest chatRequest,
-                                                  Boolean webSearch,
-                                                  String generationId) {
+            Boolean webSearch,
+            String generationId) {
         log.debug("Generating streaming response for documentId: {}, generationId: {}",
                 chatRequest.documentId(), generationId);
 
@@ -110,10 +117,10 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private void handleStream(SignalType signalType,
-                              String generationId,
-                              ChatContext context,
-                              StringBuilder fullResponse,
-                              Long turnNumber) {
+            String generationId,
+            ChatContext context,
+            StringBuilder fullResponse,
+            Long turnNumber) {
 
         boolean userCancelled = chatCancellationRegistry.isManuallyCancelled(generationId);
         chatCancellationRegistry.clear(generationId);
@@ -180,7 +187,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public ChatCallResponse generateResponse(ChatRequest chatRequest,
-                                             Boolean webSearch) {
+            Boolean webSearch) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         ChatContext context = prepareChatContext(chatRequest);
         String threadId = context.chatThread().getId();
@@ -204,7 +211,6 @@ public class ChatServiceImpl implements ChatService {
         }
 
         userActivityRecorder.record(context.userId(), context.documentId(), UserActivityType.DOCUMENT_CHAT);
-
 
         log.debug("Non-streaming response completed for threadId: {}",
                 threadId);
@@ -236,10 +242,10 @@ public class ChatServiceImpl implements ChatService {
         String userPrompt = """
                 Context:
                 %s
-                
+
                 Conversation:
                 %s
-                
+
                 Question:
                 %s
                 """.formatted(ragContext, historyContext, userQuestion);
@@ -259,9 +265,12 @@ public class ChatServiceImpl implements ChatService {
 
     private ChatClient.ChatClientRequestSpec buildChatClientSpec(
             ChatContext context, Boolean webSearchEnabled, String generationId) {
-        ChatClient chatClient = chatClientBuilder.build();
 
         var chatClientSpec = chatClient.prompt(context.prompt())
+                .options(OpenAiChatOptions.builder()
+                        .model(modelName)
+                        .temperature(temperature)
+                        .build())
                 .advisors(spec -> {
                     spec.param("documentId", context.documentId())
                             .param("userId", context.userId())
@@ -309,11 +318,11 @@ public class ChatServiceImpl implements ChatService {
                 })
                 .toList() : List.of();
 
-        log.debug("Similarity search filtered docs returned for question: {}, number of docs: {}", question, filtered.size());
+        log.debug("Similarity search filtered docs returned for question: {}, number of docs: {}", question,
+                filtered.size());
 
         return buildRagContext(filtered);
     }
-
 
     private String buildRagContext(List<Document> docs) {
 
@@ -357,8 +366,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     public ChatMessage saveUserMessage(ChatThread thread,
-                                       Long turnNumber,
-                                       String content) {
+            Long turnNumber,
+            String content) {
         ChatMessage msg = new ChatMessage();
         msg.setThreadId(thread.getId());
         msg.setTurnNumber(turnNumber);
@@ -373,8 +382,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     public ChatMessage saveAssistantMessage(ChatThread thread,
-                                            Long turnNumber,
-                                            String content) {
+            Long turnNumber,
+            String content) {
         ChatMessage msg = new ChatMessage();
         msg.setThreadId(thread.getId());
         msg.setTurnNumber(turnNumber);
@@ -390,8 +399,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private void updateThreadSnippet(String threadId,
-                                     Long turnNumber,
-                                     String content) {
+            Long turnNumber,
+            String content) {
 
         String snippet = computeSnippet(content);
 
@@ -421,7 +430,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public ChatHistoryResponse fetchChatHistoryForDocument(Long documentId,
-                                                           Integer page) {
+            Integer page) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         var chatThread = chatThreadRepository.findByDocumentIdAndUserId(
                 documentId, userId);

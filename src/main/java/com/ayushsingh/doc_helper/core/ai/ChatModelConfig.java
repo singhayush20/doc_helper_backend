@@ -1,8 +1,6 @@
 package com.ayushsingh.doc_helper.core.ai;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,32 +9,27 @@ import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class ChatModelConfig {
-    private final OpenAiChatModel openAiChatModel;
 
-    public ChatModelConfig(OpenAiChatModel openAiChatModel) {
-        this.openAiChatModel = openAiChatModel;
-    }
+        @Bean("summarizerChatClient")
+        public ChatClient summarizerChatClient(
+                        ChatClient.Builder builder,
+                        @Value("${summarizer.model}") String modelName) {
 
-    @Bean
-    @Primary
-    ChatModel chatModel() {
-        return openAiChatModel;
-    }
+                OpenAiChatOptions summarizerOptions = OpenAiChatOptions.builder()
+                                .model(modelName)
+                                .temperature(0.2d)
+                                .maxTokens(300)
+                                .build();
 
-    @Bean("summarizerChatClient")
-    public ChatClient summarizerChatClient(
-            ChatClient.Builder builder,
-            @Value("${summarizer.model}") String modelName) {
+                return builder
+                                .defaultOptions(summarizerOptions)
+                                .build();
+        }
 
-        OpenAiChatOptions summarizerOptions = OpenAiChatOptions.builder()
-                .model(modelName)
-                .temperature(0.2d)
-                .maxTokens(300)
-                .build();
+        @Primary
+        public ChatClient docSummaryChatClient(
+                        ChatClient.Builder builder) {
 
-        return builder
-                .defaultOptions(summarizerOptions)
-                .build();
-    }
-
+                return builder.build();
+        }
 }

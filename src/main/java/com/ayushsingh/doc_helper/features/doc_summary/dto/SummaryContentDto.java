@@ -1,0 +1,27 @@
+package com.ayushsingh.doc_helper.features.doc_summary.dto;
+
+import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryLength;
+import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryTone;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.Instant;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class SummaryContentDto {
+    private Long summaryId;
+    private Long documentId;
+    private Integer version;
+    private SummaryTone tone;
+    private SummaryLength length;
+    private String content;
+    private Integer tokensUsed;
+    private Instant createdAt;
+}

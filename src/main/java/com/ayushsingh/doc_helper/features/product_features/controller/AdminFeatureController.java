@@ -4,6 +4,7 @@ import com.ayushsingh.doc_helper.features.product_features.dto.FeatureCreateRequ
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUpdateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureDetailsDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureKeyRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureMapRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentCreateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ui_component.UIComponentDetailsDto;
@@ -76,6 +77,22 @@ public class AdminFeatureController {
         return new ResponseEntity<>(mapping, HttpStatus.CREATED);
     }
 
+    @PostMapping("/product/enable")
+    public ResponseEntity<Void> enableFeatureForProduct(
+            @RequestBody BillingProductFeatureKeyRequestDto dto
+    ) {
+        adminFeatureService.enableFeatureForProduct(dto);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/product/disable")
+    public ResponseEntity<Void> disableFeatureForProduct(
+            @RequestBody BillingProductFeatureKeyRequestDto dto
+    ) {
+        adminFeatureService.disableFeatureForProduct(dto);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/product-config")
     public ResponseEntity<BillingProductFeatureDetailsDto> updateProductFeatureConfig(
             @RequestBody BillingProductFeatureDetailsDto dto
@@ -87,7 +104,7 @@ public class AdminFeatureController {
 
     @DeleteMapping("/product")
     public ResponseEntity<Void> removeFeatureFromBillingProduct(
-            @RequestBody BillingProductFeatureMapRequestDto dto
+            @RequestBody BillingProductFeatureKeyRequestDto dto
     ) {
         adminFeatureService.removeFeatureFromBillingProduct(dto);
         return ResponseEntity.noContent().build();

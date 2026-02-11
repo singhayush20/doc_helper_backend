@@ -69,6 +69,13 @@ spring:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
         dimensions: 1536
+
+doc-summary:
+  model: ${DOC_SUMMARY_MODEL:gemini-2.5-pro}
+  temperature: ${DOC_SUMMARY_TEMPERATURE:0.2}
+  default-max-tokens: ${DOC_SUMMARY_DEFAULT_MAX_TOKENS:300}
+  token-estimator: ${DOC_SUMMARY_TOKEN_ESTIMATOR:approx}
+
 web:
   search:
     base-url: ${WEB_SEARCH_BASE_URL}
