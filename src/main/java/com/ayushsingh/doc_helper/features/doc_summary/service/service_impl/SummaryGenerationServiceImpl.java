@@ -147,6 +147,8 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
         int promptTokens = tokenEstimator.estimateTokens(prompt);
 
+        // TODO: Token length is not working - needs to be fixed
+        // TODO: Consider adding structured output with a fixed format to reduce token usage and increase reliability
         int desiredMax = switch (length) {
             case SHORT -> finalPass ? 800 : 400;
             case MEDIUM -> finalPass ? 1200 : 600;

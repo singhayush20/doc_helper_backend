@@ -7,33 +7,63 @@ import java.util.List;
 
 public final class SummaryPromptBuilder {
 
-    public static String buildChunkPrompt(String chunk, SummaryTone tone, SummaryLength length) {
-        return """
-                You are a summarization assistant.
-                Tone: %s
-                Length: %s
+    public static String buildChunkPrompt(
+            String chunk,
+            SummaryTone tone,
+            SummaryLength length) {
 
-                Summarize the following text. Focus on factual accuracy and keep the summary self-contained.
-                Text:
+        return """
+                You are a document summarization engine.
+
+                TASK:
+                Summarize the text below.
+
+                TONE: %s
+                LENGTH: %s
+
+                STRICT RULES:
+                - Return ONLY the summary.
+                - Do NOT evaluate the text.
+                - Do NOT comment on quality.
+                - Do NOT address the reader.
+                - Do NOT include introductions or conclusions.
+                - Do NOT include phrases like "This summary..." or "In conclusion".
+                - Do NOT add meta commentary.
+
+                TEXT:
                 %s
                 """.formatted(tone.name(), length.name(), chunk);
     }
 
-    public static String buildAggregatePrompt(List<String> summaries, SummaryTone tone, SummaryLength length, boolean finalPass) {
+    public static String buildAggregatePrompt(
+            List<String> summaries,
+            SummaryTone tone,
+            SummaryLength length,
+            boolean finalPass) {
+
         String joined = String.join("\n\n---\n\n", summaries);
 
-        String mode = finalPass
-                ? "Produce the final summary from the summaries below."
-                : "Combine and condense the summaries below into a smaller set of summaries.";
-
         return """
-                You are a summarization assistant.
-                Tone: %s
-                Length: %s
+                You are a document summarization engine.
 
-                %s Keep the output coherent and avoid repetition.
-                Summaries:
+                TASK:
+                Merge the summaries below into a single cohesive summary.
+
+                TONE: %s
+                LENGTH: %s
+
+                STRICT RULES:
+                - Return ONLY the final merged summary.
+                - Do NOT evaluate.
+                - Do NOT comment.
+                - Do NOT mention tone or length.
+                - Do NOT address the user.
+                - Do NOT include phrases like "Good summary", "You've done", or "Thank you".
+                - Do NOT explain what you are doing.
+                - Output must begin directly with the summary content.
+
+                SUMMARIES:
                 %s
-                """.formatted(tone.name(), length.name(), mode, joined);
+                """.formatted(tone.name(), length.name(), joined);
     }
 }
