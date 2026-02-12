@@ -16,30 +16,40 @@ public final class SummaryPromptBuilder {
                 You are a document summarization engine.
 
                 TASK:
-                Summarize the text below.
+                Summarize the provided TEXT.
 
-                TONE: %s
-                LENGTH: %s
+                STYLE REQUIREMENTS:
+                %s
+                %s
 
-                STRICT RULES:
-                - Return ONLY the summary.
-                - Do NOT evaluate the text.
-                - Do NOT comment on quality.
-                - Do NOT address the reader.
-                - Do NOT include introductions or conclusions.
-                - Do NOT include phrases like "This summary..." or "In conclusion".
-                - Do NOT add meta commentary.
+                OUTPUT FORMAT:
+                Return ONLY valid JSON in this exact structure:
+
+                {
+                  "summary": "string",
+                  "wordCount": integer,
+                }
+
+                RULES:
+                - summary must respect the length constraint.
+                - wordCount must reflect the actual word count of summary.
+                - keyPoints must contain 3–7 bullet insights extracted from the text.
+                - Do not add any fields.
+                - Do not wrap JSON in markdown.
+                - Output must start with '{'.
 
                 TEXT:
                 %s
-                """.formatted(tone.name(), length.name(), chunk);
+                """.formatted(
+                toneInstruction(tone),
+                lengthInstruction(length),
+                chunk);
     }
 
     public static String buildAggregatePrompt(
             List<String> summaries,
             SummaryTone tone,
-            SummaryLength length,
-            boolean finalPass) {
+            SummaryLength length) {
 
         String joined = String.join("\n\n---\n\n", summaries);
 
@@ -47,23 +57,52 @@ public final class SummaryPromptBuilder {
                 You are a document summarization engine.
 
                 TASK:
-                Merge the summaries below into a single cohesive summary.
+                Merge the provided summaries into one cohesive final summary.
 
-                TONE: %s
-                LENGTH: %s
+                STYLE REQUIREMENTS:
+                %s
+                %s
 
-                STRICT RULES:
-                - Return ONLY the final merged summary.
-                - Do NOT evaluate.
-                - Do NOT comment.
-                - Do NOT mention tone or length.
-                - Do NOT address the user.
-                - Do NOT include phrases like "Good summary", "You've done", or "Thank you".
-                - Do NOT explain what you are doing.
-                - Output must begin directly with the summary content.
+                OUTPUT FORMAT:
+                Return ONLY valid JSON:
+
+                {
+                  "summary": "string",
+                  "wordCount": integer,
+                }
+
+                RULES:
+                - Eliminate repetition.
+                - Maintain logical flow.
+                - keyPoints must reflect the merged content.
+                - wordCount must match summary.
+                - No additional commentary.
+                - Output must start with '{'.
 
                 SUMMARIES:
                 %s
-                """.formatted(tone.name(), length.name(), joined);
+                """.formatted(
+                toneInstruction(tone),
+                lengthInstruction(length),
+                joined);
+    }
+
+    private static String toneInstruction(SummaryTone tone) {
+        return switch (tone) {
+            case PROFESSIONAL -> "Use formal, neutral business language.";
+            case CASUAL -> "Use simple, conversational language.";
+            case EXECUTIVE -> "Use concise, high-impact executive-level language.";
+            case TECHNICAL -> "Use precise domain-specific terminology.";
+            case LEGAL -> "Use formal legal-style language with precise wording.";
+        };
+    }
+
+    private static String lengthInstruction(SummaryLength length) {
+        return switch (length) {
+            case SHORT -> "Maximum 150 words.";
+            case MEDIUM -> "Between 150 and 300 words.";
+            case LONG -> "Between 300 and 600 words.";
+            case VERY_LONG -> "Between 600 and 1000 words.";
+        };
     }
 }

@@ -16,4 +16,5 @@ public class SummaryCreateResponseDto {
     private Integer version;
     private Integer tokensUsed;
     private String content;
+    private Integer wordCount;
 }

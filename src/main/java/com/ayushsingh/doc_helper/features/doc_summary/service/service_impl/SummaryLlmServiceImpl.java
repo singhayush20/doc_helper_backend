@@ -1,14 +1,15 @@
 package com.ayushsingh.doc_helper.features.doc_summary.service.service_impl;
 
-import org.apache.logging.log4j.util.Strings;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.ayushsingh.doc_helper.core.ai.advisors.PromptMetadataLoggingAdvisor;
+import com.ayushsingh.doc_helper.features.doc_summary.dto.StructuredSummaryDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryLlmService;
 
@@ -36,17 +37,21 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
         public SummaryLlmResponse generate(String prompt, Integer maxTokens) {
                 log.debug("Generating response for prompt: {} \n maxTokens: {}", prompt, maxTokens);
 
-                var spec = chatClient
+                var clientResponse = chatClient
                                 .prompt(prompt)
                                 .options(OpenAiChatOptions.builder()
                                                 .model(modelName)
                                                 .temperature(temperature)
                                                 .maxTokens(maxTokens)
                                                 .build())
-                                .advisors(promptMetadataLoggingAdvisor);
+                                .advisors(promptMetadataLoggingAdvisor)
+                                .call();
 
-                var response = spec.call();
-                ChatResponse chatResponse = response.chatResponse();
+                var response = clientResponse.responseEntity(StructuredSummaryDto.class);
+
+                ChatResponse chatResponse = response.getResponse();
+
+                StructuredSummaryDto structuredResponseEntity = response.getEntity();
 
                 Usage usage = chatResponse != null && chatResponse.getMetadata() != null
                                 ? chatResponse.getMetadata().getUsage()
@@ -57,7 +62,7 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                 var totalTokens = usage != null ? usage.getTotalTokens() : null;
 
                 return new SummaryLlmResponse(
-                                (chatResponse != null) ? chatResponse.getResult().getOutput().getText() : Strings.EMPTY,
+                                structuredResponseEntity,
                                 promptTokens,
                                 completionTokens,
                                 totalTokens);

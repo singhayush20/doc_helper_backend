@@ -72,17 +72,15 @@ spring:
         dimensions: 1536
         
 doc-chat:
-  model: gemma-3-1b-it
+  model: gemini-3-pro-preview
   temperature: 0.2  
 
 summarizer:
   model: gemini-2.5-flash-lite
 
 doc-summary:
-  model: gemma-3-1b-it
+  model: gemini-3-pro-preview
   temperature: 0.2
-  token-estimator: approx
-
 
 web:
   search:

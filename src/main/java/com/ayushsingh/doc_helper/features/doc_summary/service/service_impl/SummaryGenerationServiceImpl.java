@@ -24,7 +24,7 @@ import java.util.function.LongConsumer;
 public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
     private static final int MAX_RETRIES = 2;
-    private static final int TOKEN_SAFETY_BUFFER = 100;
+    private static final int MIN_REQUIRED_TOKEN_DIFFERENCE = 100;
 
     private final SummaryLlmService llmService;
     private final DocumentTokenEstimationService tokenEstimator;
@@ -50,11 +50,6 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
         List<String> chunkSummaries = new ArrayList<>();
         long totalTokens = 0;
 
-        /*
-         * =========================
-         * STEP 1: Chunk summaries
-         * =========================
-         */
         for (String chunk : normalizedChunks) {
 
             String prompt = SummaryPromptBuilder.buildChunkPrompt(chunk, tone, length);
@@ -63,9 +58,7 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
             SummaryLlmResponse response = callWithRetry(prompt, maxOutputTokens);
 
-            validateIntermediateSummary(response.content());
-
-            chunkSummaries.add(response.content());
+            chunkSummaries.add(response.content().summary());
 
             long usedTokens = resolveTokensUsed(response, prompt);
             totalTokens += usedTokens;
@@ -73,20 +66,13 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
             usageConsumer.accept(usedTokens);
         }
 
-        /*
-         * =========================
-         * STEP 2: SINGLE aggregation
-         * =========================
-         */
         String aggregationPrompt = SummaryPromptBuilder.buildAggregatePrompt(
-                chunkSummaries, tone, length,true);
+                chunkSummaries, tone, length);
 
         int aggregationMaxTokens = resolveMaxOutputTokens(
                 aggregationPrompt, length, true, remainingTokens);
 
         SummaryLlmResponse aggregatedResponse = callWithRetry(aggregationPrompt, aggregationMaxTokens);
-
-        validateIntermediateSummary(aggregatedResponse.content());
 
         long aggregationTokens = resolveTokensUsed(aggregatedResponse, aggregationPrompt);
 
@@ -96,15 +82,6 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
         return new SummaryGenerationResult(
                 aggregatedResponse.content(),
                 Math.toIntExact(totalTokens));
-    }
-
-    private void validateIntermediateSummary(String text) {
-        if (text == null || text.isBlank()) {
-            log.error("LLM returned empty text: {}",text);
-        
-            throw new BaseException("LLM returned empty text",
-                "XXX");
-        }       
     }
 
     private SummaryLlmResponse callWithRetry(String prompt, int maxOutputTokens) {
@@ -137,8 +114,6 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
         throw last != null ? last : new RuntimeException("LLM call failed");
     }
 
-    /* ================= TOKEN LOGIC (UNCHANGED) ================= */
-
     private int resolveMaxOutputTokens(
             String prompt,
             SummaryLength length,
@@ -147,22 +122,21 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
         int promptTokens = tokenEstimator.estimateTokens(prompt);
 
-        // TODO: Token length is not working - needs to be fixed
-        // TODO: Consider adding structured output with a fixed format to reduce token usage and increase reliability
-        int desiredMax = switch (length) {
-            case SHORT -> finalPass ? 800 : 400;
-            case MEDIUM -> finalPass ? 1200 : 600;
-            case LONG -> finalPass ? 2000 : 1000;
+        var lengthBasedMax = switch (length) {
+            case SHORT -> 300;
+            case MEDIUM -> 500;
+            case LONG -> 900;
+            case VERY_LONG -> 1200;
         };
 
-        long allowed = remainingTokens - promptTokens - TOKEN_SAFETY_BUFFER;
+        long allowed = remainingTokens - promptTokens - MIN_REQUIRED_TOKEN_DIFFERENCE;
         if (allowed <= 0) {
             throw new BaseException(
                     "Quota exceeded",
                     ExceptionCodes.QUOTA_EXCEEDED);
         }
 
-        return (int) Math.min(desiredMax, allowed);
+        return (int) Math.min(lengthBasedMax, allowed);
     }
 
     private long resolveTokensUsed(
@@ -174,7 +148,8 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
         }
 
         return tokenEstimator.estimateTokens(prompt)
-                + tokenEstimator.estimateTokens(response.content());
+                + tokenEstimator
+                        .estimateTokens(response.content().summary());
     }
 
     private long updateRemainingTokens(

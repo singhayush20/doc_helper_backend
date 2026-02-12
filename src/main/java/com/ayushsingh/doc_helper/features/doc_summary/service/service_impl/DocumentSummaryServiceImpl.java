@@ -93,8 +93,9 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         summary.setDocumentId(documentId);
         summary.setVersionNumber(nextVersion);
         summary.setTone(tone);
+        summary.setWordCount(result.content().wordCount());
         summary.setLength(length);
-        summary.setContent(result.content());
+        summary.setContent(result.content().summary());
         summary.setTokensUsed(result.tokensUsed());
 
         DocumentSummary saved = documentSummaryRepository.save(summary);
@@ -104,6 +105,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
                 .version(saved.getVersionNumber())
                 .tokensUsed(saved.getTokensUsed())
                 .content(saved.getContent())
+                .wordCount(saved.getWordCount())
                 .build();
     }
 

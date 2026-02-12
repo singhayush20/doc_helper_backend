@@ -52,6 +52,9 @@ public class DocumentSummary {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "word_count", nullable = false)
+    private Integer wordCount;
+
     @Column(name = "tokens_used", nullable = false)
     private Integer tokensUsed;
 
