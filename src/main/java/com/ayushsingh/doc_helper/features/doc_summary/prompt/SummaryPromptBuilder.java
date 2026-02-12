@@ -77,6 +77,8 @@ public final class SummaryPromptBuilder {
                 - keyPoints must reflect the merged content.
                 - wordCount must match summary.
                 - No additional commentary.
+                - Do not add any fields.
+                - The summary string must be well-formatted in markdown with appropriate paragraphs and bullet points where necessary.
                 - Output must start with '{'.
 
                 SUMMARIES:
