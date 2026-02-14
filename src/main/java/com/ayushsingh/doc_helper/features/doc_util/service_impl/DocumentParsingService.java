@@ -3,6 +3,10 @@ package com.ayushsingh.doc_helper.features.doc_util.service_impl;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessRead;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -69,46 +73,47 @@ public class DocumentParsingService {
     }
 
     private String parsePdf(Resource resource) throws Exception {
-        try (InputStream inputStream = resource.getInputStream();
-             PDDocument document = PDDocument.load(inputStream)) {
-            StringBuilder sb = new StringBuilder();
-            ObjectExtractor extractor = new ObjectExtractor(document);
-            SpreadsheetExtractionAlgorithm spreadsheetAlgorithm =
-                    new SpreadsheetExtractionAlgorithm();
-            BasicExtractionAlgorithm basicAlgorithm =
-                    new BasicExtractionAlgorithm();
+        try (InputStream inputStream = resource.getInputStream();) {
+            byte[] bytes = inputStream.readAllBytes();
+            try (RandomAccessRead rar = new RandomAccessReadBuffer(bytes);
+                    PDDocument document = Loader.loadPDF(rar)) {
+                StringBuilder sb = new StringBuilder();
+                ObjectExtractor extractor = new ObjectExtractor(document);
+                SpreadsheetExtractionAlgorithm spreadsheetAlgorithm = new SpreadsheetExtractionAlgorithm();
+                BasicExtractionAlgorithm basicAlgorithm = new BasicExtractionAlgorithm();
 
-            int totalPages = document.getNumberOfPages();
-            for (int pageIndex = 0; pageIndex < totalPages; pageIndex++) {
-                int pageNumber = pageIndex + 1;
-                PDPage page = document.getPage(pageIndex);
+                int totalPages = document.getNumberOfPages();
+                for (int pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+                    int pageNumber = pageIndex + 1;
+                    PDPage page = document.getPage(pageIndex);
 
-                String pageText = extractPageText(document, page, pageNumber);
-                if (!pageText.isBlank()) {
-                    sb.append(pageText).append("\n\n");
-                }
+                    String pageText = extractPageText(document, page, pageNumber);
+                    if (!pageText.isBlank()) {
+                        sb.append(pageText).append("\n\n");
+                    }
 
-                List<String> tables = extractTablesForPage(
-                        extractor,
-                        spreadsheetAlgorithm,
-                        basicAlgorithm,
-                        pageNumber);
-                if (!tables.isEmpty()) {
-                    for (String table : tables) {
-                        sb.append("\n[TABLE_START]\n")
-                                .append(table)
-                                .append("\n[TABLE_END]\n\n");
+                    List<String> tables = extractTablesForPage(
+                            extractor,
+                            spreadsheetAlgorithm,
+                            basicAlgorithm,
+                            pageNumber);
+                    if (!tables.isEmpty()) {
+                        for (String table : tables) {
+                            sb.append("\n[TABLE_START]\n")
+                                    .append(table)
+                                    .append("\n[TABLE_END]\n\n");
+                        }
                     }
                 }
-            }
 
-            return sb.toString();
+                return sb.toString();
+            }
         }
     }
 
     private String parseDocx(Resource resource) throws Exception {
         try (InputStream inputStream = resource.getInputStream();
-             XWPFDocument document = new XWPFDocument(inputStream)) {
+                XWPFDocument document = new XWPFDocument(inputStream)) {
             StringBuilder sb = new StringBuilder();
             for (IBodyElement element : document.getBodyElements()) {
                 if (element instanceof XWPFParagraph paragraph) {
@@ -173,8 +178,7 @@ public class DocumentParsingService {
     }
 
     private String parseWithTika(Resource resource) {
-        TikaDocumentReader reader = new TikaDocumentReader(resource);
-        List<org.springframework.ai.document.Document> documents = reader.get();
+        var documents = parseWithTikaStructured(resource);
         if (documents.isEmpty()) {
             throw new BaseException("Failed to parse document", ExceptionCodes.DOCUMENT_PARSING_FAILED);
         }
@@ -182,6 +186,15 @@ public class DocumentParsingService {
                 .map(org.springframework.ai.document.Document::getFormattedContent)
                 .filter(s -> s != null && !s.isBlank())
                 .collect(Collectors.joining("\n"));
+    }
+
+    public List<org.springframework.ai.document.Document> parseWithTikaStructured(Resource resource) {
+        TikaDocumentReader reader = new TikaDocumentReader(resource);
+        List<org.springframework.ai.document.Document> documents = reader.get();
+        if (documents.isEmpty()) {
+            throw new BaseException("Failed to parse document", ExceptionCodes.DOCUMENT_PARSING_FAILED);
+        }
+        return documents;
     }
 
     private String sanitize(String text) {
@@ -247,8 +260,7 @@ public class DocumentParsingService {
             ObjectExtractor extractor,
             SpreadsheetExtractionAlgorithm spreadsheetAlgorithm,
             BasicExtractionAlgorithm basicAlgorithm,
-            int pageNumber
-    ) {
+            int pageNumber) {
         try {
             Page page = extractor.extract(pageNumber);
             List<Table> tables = spreadsheetAlgorithm.extract(page);
@@ -309,7 +321,7 @@ public class DocumentParsingService {
 
     @SuppressWarnings("unchecked")
     private List<List<RectangularTextContainer<?>>> getTableRows(Table table) {
-        return (List<List<RectangularTextContainer<?>>>)(List<?>) table.getRows();
+        return (List<List<RectangularTextContainer<?>>>) (List<?>) table.getRows();
     }
 
     private static final class ColumnStatsStripper extends PDFTextStripper {

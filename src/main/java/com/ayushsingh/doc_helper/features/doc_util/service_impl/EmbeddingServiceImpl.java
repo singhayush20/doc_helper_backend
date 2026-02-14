@@ -10,7 +10,6 @@ import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.tika.TikaDocumentReader;
 import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -27,20 +26,23 @@ public class EmbeddingServiceImpl implements EmbeddingService {
         private static final String EMBEDDING_MODEL = "gemini-embedding-001";
         private static final int CHUNK_SIZE = 400;
         private static final int CHUNK_OVERLAP = 80;
-        private static final int MAX_TOKENS_PER_CHUNK = 512;        
+        private static final int MAX_TOKENS_PER_CHUNK = 512;
 
         private final VectorStore vectorStore;
         private final UserDocRepository userDocRepository;
         private final EmbeddingUsageService embeddingUsageService;
         private final JTokkitTokenCountEstimator tokenEstimator;
+        private final DocumentParsingService documentParsingService;
 
         public EmbeddingServiceImpl(VectorStore vectorStore,
                         UserDocRepository userDocRepository,
-                        EmbeddingUsageService embeddingUsageService) {
+                        EmbeddingUsageService embeddingUsageService,
+                        DocumentParsingService documentParsingService) {
                 this.vectorStore = vectorStore;
                 this.userDocRepository = userDocRepository;
                 this.embeddingUsageService = embeddingUsageService;
                 this.tokenEstimator = new JTokkitTokenCountEstimator();
+                this.documentParsingService = documentParsingService;
         }
 
         @Async
@@ -160,8 +162,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
         }
 
         private List<Document> readAndSplit(Resource file, String fileNameForLog) {
-                TikaDocumentReader documentReader = new TikaDocumentReader(file);
-                List<Document> documents = documentReader.get();
+              var documents = documentParsingService.parseWithTikaStructured(file);
                 log.debug("Read {} document(s) from file: {}", documents.size(), fileNameForLog);
 
                 TokenTextSplitter textSplitter = new TokenTextSplitter(
@@ -169,7 +170,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
                                 CHUNK_OVERLAP,
                                 10,
                                 MAX_TOKENS_PER_CHUNK,
-                                true              );
+                                true);
 
                 return textSplitter.apply(documents);
         }
