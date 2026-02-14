@@ -1,7 +1,8 @@
 package com.ayushsingh.doc_helper.features.product_features.dto.ui;
 
+import java.util.Map;
+
 import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.*;
 
 @Getter
@@ -12,5 +13,5 @@ import lombok.*;
 public class FeatureWithUiDto {
 
     private ProductFeatureDto feature;
-    private JsonNode ui;
+    private Map<String,Object> ui;
 }

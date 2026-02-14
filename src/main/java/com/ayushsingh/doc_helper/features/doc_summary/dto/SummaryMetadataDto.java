@@ -21,5 +21,7 @@ public class SummaryMetadataDto {
     private SummaryTone tone;
     private SummaryLength length;
     private Integer tokensUsed;
+    private Integer wordCount;
+    private String content;
     private Instant createdAt;
 }

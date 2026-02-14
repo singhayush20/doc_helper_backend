@@ -26,172 +26,161 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @Service
 public class UIComponentServiceImpl implements UIComponentService {
 
-    private final FeatureUIConfigRepository featureUIConfigRepository;
-    private final UIComponentRegistry uiComponentRegistry;
-    private final ObjectMapper objectMapper;
-    private final SubscriptionService subscriptionService;
-    private final BillingProductService billingProductService;
+        private final FeatureUIConfigRepository featureUIConfigRepository;
+        private final UIComponentRegistry uiComponentRegistry;
+        private final ObjectMapper objectMapper;
+        private final SubscriptionService subscriptionService;
+        private final BillingProductService billingProductService;
 
-    @Override
-    public UIComponentDetailsDto createUIComponent(
-            JsonNode uiConfig,
-            Long productFeatureId,
-            UIComponentType uiComponentType,
-            Integer version,
-            Integer featureUIVersion,
-            String screen
-    ) {
-        // Resolve concrete Java type BEFORE parsing
-        Class<? extends UIComponent> targetClass =
-                uiComponentRegistry.resolve(uiComponentType, version);
+        @Override
+        public UIComponentDetailsDto createUIComponent(
+                        JsonNode uiConfig,
+                        Long productFeatureId,
+                        UIComponentType uiComponentType,
+                        Integer componentVersion,
+                        Integer featureUIVersion,
+                        String screen) {
+                // Resolve concrete Java type BEFORE parsing
+                Class<? extends UIComponent> targetClass = uiComponentRegistry.resolve(uiComponentType, componentVersion);
 
-        //  Parse JSON to concrete UI record - This IS the validation step
-        try {
-            validateConfig(uiConfig, targetClass);
-        } catch (Exception e) {
-            throw new BaseException(
-                    "Invalid UI configuration for " +
-                            uiComponentType + " v" + version,
-                    ExceptionCodes.INVALID_UI_CONFIG
-            );
+                // Parse JSON to concrete UI record - This IS the validation step
+                try {
+                        validateConfig(uiConfig, targetClass);
+                } catch (Exception e) {
+                        throw new BaseException(
+                                        "Invalid UI configuration for " +
+                                                        uiComponentType + " v" + componentVersion,
+                                        ExceptionCodes.INVALID_UI_CONFIG);
+                }
+
+                var existingUiFeatureVersion = featureUIConfigRepository
+                                .existsByFeatureIdAndFeatureUiVersion(productFeatureId, featureUIVersion);
+
+                if (existingUiFeatureVersion) {
+                        throw new BaseException("Feature already has a UI config with " +
+                                        "version " + featureUIVersion,
+                                        ExceptionCodes.DUPLICATE_UI_CONFIG_FOUND);
+                }
+
+                // Persist JSON as-is (validated snapshot)
+                FeatureUIConfig entity = new FeatureUIConfig();
+                entity.setFeatureId(productFeatureId);
+                entity.setComponentType(uiComponentType);
+                entity.setFeatureUiVersion(featureUIVersion);
+                entity.setComponentVersion(componentVersion);
+                entity.setUiJson(uiConfig.toString());
+                entity.setScreen(screen);
+                entity.setActive(true);
+
+                FeatureUIConfig saved = featureUIConfigRepository.save(entity);
+
+                // Return minimal metadata DTO
+                JsonNode uiConfigNode;
+                try {
+                        uiConfigNode = objectMapper.readTree(saved.getUiJson());
+                } catch (Exception e) {
+                        throw new BaseException(
+                                        "Failed to read stored UI config",
+                                        ExceptionCodes.INVALID_UI_CONFIG);
+                }
+
+                return UIComponentDetailsDto.builder()
+                                .id(saved.getId())
+                                .active(saved.isActive())
+                                .uiComponentType(saved.getComponentType())
+                                .screen(saved.getScreen())
+                                .uiConfig(uiConfigNode)
+                                .build();
         }
 
-        var existingUiFeatureVersion =
-                featureUIConfigRepository.existsByFeatureIdAndFeatureUiVersion(productFeatureId, featureUIVersion);
+        @Override
+        public FeatureScreenResponse getUIFeatures(
+                        Long userId,
+                        String screen,
+                        UIComponentType componentType) {
+                // TODO: Optimize this by caching the response- also handle cache
+                // eviction/updation in case ui configs are updated
+                Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId).orElse(
+                                billingProductService.getProductIdByTier(AccountTier.FREE));
 
-        if (existingUiFeatureVersion) {
-            throw new BaseException("Feature already has a UI config with " +
-                    "version " + featureUIVersion,
-                    ExceptionCodes.DUPLICATE_UI_CONFIG_FOUND);
+                List<FeatureUiConfigView> configs = featureUIConfigRepository.findEnabledUiConfigsForProduct(
+                                billingProductId, screen, componentType);
+
+                if (configs.isEmpty()) {
+                        return new FeatureScreenResponse(List.of());
+                }
+
+                List<FeatureWithUiDto> result = configs.stream()
+                                .sorted(Comparator.comparing(
+                                                FeatureUiConfigView::getPriority,
+                                                Comparator.nullsLast(Integer::compareTo))
+                                                .thenComparing(view -> view.getFeature().getId()))
+                                .map(view -> {
+                                        Feature feature = view.getFeature();
+                                        return FeatureWithUiDto.builder()
+                                                        .feature(ProductFeatureDto.builder()
+                                                                        .featureId(feature.getId())
+                                                                        .code(feature.getCode())
+                                                                        .name(feature.getName())
+                                                                        .usageMetric(feature.getUsageMetric())
+                                                                        .build())
+                                                        .ui(validateJsonNode(view
+                                                                        .getUiConfig()))
+                                                        .build();
+                                })
+                                .toList();
+
+                return new FeatureScreenResponse(result);
         }
 
-        // Persist JSON as-is (validated snapshot)
-        FeatureUIConfig entity = new FeatureUIConfig();
-        entity.setFeatureId(productFeatureId);
-        entity.setComponentType(uiComponentType);
-        entity.setFeatureUiVersion(featureUIVersion);
-        entity.setUiJson(uiConfig.toString());
-        entity.setScreen(screen);
-        entity.setActive(true);
+        private Map<String, Object> validateJsonNode(FeatureUIConfig config) {
+                try {
+                        // parse raw JSON
+                        JsonNode jsonNode = objectMapper.readTree(config.getUiJson());
+                        validateJsonNodeDeserialization(config, jsonNode);
 
-        FeatureUIConfig saved =
-                featureUIConfigRepository.save(entity);
+                        return Map.of(config.getComponentType().getValue(), jsonNode);
 
-        // Return minimal metadata DTO
-        JsonNode uiConfigNode;
-        try {
-            uiConfigNode = objectMapper.readTree(saved.getUiJson());
-        } catch (Exception e) {
-            throw new BaseException(
-                    "Failed to read stored UI config",
-                    ExceptionCodes.INVALID_UI_CONFIG
-            );
+                } catch (Exception e) {
+                        throw new BaseException(
+                                        "Error reading json tree " +
+                                                        config.getFeatureId() +
+                                                        " (" + config.getComponentType() +
+                                                        " v" + config.getComponentVersion() + ")",
+                                        ExceptionCodes.INVALID_UI_CONFIG);
+                }
         }
 
-        return UIComponentDetailsDto.
-                builder()
-                .id(saved.getId())
-                .active(saved.isActive())
-                .uiComponentType(saved.getComponentType())
-                .screen(saved.getScreen())
-                .uiConfig(uiConfigNode)
-                .build();
-    }
+        private void validateJsonNodeDeserialization(FeatureUIConfig config,
+                        JsonNode jsonNode) {
+                // resolve concrete UI type
+                Class<? extends UIComponent> targetClass = uiComponentRegistry.resolve(
+                                config.getComponentType(),
+                                config.getComponentVersion());
 
-    @Override
-    public FeatureScreenResponse getUIFeatures(
-            Long userId,
-            String screen,
-            UIComponentType componentType
-    ) {
-        // TODO: Optimize this by caching the response- also handle cache eviction/updation in case ui configs are updated
-        Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId).orElse(
-                        billingProductService.getProductIdByTier(AccountTier.FREE));
+                // validate by deserialization
+                try {
+                        validateConfig(jsonNode, targetClass);
 
-        List<FeatureUiConfigView> configs =
-                featureUIConfigRepository.findEnabledUiConfigsForProduct(
-                        billingProductId, screen, componentType);
-
-        if (configs.isEmpty()) {
-            return new FeatureScreenResponse(List.of());
+                } catch (Exception e) {
+                        throw new BaseException(
+                                        "Invalid UI config for feature " +
+                                                        config.getFeatureId() +
+                                                        " (" + config.getComponentType() +
+                                                        " v" + config.getFeatureUiVersion() + ")",
+                                        ExceptionCodes.INVALID_UI_CONFIG);
+                }
         }
 
-        List<FeatureWithUiDto> result = configs.stream()
-                .sorted(Comparator.comparing(
-                                FeatureUiConfigView::getPriority,
-                                Comparator.nullsLast(Integer::compareTo))
-                        .thenComparing(view -> view.getFeature().getId()))
-                .map(view -> {
-                    Feature feature = view.getFeature();
-                    return FeatureWithUiDto.builder()
-                            .feature(ProductFeatureDto.builder()
-                                    .featureId(feature.getId())
-                                    .code(feature.getCode())
-                                    .name(feature.getName())
-                                    .usageMetric(feature.getUsageMetric())
-                                    .build())
-                            .ui(validateJsonNode(view.getUiConfig()))
-                            .build();
-                })
-                .toList();
-
-        return new FeatureScreenResponse(result);
-    }
-
-    private JsonNode validateJsonNode(FeatureUIConfig config) {
-        try {
-            // parse raw JSON
-            JsonNode jsonNode =
-                    objectMapper.readTree(config.getUiJson());
-
-            validateJsonNodeDeserialization(config, jsonNode);
-
-            return jsonNode;
-
-        } catch (Exception e) {
-            throw new BaseException(
-                    "Error reading json tree " +
-                            config.getFeatureId() +
-                            " (" + config.getComponentType() +
-                            " v" + config.getFeatureUiVersion() + ")",
-                    ExceptionCodes.INVALID_UI_CONFIG
-            );
+        private <T> T validateConfig(JsonNode jsonNode, Class<T> targetClass) throws Exception {
+                ObjectReader reader = objectMapper.readerFor(targetClass)
+                                .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+                return reader.readValue(jsonNode);
         }
-    }
-
-    private void validateJsonNodeDeserialization(FeatureUIConfig config,
-                                                 JsonNode jsonNode) {
-        // resolve concrete UI type
-        Class<? extends UIComponent> targetClass =
-                uiComponentRegistry.resolve(
-                        config.getComponentType(),
-                        config.getFeatureUiVersion()
-                );
-
-        // validate by deserialization
-        try {
-            validateConfig(jsonNode, targetClass);
-
-        } catch (Exception e) {
-            throw new BaseException(
-                    "Invalid UI config for feature " +
-                            config.getFeatureId() +
-                            " (" + config.getComponentType() +
-                            " v" + config.getFeatureUiVersion() + ")",
-                    ExceptionCodes.INVALID_UI_CONFIG
-            );
-        }
-    }
-
-    private <T> T validateConfig(JsonNode jsonNode, Class<T> targetClass) throws Exception {
-        ObjectReader reader = objectMapper.readerFor(targetClass)
-                .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        return reader.readValue(jsonNode);
-    }
 }
-

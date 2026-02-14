@@ -126,10 +126,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                 .metric(quota.getMetric().name())
                                 .used(quota.getUsed())
                                 .limit(quota.getLimit())
-                                .resetAtEpochMillis(
-                                                quota.getResetAt() != null
-                                                                ? quota.getResetAt().toEpochMilli()
-                                                                : null)
+                                .resetAt(quota.getResetAt())
                                 .build();
         }
 }

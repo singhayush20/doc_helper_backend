@@ -41,6 +41,9 @@ public class FeatureUIConfig {
         // enabled for a particular feature, there can be multiple ui versions
         // for a feature
 
+        @Column(name = "component_version", nullable = false)
+        private Integer componentVersion; // this is the version of the ui component, for eg: banner v1, banner v2, etc
+
         @JdbcTypeCode(SqlTypes.JSON)
         @Column(columnDefinition = "jsonb", nullable = false)
         private String uiJson;
