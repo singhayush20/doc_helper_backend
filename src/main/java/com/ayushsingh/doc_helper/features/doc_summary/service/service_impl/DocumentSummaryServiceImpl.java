@@ -4,6 +4,7 @@ import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryContentDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateRequestDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateResponseDto;
+import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryListResponseDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryMetadataDto;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.Document;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.DocumentChunk;
@@ -110,15 +111,17 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
     }
 
     @Override
-    public List<SummaryMetadataDto> getSummaries(Long documentId) {
+    public SummaryListResponseDto getSummaries(Long documentId) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         documentService.getByIdForUser(documentId, userId);
 
-        return documentSummaryRepository
-                .findByDocumentIdOrderByVersionNumberAsc(documentId)
-                .stream()
-                .map(s -> modelMapper.map(s, SummaryMetadataDto.class))
-                .toList();
+        return new SummaryListResponseDto(
+                documentSummaryRepository
+                        .findByDocumentIdOrderByVersionNumberAsc(documentId)
+                        .stream()
+                        .map(s -> modelMapper.map(s, SummaryMetadataDto.class))
+                        .toList()
+        );
     }
 
     @Override

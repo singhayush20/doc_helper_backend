@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping("/api/v1/documents")
 @RequiredArgsConstructor
 public class DocumentController {
 
     private final DocumentService documentService;
 
-    @PostMapping
+    @PostMapping("/upload")
     public ResponseEntity<DocumentUploadResponseDto> uploadDocument(
             @RequestParam("file") MultipartFile file
     ) {
