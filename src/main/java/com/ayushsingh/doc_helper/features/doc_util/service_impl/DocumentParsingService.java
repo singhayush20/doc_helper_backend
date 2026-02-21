@@ -31,6 +31,7 @@ import technology.tabula.extractors.BasicExtractionAlgorithm;
 import technology.tabula.extractors.SpreadsheetExtractionAlgorithm;
 
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -338,6 +339,7 @@ public class DocumentParsingService {
         }
 
         void process(PDPage page) throws IOException {
+            this.output = new StringWriter();
             super.processPage(page);
         }
 

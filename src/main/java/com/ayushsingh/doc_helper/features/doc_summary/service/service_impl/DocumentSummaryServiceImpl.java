@@ -3,9 +3,8 @@ package com.ayushsingh.doc_helper.features.doc_summary.service.service_impl;
 import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryContentDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateRequestDto;
-import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateResponseDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryListResponseDto;
-import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryMetadataDto;
+import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryResponseDto;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.Document;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.DocumentChunk;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.DocumentSummary;
@@ -54,13 +53,12 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
 
     @Transactional
     @Override
-    public SummaryCreateResponseDto createSummary(
-            Long documentId,
+    public SummaryResponseDto createSummary(
             SummaryCreateRequestDto request
     ) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
 
-        Document document = documentService.getByIdForUser(documentId, userId);
+        Document document = documentService.getByIdForUser(request.getDocumentId(), userId);
         List<String> chunks = loadOrCreateChunks(document);
         if (chunks.isEmpty()) {
             throw new BaseException(
@@ -88,10 +86,10 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
                                 tokens
                         ));
 
-        Integer nextVersion = resolveNextVersion(documentId);
+        Integer nextVersion = resolveNextVersion(request.getDocumentId());
 
         DocumentSummary summary = new DocumentSummary();
-        summary.setDocumentId(documentId);
+        summary.setDocumentId(request.getDocumentId());
         summary.setVersionNumber(nextVersion);
         summary.setTone(tone);
         summary.setWordCount(result.content().wordCount());
@@ -101,8 +99,11 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
 
         DocumentSummary saved = documentSummaryRepository.save(summary);
 
-        return SummaryCreateResponseDto.builder()
+        return SummaryResponseDto.builder()
                 .summaryId(saved.getId())
+                .createdAt(saved.getCreatedAt())
+                .tone(saved.getTone())
+                .length(saved.getLength())
                 .version(saved.getVersionNumber())
                 .tokensUsed(saved.getTokensUsed())
                 .content(saved.getContent())
@@ -119,7 +120,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
                 documentSummaryRepository
                         .findByDocumentIdOrderByVersionNumberAsc(documentId)
                         .stream()
-                        .map(s -> modelMapper.map(s, SummaryMetadataDto.class))
+                        .map(s -> modelMapper.map(s, SummaryResponseDto.class))
                         .toList()
         );
     }

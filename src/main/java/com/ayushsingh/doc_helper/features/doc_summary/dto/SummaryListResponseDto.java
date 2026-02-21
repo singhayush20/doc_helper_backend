@@ -12,5 +12,5 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SummaryListResponseDto {
-    private List<SummaryMetadataDto> summaries;
+    private List<SummaryResponseDto> summaries;
 }

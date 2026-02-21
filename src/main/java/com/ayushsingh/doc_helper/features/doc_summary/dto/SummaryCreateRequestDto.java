@@ -10,6 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SummaryCreateRequestDto {
+    private Long documentId;
     private String tone;   // CASUAL, PROFESSIONAL
     private String length; // SHORT, MEDIUM, LONG
 }

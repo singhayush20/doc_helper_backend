@@ -2,11 +2,11 @@ package com.ayushsingh.doc_helper.features.doc_summary.service;
 
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryContentDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateRequestDto;
-import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateResponseDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryListResponseDto;
+import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryResponseDto;
 
 public interface DocumentSummaryService {
-    SummaryCreateResponseDto createSummary(Long documentId, SummaryCreateRequestDto request);
+    SummaryResponseDto createSummary(SummaryCreateRequestDto request);
 
     SummaryListResponseDto getSummaries(Long documentId);
 
