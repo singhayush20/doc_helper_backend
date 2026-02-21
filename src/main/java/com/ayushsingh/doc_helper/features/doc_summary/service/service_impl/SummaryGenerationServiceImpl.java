@@ -125,8 +125,9 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
         RuntimeException last = null;
 
         for (int attempt = 1; attempt <= maxRetries + 1; attempt++) {
+            int attemptMaxTokens = increaseMaxTokensForAttempt(maxOutputTokens, attempt);
             try {
-                return llmService.generate(prompt, maxOutputTokens, modelName);
+                return llmService.generate(prompt, attemptMaxTokens, modelName);
             } catch (RuntimeException e) {
 
                 if (e instanceof BaseException) {
@@ -135,8 +136,8 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
                 last = e;
                 boolean retryable = isRetryable(e);
-                log.warn("LLM call failed (model={}, attempt {}/{}): {}",
-                        modelName, attempt, maxRetries + 1, e.getMessage());
+                log.warn("LLM call failed (model={}, attempt {}/{}, maxTokens={}): {}",
+                        modelName, attempt, maxRetries + 1, attemptMaxTokens, e.getMessage());
 
                 if (!retryable || attempt > maxRetries) {
                     break;
@@ -168,7 +169,21 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
                 || m.contains("timed out")
                 || m.contains("503")
                 || m.contains("502")
-                || m.contains("500");
+                || m.contains("500")
+                || m.contains("incomplete_json_response_from_model")
+                || m.contains("jsonmappingexception")
+                || m.contains("jsonparseexception")
+                || m.contains("unexpected end-of-input")
+                || m.contains("was expecting closing quote");
+    }
+
+    private int increaseMaxTokensForAttempt(int baseMaxTokens, int attempt) {
+        if (attempt <= 1) {
+            return baseMaxTokens;
+        }
+
+        int boosted = baseMaxTokens + (attempt - 1) * 120;
+        return Math.min(boosted, baseMaxTokens + 500);
     }
 
     private long resolveBackoffDelay(int attempt) {

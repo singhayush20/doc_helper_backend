@@ -62,7 +62,17 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                 try {
                         structuredResponseEntity = objectMapper.readValue(normalizedJson, StructuredSummaryDto.class);
                 } catch (Exception e) {
-                        throw new RuntimeException(e);
+                        String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                        boolean likelyTruncated = message.contains("unexpected end-of-input")
+                                        || message.contains("was expecting closing quote")
+                                        || message.contains("end-of-input")
+                                        || !normalizedJson.trim().endsWith("}");
+
+                        if (likelyTruncated) {
+                                throw new RuntimeException("INCOMPLETE_JSON_RESPONSE_FROM_MODEL", e);
+                        }
+
+                        throw new RuntimeException("INVALID_JSON_RESPONSE_FROM_MODEL", e);
                 }
 
                 ChatResponse chatResponse = clientResponse.chatResponse();
