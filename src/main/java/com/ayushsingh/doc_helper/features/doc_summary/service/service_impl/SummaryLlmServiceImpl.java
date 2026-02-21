@@ -59,9 +59,9 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                         structuredResponseEntity = response.getEntity();
                         chatResponse = response.getResponse();
                 } catch (RuntimeException firstParseException) {
-                        log.warn("Primary structured parse failed. Retrying with JSON repair prompt for model {}", modelName);
+                        log.warn("Primary structured parse failed. Retrying with strict JSON prompt for model {}", modelName);
 
-                        String repairedPrompt = buildRepairPrompt(clientResponse.content());
+                        String repairedPrompt = buildRepairPrompt(prompt);
 
                         try {
                                 var repairedClientResponse = chatClient
@@ -111,27 +111,27 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                                 totalTokens);
         }
 
-        private String buildRepairPrompt(String rawOutput) {
+        private String buildRepairPrompt(String originalPrompt) {
                 return """
-                                You are a strict JSON repair assistant.
+                                You are a strict JSON generation assistant.
 
                                 TASK:
-                                Convert the INPUT into valid JSON for this exact schema:
+                                Generate valid JSON for this exact schema:
                                 {
                                   "summary": "string",
                                   "wordCount": integer
                                 }
 
                                 RULES:
-                                - Preserve the original summary meaning as much as possible.
+                                - Follow the original summarization instructions exactly.
                                 - Ensure summary is markdown text.
                                 - wordCount must match summary content.
                                 - Return ONLY valid JSON.
                                 - Do not wrap JSON in markdown.
                                 - Do not include any explanation.
 
-                                INPUT:
+                                ORIGINAL_INSTRUCTIONS:
                                 %s
-                                """.formatted(rawOutput == null ? "" : rawOutput);
+                                """.formatted(originalPrompt == null ? "" : originalPrompt);
         }
 }
