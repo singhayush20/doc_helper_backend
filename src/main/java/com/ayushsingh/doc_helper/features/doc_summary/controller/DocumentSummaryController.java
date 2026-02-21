@@ -4,7 +4,6 @@ import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryContentDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateRequestDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryCreateResponseDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryListResponseDto;
-import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryMetadataDto;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentSummaryService;
 import com.ayushsingh.doc_helper.features.product_features.guard.RequireFeature;
 import lombok.RequiredArgsConstructor;
@@ -15,8 +14,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/summarizer")

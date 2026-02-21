@@ -1,11 +1,12 @@
 package com.ayushsingh.doc_helper.features.doc_summary.controller;
 
 import com.ayushsingh.doc_helper.core.security.UserContext;
-import com.ayushsingh.doc_helper.features.doc_summary.dto.DocumentUploadResponseDto;
-import com.ayushsingh.doc_helper.features.doc_summary.entity.Document;
+import com.ayushsingh.doc_helper.features.doc_summary.dto.DocumentDetailsDto;
+import com.ayushsingh.doc_helper.features.doc_summary.dto.DocumentListResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,15 +21,18 @@ public class DocumentController {
     private final DocumentService documentService;
 
     @PostMapping("/upload")
-    public ResponseEntity<DocumentUploadResponseDto> uploadDocument(
+    public ResponseEntity<DocumentDetailsDto> uploadDocument(
             @RequestParam("file") MultipartFile file
     ) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
-        Document doc = documentService.uploadDocument(userId, file);
-        return ResponseEntity.ok(
-                DocumentUploadResponseDto.builder()
-                        .documentId(doc.getId())
-                        .build()
-        );
+        
+        return ResponseEntity.ok( documentService.uploadDocument(userId, file));
+       
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<DocumentListResponse> getDocuments() {
+        Long userId = UserContext.getCurrentUser().getUser().getId();
+        return ResponseEntity.ok(documentService.getDocumentsForUser(userId));
     }
 }
