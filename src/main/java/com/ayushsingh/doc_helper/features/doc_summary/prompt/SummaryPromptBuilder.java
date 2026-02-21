@@ -43,6 +43,7 @@ public final class SummaryPromptBuilder {
                 - wordCount must reflect the actual word count of summary.
                 - Do not add any fields.
                 - Do not wrap JSON in markdown.
+                - Never use triple backticks (```), markdown fences, or prose before/after JSON.
                 - Output must start with '{'.
 
                 TEXT:
@@ -91,6 +92,7 @@ public final class SummaryPromptBuilder {
                 - No additional commentary.
                 - Do not add any fields.
                 - Do not wrap JSON in markdown.
+                - Never use triple backticks (```), markdown fences, or prose before/after JSON.
                 - Output must start with '{'.
 
                 SUMMARIES:
