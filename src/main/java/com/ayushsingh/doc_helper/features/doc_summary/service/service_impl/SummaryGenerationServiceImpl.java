@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.doc_summary.service.service_impl;
 
+import com.ayushsingh.doc_helper.features.doc_summary.dto.StructuredSummaryDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryLength;
 import com.ayushsingh.doc_helper.features.doc_summary.entity.SummaryTone;
@@ -12,10 +13,12 @@ import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.LongConsumer;
 
 @Service
@@ -23,11 +26,28 @@ import java.util.function.LongConsumer;
 @Slf4j
 public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
-    private static final int MAX_RETRIES = 2;
-    private static final int MIN_REQUIRED_TOKEN_DIFFERENCE = 100;
+    private static final int MIN_REQUIRED_TOKEN_DIFFERENCE = 120;
 
     private final SummaryLlmService llmService;
     private final DocumentTokenEstimationService tokenEstimator;
+
+    @Value("${doc-summary.chunk.model:${doc-summary.model}}")
+    private String chunkModel;
+
+    @Value("${doc-summary.aggregate.model:${doc-summary.model}}")
+    private String aggregateModel;
+
+    @Value("${doc-summary.retry.max-retries:4}")
+    private int maxRetries;
+
+    @Value("${doc-summary.retry.base-delay-ms:300}")
+    private long baseDelayMs;
+
+    @Value("${doc-summary.retry.max-delay-ms:4000}")
+    private long maxDelayMs;
+
+    @Value("${doc-summary.merge.group-size:4}")
+    private int mergeGroupSize;
 
     @Override
     public SummaryGenerationResult generate(
@@ -47,18 +67,17 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
                     ExceptionCodes.DOCUMENT_PARSING_FAILED);
         }
 
-        List<String> chunkSummaries = new ArrayList<>();
+        List<String> stageOutputs = new ArrayList<>();
+        StructuredSummaryDto finalContent = null;
         long totalTokens = 0;
 
         for (String chunk : normalizedChunks) {
-
             String prompt = SummaryPromptBuilder.buildChunkPrompt(chunk, tone, length);
-
             int maxOutputTokens = resolveMaxOutputTokens(prompt, length, false, remainingTokens);
 
-            SummaryLlmResponse response = callWithRetry(prompt, maxOutputTokens);
-
-            chunkSummaries.add(response.content().summary());
+            SummaryLlmResponse response = callWithRetry(prompt, maxOutputTokens, chunkModel);
+            stageOutputs.add(response.content().summary());
+            finalContent = response.content();
 
             long usedTokens = resolveTokensUsed(response, prompt);
             totalTokens += usedTokens;
@@ -66,52 +85,96 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
             usageConsumer.accept(usedTokens);
         }
 
-        String aggregationPrompt = SummaryPromptBuilder.buildAggregatePrompt(
-                chunkSummaries, tone, length);
+        while (stageOutputs.size() > 1) {
+            List<String> nextLevel = new ArrayList<>();
+            for (int start = 0; start < stageOutputs.size(); start += safeGroupSize()) {
+                int end = Math.min(start + safeGroupSize(), stageOutputs.size());
+                List<String> group = stageOutputs.subList(start, end);
 
-        int aggregationMaxTokens = resolveMaxOutputTokens(
-                aggregationPrompt, length, true, remainingTokens);
+                String aggregationPrompt = SummaryPromptBuilder.buildAggregatePrompt(group, tone, length);
+                int aggregationMaxTokens = resolveMaxOutputTokens(aggregationPrompt, length, true, remainingTokens);
 
-        SummaryLlmResponse aggregatedResponse = callWithRetry(aggregationPrompt, aggregationMaxTokens);
+                SummaryLlmResponse aggregatedResponse = callWithRetry(
+                        aggregationPrompt,
+                        aggregationMaxTokens,
+                        aggregateModel);
 
-        long aggregationTokens = resolveTokensUsed(aggregatedResponse, aggregationPrompt);
+                nextLevel.add(aggregatedResponse.content().summary());
+                finalContent = aggregatedResponse.content();
 
-        totalTokens += aggregationTokens;
-        usageConsumer.accept(aggregationTokens);
+                long aggregationTokens = resolveTokensUsed(aggregatedResponse, aggregationPrompt);
+                totalTokens += aggregationTokens;
+                remainingTokens = updateRemainingTokens(remainingTokens, aggregationTokens);
+                usageConsumer.accept(aggregationTokens);
+            }
+            stageOutputs = nextLevel;
+        }
+
+        if (finalContent == null) {
+            throw new BaseException(
+                    "Summary generation failed",
+                    ExceptionCodes.DOCUMENT_PARSING_FAILED);
+        }
 
         return new SummaryGenerationResult(
-                aggregatedResponse.content(),
+                finalContent,
                 Math.toIntExact(totalTokens));
     }
 
-    private SummaryLlmResponse callWithRetry(String prompt, int maxOutputTokens) {
+    private SummaryLlmResponse callWithRetry(String prompt, int maxOutputTokens, String modelName) {
         RuntimeException last = null;
 
-        for (int attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+        for (int attempt = 1; attempt <= maxRetries + 1; attempt++) {
             try {
-                return llmService.generate(prompt, maxOutputTokens);
+                return llmService.generate(prompt, maxOutputTokens, modelName);
             } catch (RuntimeException e) {
 
                 if (e instanceof BaseException) {
-                    throw e; // never retry business errors
+                    throw e;
                 }
 
                 last = e;
-                log.warn("LLM call failed (attempt {}/{}): {}",
-                        attempt, MAX_RETRIES + 1, e.getMessage());
+                boolean retryable = isRetryable(e);
+                log.warn("LLM call failed (model={}, attempt {}/{}): {}",
+                        modelName, attempt, maxRetries + 1, e.getMessage());
 
-                if (attempt <= MAX_RETRIES) {
-                    try {
-                        Thread.sleep(200L * attempt);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
+                if (!retryable || attempt > maxRetries) {
+                    break;
+                }
+
+                long delay = resolveBackoffDelay(attempt);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
         }
 
         throw last != null ? last : new RuntimeException("LLM call failed");
+    }
+
+    private boolean isRetryable(RuntimeException e) {
+        String message = e.getMessage();
+        if (message == null) {
+            return false;
+        }
+
+        String m = message.toLowerCase();
+        return m.contains("429")
+                || m.contains("rate limit")
+                || m.contains("quota")
+                || m.contains("timed out")
+                || m.contains("503")
+                || m.contains("502")
+                || m.contains("500");
+    }
+
+    private long resolveBackoffDelay(int attempt) {
+        long exp = Math.min(maxDelayMs, baseDelayMs * (1L << Math.min(attempt - 1, 10)));
+        long jitter = ThreadLocalRandom.current().nextLong(Math.max(100, exp / 2));
+        return Math.min(maxDelayMs, exp + jitter);
     }
 
     private int resolveMaxOutputTokens(
@@ -122,14 +185,15 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
         int promptTokens = tokenEstimator.estimateTokens(prompt);
 
-        var lengthBasedMax = switch (length) {
-            case SHORT -> 300;
-            case MEDIUM -> 500;
-            case LONG -> 900;
-            case VERY_LONG -> 1200;
+        int lengthBasedMax = switch (length) {
+            case SHORT -> finalPass ? 300 : 220;
+            case MEDIUM -> finalPass ? 600 : 320;
+            case LONG -> finalPass ? 1300 : 450;
+            case VERY_LONG -> finalPass ? 2000 : 550;
         };
 
-        long allowed = remainingTokens - promptTokens - MIN_REQUIRED_TOKEN_DIFFERENCE;
+        long safetyMargin = finalPass ? MIN_REQUIRED_TOKEN_DIFFERENCE : MIN_REQUIRED_TOKEN_DIFFERENCE / 2;
+        long allowed = remainingTokens - promptTokens - safetyMargin;
         if (allowed <= 0) {
             throw new BaseException(
                     "Quota exceeded",
@@ -177,6 +241,10 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
             }
         }
         return normalized;
+    }
+
+    private int safeGroupSize() {
+        return Math.max(2, mergeGroupSize);
     }
 
     private String normalize(String text) {

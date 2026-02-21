@@ -20,8 +20,10 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
 
         private final ChatClient chatClient;
         private final PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor;
+
         @Value("${doc-summary.model}")
-        String modelName;
+        String defaultModelName;
+
         @Value("${doc-summary.temperature}")
         Double temperature;
 
@@ -34,7 +36,12 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
 
         @Override
         public SummaryLlmResponse generate(String prompt, Integer maxTokens) {
-                log.debug("Generating response for prompt: {} \n maxTokens: {}", prompt, maxTokens);
+                return generate(prompt, maxTokens, defaultModelName);
+        }
+
+        @Override
+        public SummaryLlmResponse generate(String prompt, Integer maxTokens, String modelName) {
+                log.debug("Generating summary response. model: {}, maxTokens: {}", modelName, maxTokens);
 
                 var clientResponse = chatClient
                                 .prompt(prompt)
