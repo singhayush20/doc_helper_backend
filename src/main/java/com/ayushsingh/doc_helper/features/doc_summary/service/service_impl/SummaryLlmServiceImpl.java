@@ -4,7 +4,6 @@ import com.ayushsingh.doc_helper.core.ai.advisors.PromptMetadataLoggingAdvisor;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.StructuredSummaryDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryLlmService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
@@ -19,7 +18,6 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
 
         private final ChatClient chatClient;
         private final PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor;
-        private final ObjectMapper objectMapper;
 
         @Value("${doc-summary.model}")
         String defaultModelName;
@@ -29,11 +27,9 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
 
         public SummaryLlmServiceImpl(
                         ChatClient chatClient,
-                        PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor,
-                        ObjectMapper objectMapper) {
+                        PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor) {
                 this.chatClient = chatClient;
                 this.promptMetadataLoggingAdvisor = promptMetadataLoggingAdvisor;
-                this.objectMapper = objectMapper;
         }
 
         @Override
@@ -55,27 +51,50 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                                 .advisors(promptMetadataLoggingAdvisor)
                                 .call();
 
-                String rawText = clientResponse.content();
-                String normalizedJson = normalizeToJson(rawText);
-
                 StructuredSummaryDto structuredResponseEntity;
+                ChatResponse chatResponse;
+
                 try {
-                        structuredResponseEntity = objectMapper.readValue(normalizedJson, StructuredSummaryDto.class);
-                } catch (Exception e) {
-                        String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-                        boolean likelyTruncated = message.contains("unexpected end-of-input")
-                                        || message.contains("was expecting closing quote")
-                                        || message.contains("end-of-input")
-                                        || !normalizedJson.trim().endsWith("}");
+                        var response = clientResponse.responseEntity(StructuredSummaryDto.class);
+                        structuredResponseEntity = response.getEntity();
+                        chatResponse = response.getResponse();
+                } catch (RuntimeException firstParseException) {
+                        log.warn("Primary structured parse failed. Retrying with JSON repair prompt for model {}", modelName);
 
-                        if (likelyTruncated) {
-                                throw new RuntimeException("INCOMPLETE_JSON_RESPONSE_FROM_MODEL", e);
+                        String repairedPrompt = buildRepairPrompt(clientResponse.content());
+
+                        try {
+                                var repairedClientResponse = chatClient
+                                                .prompt(repairedPrompt)
+                                                .options(OpenAiChatOptions.builder()
+                                                                .model(modelName)
+                                                                .temperature(0.0)
+                                                                .maxTokens(Math.max(220, maxTokens))
+                                                                .build())
+                                                .advisors(promptMetadataLoggingAdvisor)
+                                                .call();
+
+                                var repairedResponse = repairedClientResponse.responseEntity(StructuredSummaryDto.class);
+                                structuredResponseEntity = repairedResponse.getEntity();
+                                chatResponse = repairedResponse.getResponse();
+                        } catch (RuntimeException repairException) {
+                                String message = repairException.getMessage() != null
+                                                ? repairException.getMessage().toLowerCase()
+                                                : "";
+
+                                boolean likelyTruncated = message.contains("unexpected end-of-input")
+                                                || message.contains("was expecting closing quote")
+                                                || message.contains("end-of-input")
+                                                || message.contains("jsonparseexception")
+                                                || message.contains("jsonmappingexception");
+
+                                if (likelyTruncated) {
+                                        throw new RuntimeException("INCOMPLETE_JSON_RESPONSE_FROM_MODEL", repairException);
+                                }
+
+                                throw new RuntimeException("INVALID_JSON_RESPONSE_FROM_MODEL", repairException);
                         }
-
-                        throw new RuntimeException("INVALID_JSON_RESPONSE_FROM_MODEL", e);
                 }
-
-                ChatResponse chatResponse = clientResponse.chatResponse();
 
                 Usage usage = chatResponse != null && chatResponse.getMetadata() != null
                                 ? chatResponse.getMetadata().getUsage()
@@ -92,27 +111,27 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                                 totalTokens);
         }
 
-        static String normalizeToJson(String rawText) {
-                if (rawText == null) {
-                        return "";
-                }
+        private String buildRepairPrompt(String rawOutput) {
+                return """
+                                You are a strict JSON repair assistant.
 
-                String normalized = rawText.trim();
+                                TASK:
+                                Convert the INPUT into valid JSON for this exact schema:
+                                {
+                                  "summary": "string",
+                                  "wordCount": integer
+                                }
 
-                if (normalized.startsWith("```") || normalized.contains("```")) {
-                        normalized = normalized
-                                        .replace("```json", "")
-                                        .replace("```JSON", "")
-                                        .replace("```", "")
-                                        .trim();
-                }
+                                RULES:
+                                - Preserve the original summary meaning as much as possible.
+                                - Ensure summary is markdown text.
+                                - wordCount must match summary content.
+                                - Return ONLY valid JSON.
+                                - Do not wrap JSON in markdown.
+                                - Do not include any explanation.
 
-                int objectStart = normalized.indexOf('{');
-                int objectEnd = normalized.lastIndexOf('}');
-                if (objectStart >= 0 && objectEnd > objectStart) {
-                        normalized = normalized.substring(objectStart, objectEnd + 1);
-                }
-
-                return normalized.trim();
+                                INPUT:
+                                %s
+                                """.formatted(rawOutput == null ? "" : rawOutput);
         }
 }
