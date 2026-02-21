@@ -59,7 +59,7 @@ spring:
       chat:
         options:
           model: ${OPENAI_CHAT_MODEL:gemini-2.5-pro}
-          stream-usage: true        
+          stream-usage: true
       embedding:
         options:
           model: ${OPENAI_EMBEDDING_MODEL:gemini-embedding-001}
@@ -70,16 +70,26 @@ spring:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
         dimensions: 1536
-        
+
 doc-chat:
   model: gemini-2.5-pro
-  temperature: 0.2  
+  temperature: 0.2
 
 summarizer:
   model: gemini-2.5-flash-lite
 
 doc-summary:
   model: gemini-3-pro-preview
+  chunk:
+    model: gemini-2.5-flash
+  aggregate:
+    model: gemini-3-pro-preview
+  merge:
+    group-size: 4
+  retry:
+    max-retries: 4
+    base-delay-ms: 300
+    max-delay-ms: 4000
   temperature: 0.2
 
 web:
