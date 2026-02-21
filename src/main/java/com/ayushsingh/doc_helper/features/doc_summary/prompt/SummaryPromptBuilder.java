@@ -23,27 +23,27 @@ public final class SummaryPromptBuilder {
                 %s
 
                 OUTPUT FORMAT:
-                Return ONLY valid JSON in this exact structure:
+                Return ONLY valid JSON in this exact structure. The "summary" value MUST be Markdown-formatted text (use headings, paragraphs, and bullet points as appropriate):
 
                 {
-                  "summary": "string",
-                  "wordCount": integer,
+                  "summary": "markdown string",
+                  "wordCount": integer
                 }
 
                 RULES:
                 - summary must respect the length constraint.
                 - wordCount must reflect the actual word count of summary.
-                - keyPoints must contain 3–7 bullet insights extracted from the text.
-                - Do not add any fields.
-                - Do not wrap JSON in markdown.
+                - Provide 3–7 bullet insights where relevant inside the markdown summary.
+                - Do not add any additional fields.
                 - Output must start with '{'.
 
                 TEXT:
                 %s
-                """.formatted(
-                toneInstruction(tone),
-                lengthInstruction(length),
-                chunk);
+                """
+                .formatted(
+                        toneInstruction(tone),
+                        lengthInstruction(length),
+                        chunk);
     }
 
     public static String buildAggregatePrompt(
@@ -64,21 +64,19 @@ public final class SummaryPromptBuilder {
                 %s
 
                 OUTPUT FORMAT:
-                Return ONLY valid JSON:
+                Return ONLY valid JSON. The "summary" value MUST be Markdown-formatted text:
 
                 {
-                  "summary": "string",
-                  "wordCount": integer,
+                  "summary": "markdown string",
+                  "wordCount": integer
                 }
 
                 RULES:
                 - Eliminate repetition.
                 - Maintain logical flow.
-                - keyPoints must reflect the merged content.
-                - wordCount must match summary.
-                - No additional commentary.
-                - Do not add any fields.
-                - The summary string must be well-formatted in markdown with appropriate paragraphs and bullet points where necessary.
+                - Ensure wordCount matches summary.
+                - The summary string must be well-formatted in Markdown with paragraphs and bullet points.
+                - No additional commentary or fields.
                 - Output must start with '{'.
 
                 SUMMARIES:

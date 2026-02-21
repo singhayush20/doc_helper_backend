@@ -29,6 +29,9 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
     private final SummaryLlmService llmService;
     private final DocumentTokenEstimationService tokenEstimator;
 
+    private static final int BATCH_SIZE = 8; // group size for hierarchical summarization
+    private static final long INTER_BATCH_PAUSE_MS = 50L; // small pause to reduce burst
+
     @Override
     public SummaryGenerationResult generate(
             List<String> chunks,
@@ -47,27 +50,40 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
                     ExceptionCodes.DOCUMENT_PARSING_FAILED);
         }
 
-        List<String> chunkSummaries = new ArrayList<>();
+        List<String> intermediateSummaries = new ArrayList<>();
         long totalTokens = 0;
 
-        for (String chunk : normalizedChunks) {
+        // 1) Summarize chunks in batches (cheaper model / smaller output)
+        for (int i = 0; i < normalizedChunks.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, normalizedChunks.size());
+            List<String> batch = normalizedChunks.subList(i, end);
 
-            String prompt = SummaryPromptBuilder.buildChunkPrompt(chunk, tone, length);
+            // build batch prompt: join with separators so LLM can summarize coherently
+            String batchPrompt = SummaryPromptBuilder.buildAggregatePrompt(batch, tone, length);
 
-            int maxOutputTokens = resolveMaxOutputTokens(prompt, length, false, remainingTokens);
+            // compute tokens allowance conservatively for batch summary
+            int maxOutputTokens = resolveMaxOutputTokens(batchPrompt, length, false, remainingTokens);
 
-            SummaryLlmResponse response = callWithRetry(prompt, maxOutputTokens);
+            SummaryLlmResponse batchResponse = callWithRetry(batchPrompt, maxOutputTokens);
 
-            chunkSummaries.add(response.content().summary());
+            String summaryText = batchResponse.content().summary();
+            intermediateSummaries.add(summaryText);
 
-            long usedTokens = resolveTokensUsed(response, prompt);
-            totalTokens += usedTokens;
-            remainingTokens = updateRemainingTokens(remainingTokens, usedTokens);
-            usageConsumer.accept(usedTokens);
+            long used = resolveTokensUsed(batchResponse, batchPrompt);
+            totalTokens += used;
+            remainingTokens = updateRemainingTokens(remainingTokens, used);
+            usageConsumer.accept(used);
+
+            try {
+                Thread.sleep(INTER_BATCH_PAUSE_MS);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
         }
 
+        // 2) Final aggregation over intermediate summaries
         String aggregationPrompt = SummaryPromptBuilder.buildAggregatePrompt(
-                chunkSummaries, tone, length);
+                intermediateSummaries, tone, length);
 
         int aggregationMaxTokens = resolveMaxOutputTokens(
                 aggregationPrompt, length, true, remainingTokens);
