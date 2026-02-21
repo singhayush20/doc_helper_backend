@@ -58,42 +58,22 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                         var response = clientResponse.responseEntity(StructuredSummaryDto.class);
                         structuredResponseEntity = response.getEntity();
                         chatResponse = response.getResponse();
-                } catch (RuntimeException firstParseException) {
-                        log.warn("Primary structured parse failed. Retrying with strict JSON prompt for model {}", modelName);
+                } catch (RuntimeException parseException) {
+                        String message = parseException.getMessage() != null
+                                        ? parseException.getMessage().toLowerCase()
+                                        : "";
 
-                        String repairedPrompt = buildRepairPrompt(prompt);
+                        boolean likelyTruncated = message.contains("unexpected end-of-input")
+                                        || message.contains("was expecting closing quote")
+                                        || message.contains("end-of-input")
+                                        || message.contains("jsonparseexception")
+                                        || message.contains("jsonmappingexception");
 
-                        try {
-                                var repairedClientResponse = chatClient
-                                                .prompt(repairedPrompt)
-                                                .options(OpenAiChatOptions.builder()
-                                                                .model(modelName)
-                                                                .temperature(0.0)
-                                                                .maxTokens(Math.max(220, maxTokens))
-                                                                .build())
-                                                .advisors(promptMetadataLoggingAdvisor)
-                                                .call();
-
-                                var repairedResponse = repairedClientResponse.responseEntity(StructuredSummaryDto.class);
-                                structuredResponseEntity = repairedResponse.getEntity();
-                                chatResponse = repairedResponse.getResponse();
-                        } catch (RuntimeException repairException) {
-                                String message = repairException.getMessage() != null
-                                                ? repairException.getMessage().toLowerCase()
-                                                : "";
-
-                                boolean likelyTruncated = message.contains("unexpected end-of-input")
-                                                || message.contains("was expecting closing quote")
-                                                || message.contains("end-of-input")
-                                                || message.contains("jsonparseexception")
-                                                || message.contains("jsonmappingexception");
-
-                                if (likelyTruncated) {
-                                        throw new RuntimeException("INCOMPLETE_JSON_RESPONSE_FROM_MODEL", repairException);
-                                }
-
-                                throw new RuntimeException("INVALID_JSON_RESPONSE_FROM_MODEL", repairException);
+                        if (likelyTruncated) {
+                                throw new RuntimeException("INCOMPLETE_JSON_RESPONSE_FROM_MODEL", parseException);
                         }
+
+                        throw new RuntimeException("INVALID_JSON_RESPONSE_FROM_MODEL", parseException);
                 }
 
                 Usage usage = chatResponse != null && chatResponse.getMetadata() != null
@@ -109,29 +89,5 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                                 promptTokens,
                                 completionTokens,
                                 totalTokens);
-        }
-
-        private String buildRepairPrompt(String originalPrompt) {
-                return """
-                                You are a strict JSON generation assistant.
-
-                                TASK:
-                                Generate valid JSON for this exact schema:
-                                {
-                                  "summary": "string",
-                                  "wordCount": integer
-                                }
-
-                                RULES:
-                                - Follow the original summarization instructions exactly.
-                                - Ensure summary is markdown text.
-                                - wordCount must match summary content.
-                                - Return ONLY valid JSON.
-                                - Do not wrap JSON in markdown.
-                                - Do not include any explanation.
-
-                                ORIGINAL_INSTRUCTIONS:
-                                %s
-                                """.formatted(originalPrompt == null ? "" : originalPrompt);
         }
 }

@@ -87,7 +87,7 @@ doc-summary:
   merge:
     group-size: 4
   retry:
-    max-retries: 4
+    max-retries: 2
     base-delay-ms: 300
     max-delay-ms: 4000
   temperature: 0.2

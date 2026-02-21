@@ -44,6 +44,8 @@ public final class SummaryPromptBuilder {
                 - Do not add any fields.
                 - Do not wrap JSON in markdown.
                 - Never use triple backticks (```), markdown fences, or prose before/after JSON.
+                - Escape all internal double quotes in summary as \\".
+                - Encode line breaks inside summary as \\n.
                 - Output must start with '{'.
 
                 TEXT:
@@ -93,6 +95,8 @@ public final class SummaryPromptBuilder {
                 - Do not add any fields.
                 - Do not wrap JSON in markdown.
                 - Never use triple backticks (```), markdown fences, or prose before/after JSON.
+                - Escape all internal double quotes in summary as \\".
+                - Encode line breaks inside summary as \\n.
                 - Output must start with '{'.
 
                 SUMMARIES:
