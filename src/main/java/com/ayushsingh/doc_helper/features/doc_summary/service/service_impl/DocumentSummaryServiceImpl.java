@@ -23,6 +23,8 @@ import com.ayushsingh.doc_helper.features.doc_util.service_impl.DocumentParsingS
 import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityTarget;
+import com.ayushsingh.doc_helper.features.user_activity.entity.ActivityTargetType;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
 import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
@@ -99,7 +101,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
 
         DocumentSummary saved = documentSummaryRepository.save(summary);
 
-        userActivityRecorder.record(userId, documentId, UserActivityType.DOCUMENT_SUMMARY);
+        userActivityRecorder.record(userId, new ActivityTarget(ActivityTargetType.SUMMARY_DOCUMENT, documentId), UserActivityType.DOCUMENT_SUMMARY);
 
         return SummaryResponseDto.builder()
                 .summaryId(saved.getId())

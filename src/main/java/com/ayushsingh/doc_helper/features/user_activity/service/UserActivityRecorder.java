@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.user_activity.service;
 
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityTarget;
 import com.ayushsingh.doc_helper.features.user_activity.dto.UserActivityResolution;
 import com.ayushsingh.doc_helper.features.user_activity.dto.UserActivityWriteRequest;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivity;
@@ -25,7 +26,7 @@ public class UserActivityRecorder {
     @Transactional
     public void record(
             Long userId,
-            Long documentId,
+            ActivityTarget target,
             UserActivityType action
     ) {
         UserActivityGroup activityGroup = UserActivityMetadata.groupOf(action);
@@ -35,13 +36,13 @@ public class UserActivityRecorder {
         boolean isUpdateRequired =
                 userActivityRedisGateway.allowByDebounce(
                         userId,
-                        documentId,
+                        target,
                         activityGroup,
                         debounceWindow(activityGroup)
                 );
 
         UserActivity existing =
-                repository.findByUserIdAndDocumentId(userId, documentId)
+                repository.findByUserIdAndTargetTypeAndTargetId(userId, target.type(), target.id())
                         .orElse(null);
 
         UserActivityResolution resolution =
@@ -57,7 +58,8 @@ public class UserActivityRecorder {
                 existing != null ? existing : new UserActivity();
 
         activity.setUserId(userId);
-        activity.setDocumentId(documentId);
+        activity.setTargetType(target.type());
+        activity.setTargetId(target.id());
         activity.setLastAction(action);
         activity.setLastActionAt(now);
 
@@ -69,7 +71,8 @@ public class UserActivityRecorder {
         activityRedisBuffer.buffer(
                 new UserActivityWriteRequest(
                         activity.getUserId(),
-                        activity.getDocumentId(),
+                        activity.getTargetType(),
+                        activity.getTargetId(),
                         activity.getDominantActivity(),
                         activity.getLastAction(),
                         activity.getDominantAt(),
@@ -79,7 +82,7 @@ public class UserActivityRecorder {
         );
 
         if (resolution.updateRedis() && isUpdateRequired) {
-            userActivityRedisGateway.updateRecentDocuments(userId, documentId, now);
+            userActivityRedisGateway.updateRecentDocuments(userId, target, now);
         }
     }
 

@@ -4,5 +4,5 @@ public enum SummaryLength {
     SHORT,
     MEDIUM,
     LONG,
-    VERY_LONG
+    VERYLONG
 }

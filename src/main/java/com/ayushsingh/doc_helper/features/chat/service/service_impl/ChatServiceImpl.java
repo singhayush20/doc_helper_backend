@@ -21,6 +21,8 @@ import com.ayushsingh.doc_helper.features.chat.service.ChatSummaryService;
 import com.ayushsingh.doc_helper.features.chat.service.ThreadTurnService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityTarget;
+import com.ayushsingh.doc_helper.features.user_activity.entity.ActivityTargetType;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
 import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
@@ -182,7 +184,7 @@ public class ChatServiceImpl implements ChatService {
             chatSummaryService.summarizeThread(context.chatThread().getId());
         }
 
-        userActivityRecorder.record(context.userId(), context.documentId(), UserActivityType.DOCUMENT_CHAT);
+        userActivityRecorder.record(context.userId(), new ActivityTarget(ActivityTargetType.USER_DOC, context.documentId()), UserActivityType.DOCUMENT_CHAT);
     }
 
     @Override
@@ -210,7 +212,7 @@ public class ChatServiceImpl implements ChatService {
             chatSummaryService.summarizeThread(threadId);
         }
 
-        userActivityRecorder.record(context.userId(), context.documentId(), UserActivityType.DOCUMENT_CHAT);
+        userActivityRecorder.record(context.userId(), new ActivityTarget(ActivityTargetType.USER_DOC, context.documentId()), UserActivityType.DOCUMENT_CHAT);
 
         log.debug("Non-streaming response completed for threadId: {}",
                 threadId);

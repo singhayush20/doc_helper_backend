@@ -1,10 +1,12 @@
 package com.ayushsingh.doc_helper.features.doc_summary.repository;
 
 import com.ayushsingh.doc_helper.features.doc_summary.entity.Document;
+import com.ayushsingh.doc_helper.features.doc_summary.repository.projections.DocumentNameProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 
 public interface DocumentRepository extends JpaRepository<Document, Long> {
@@ -14,4 +16,14 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     @Query("SELECT d FROM Document d WHERE d.userId = :userId ORDER BY d.createdAt DESC")
     List<Document> findAllByUserId(Long userId);
+
+    @Query("""
+            SELECT new com.ayushsingh.doc_helper.features.doc_summary.repository.projections.DocumentNameProjection(
+            d.id,
+            d.originalFilename
+            )
+            FROM Document d
+            WHERE d.userId = :userId AND d.id IN :ids
+            """)
+    List<DocumentNameProjection> findAllNameByUserIdAndIdIn(Long userId, Collection<Long> ids);
 }

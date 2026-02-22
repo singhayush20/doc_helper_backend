@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.core.caching;
 
+import com.ayushsingh.doc_helper.features.user_activity.entity.ActivityTargetType;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityGroup;
 
 public final class RedisKeys {
@@ -10,11 +11,12 @@ public final class RedisKeys {
 
     public static String debounceKey(
             Long userId,
-            Long documentId,
+            ActivityTargetType targetType,
+            Long targetId,
             UserActivityGroup group
     ) {
-        return "activity:debounce:%d:%d:%s"
-                .formatted(userId, documentId, group.name());
+        return "activity:debounce:%d:%s:%d:%s"
+                .formatted(userId, targetType.name(), targetId, group.name());
     }
 
     public static String recentDocsKey(Long userId) {

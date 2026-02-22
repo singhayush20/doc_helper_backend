@@ -22,7 +22,8 @@ public class UserActivityUpsertRepository {
     private static final String UPSERT_SQL = """
         INSERT INTO user_activity (
             user_id,
-            document_id,
+            target_type,
+            target_id,
             dominant_activity,
             dominant_at,
             last_action,
@@ -33,7 +34,8 @@ public class UserActivityUpsertRepository {
         )
         VALUES (
             :userId,
-            :documentId,
+            :targetType,
+            :targetId,
             :dominantActivity,
             :dominantAt,
             :lastAction,
@@ -42,7 +44,7 @@ public class UserActivityUpsertRepository {
             now(),
             now()
         )
-        ON CONFLICT (user_id, document_id)
+        ON CONFLICT (user_id, target_type, target_id)
         DO UPDATE SET
             dominant_activity = EXCLUDED.dominant_activity,
             dominant_at = EXCLUDED.dominant_at,
@@ -67,7 +69,8 @@ public class UserActivityUpsertRepository {
     private MapSqlParameterSource toParams(UserActivityWriteRequest cmd) {
         return new MapSqlParameterSource()
                 .addValue("userId", cmd.userId())
-                .addValue("documentId", cmd.documentId())
+                .addValue("targetType", cmd.targetType().name())
+                .addValue("targetId", cmd.targetId())
                 .addValue("dominantActivity", cmd.dominantActivity().name())
                 .addValue(
                         "dominantAt",

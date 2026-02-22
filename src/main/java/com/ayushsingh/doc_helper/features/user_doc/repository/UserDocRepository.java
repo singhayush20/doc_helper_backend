@@ -81,4 +81,14 @@ public interface UserDocRepository extends JpaRepository<UserDoc, Long> {
             """)
     List<UserDocNameProjection> findAllByIdIn(Collection<Long> ids);
 
+    @Query("""
+                    SELECT new com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocNameProjection(
+                    d.id,
+                    d.originalFilename
+                    )
+                    FROM UserDoc d
+                    WHERE d.user.id = :userId AND d.id IN :ids
+            """)
+    List<UserDocNameProjection> findAllByUserIdAndIdIn(Long userId, Collection<Long> ids);
+
 }

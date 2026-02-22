@@ -9,6 +9,8 @@ import com.ayushsingh.doc_helper.features.doc_util.EmbeddingService;
 import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
 import com.ayushsingh.doc_helper.features.user.entity.User;
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityTarget;
+import com.ayushsingh.doc_helper.features.user_activity.entity.ActivityTargetType;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
 import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.features.user_doc.dto.FileDeletionVerificationResponse;
@@ -77,7 +79,7 @@ public class UserDocServiceImpl implements UserDocService {
 
         clearUserSearchCache(authUser.getUser().getId());
 
-        userActivityRecorder.record(authUser.getUser().getId(),savedFile.getId(), UserActivityType.DOCUMENT_UPLOAD);
+        userActivityRecorder.record(authUser.getUser().getId(), new ActivityTarget(ActivityTargetType.USER_DOC, savedFile.getId()), UserActivityType.DOCUMENT_UPLOAD);
 
         return new FileUploadResponse(savedFile.getFileName(), savedFile.getFileName());
     }
