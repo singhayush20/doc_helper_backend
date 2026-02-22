@@ -30,6 +30,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
@@ -72,14 +74,21 @@ public class UserDocServiceImpl implements UserDocService {
 
         var savedFile = saveFileInfo(savedFileInfo, authUser.getUser());
 
-        embeddingService.generateAndStoreEmbeddings(
-                savedFile.getId(),
-                authUser.getUser().getId(),
-                resource);
-
         clearUserSearchCache(authUser.getUser().getId());
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                embeddingService.generateAndStoreEmbeddings(
+                        savedFile.getId(),
+                        authUser.getUser().getId(),
+                        resource);
 
-        userActivityRecorder.record(authUser.getUser().getId(), new ActivityTarget(ActivityTargetType.USER_DOC, savedFile.getId()), UserActivityType.DOCUMENT_UPLOAD);
+                userActivityRecorder.record(
+                        authUser.getUser().getId(),
+                        new ActivityTarget(ActivityTargetType.USER_DOC, savedFile.getId()),
+                        UserActivityType.DOCUMENT_UPLOAD);
+            }
+        });
 
         return new FileUploadResponse(savedFile.getFileName(), savedFile.getFileName());
     }
