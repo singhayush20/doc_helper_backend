@@ -198,7 +198,7 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
             case SHORT -> finalPass ? 600 : 400;
             case MEDIUM -> finalPass ? 1200 : 700;
             case LONG -> finalPass ? 2500 : 1200;
-            case VERY_LONG -> finalPass ? 4500 : 2000;
+            case VERYLONG -> finalPass ? 4500 : 2000;
         };
 
         int slack = Math.max(500, (int) (base * 0.6));

@@ -122,7 +122,7 @@ public final class SummaryPromptBuilder {
             case SHORT -> "Between 90 and 140 words.";
             case MEDIUM -> "Between 120 and 190 words.";
             case LONG -> "Between 180 and 280 words.";
-            case VERY_LONG -> "Between 220 and 320 words.";
+            case VERYLONG -> "Between 220 and 320 words.";
         };
     }
 
@@ -131,7 +131,7 @@ public final class SummaryPromptBuilder {
             case SHORT -> "Maximum 150 words.";
             case MEDIUM -> "Between 150 and 300 words.";
             case LONG -> "Between 350 and 700 words.";
-            case VERY_LONG -> "Between 700 and 1200 words.";
+            case VERYLONG -> "Between 700 and 1200 words.";
         };
     }
 }
