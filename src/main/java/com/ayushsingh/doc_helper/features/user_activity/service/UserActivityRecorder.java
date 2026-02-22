@@ -87,7 +87,7 @@ public class UserActivityRecorder {
         return switch (group) {
             case ENGAGEMENT_LOW -> Duration.ofSeconds(10);
             case ENGAGEMENT_HIGH -> Duration.ofSeconds(30);
-            case PROCESSING -> Duration.ZERO;
+            case PROCESSING -> Duration.ofSeconds(1);
         };
     }
 }
