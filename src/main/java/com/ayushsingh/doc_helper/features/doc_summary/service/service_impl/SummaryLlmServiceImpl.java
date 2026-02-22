@@ -1,18 +1,18 @@
 package com.ayushsingh.doc_helper.features.doc_summary.service.service_impl;
 
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.metadata.Usage;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import com.ayushsingh.doc_helper.core.ai.advisors.PromptMetadataLoggingAdvisor;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.StructuredSummaryDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryLlmService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.ResponseFormat;
+import org.springframework.ai.openai.api.ResponseFormat.Type;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
@@ -20,50 +20,105 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
 
         private final ChatClient chatClient;
         private final PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor;
+        private final ObjectMapper objectMapper;
+
         @Value("${doc-summary.model}")
-        String modelName;
+        String defaultModelName;
+
         @Value("${doc-summary.temperature}")
         Double temperature;
 
         public SummaryLlmServiceImpl(
                         ChatClient chatClient,
-                        PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor) {
+                        PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor, ObjectMapper objectMapper) {
                 this.chatClient = chatClient;
                 this.promptMetadataLoggingAdvisor = promptMetadataLoggingAdvisor;
+                this.objectMapper = objectMapper;
         }
 
         @Override
         public SummaryLlmResponse generate(String prompt, Integer maxTokens) {
-                log.debug("Generating response for prompt: {} \n maxTokens: {}", prompt, maxTokens);
+                return generate(prompt, maxTokens, defaultModelName);
+        }
+
+        @Override
+        public SummaryLlmResponse generate(String prompt, Integer maxTokens, String modelName) {
+
+                log.debug("Generating summary response. model: {}, maxTokens: {}", modelName, maxTokens);
+
+                OpenAiChatOptions options = OpenAiChatOptions.builder()
+                                .model(modelName)
+                                .temperature(temperature)
+                                .maxTokens(maxTokens)
+                                .responseFormat(ResponseFormat.builder().jsonSchema(
+                                                """
+                                                                {
+                                                                  "type": "object",
+                                                                  "additionalProperties": false,
+                                                                  "properties": {
+                                                                    "summary": {
+                                                                      "type": "string",
+                                                                      "description": "Markdown formatted summary"
+                                                                    },
+                                                                    "wordCount": {
+                                                                      "type": "integer",
+                                                                      "description": "Word count of the summary"
+                                                                    }
+                                                                  },
+                                                                  "required": ["summary", "wordCount"]
+                                                                }
+                                                                """).type(Type.JSON_SCHEMA).build())
+                                .build();
 
                 var clientResponse = chatClient
                                 .prompt(prompt)
-                                .options(OpenAiChatOptions.builder()
-                                                .model(modelName)
-                                                .temperature(temperature)
-                                                .maxTokens(maxTokens)
-                                                .build())
+                                .options(options)
                                 .advisors(promptMetadataLoggingAdvisor)
                                 .call();
 
-                var response = clientResponse.responseEntity(StructuredSummaryDto.class);
+                var chatClientResponse = clientResponse.chatClientResponse();
+                var chatResponse = chatClientResponse.chatResponse();
+                var rawContent = chatResponse.getResult().getOutput().getText();
+                System.out.println("Raw LLM response content: " + rawContent);
 
-                ChatResponse chatResponse = response.getResponse();
+                StructuredSummaryDto structuredResponseEntity;
 
-                StructuredSummaryDto structuredResponseEntity = response.getEntity();
+                // 2️⃣ Strict JSON parse with truncation detection
+                try {
+                        structuredResponseEntity = objectMapper.readValue(rawContent, StructuredSummaryDto.class);
 
-                Usage usage = chatResponse != null && chatResponse.getMetadata() != null
-                                ? chatResponse.getMetadata().getUsage()
-                                : null;
+                } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
 
-                var promptTokens = usage != null ? usage.getPromptTokens() : null;
-                var completionTokens = usage != null ? usage.getCompletionTokens() : null;
-                var totalTokens = usage != null ? usage.getTotalTokens() : null;
+                        String message = ex.getMessage() != null
+                                        ? ex.getMessage().toLowerCase()
+                                        : "";
 
+                        boolean likelyTruncated = message.contains("unexpected end-of-input")
+                                        || message.contains("was expecting closing quote")
+                                        || message.contains("end-of-input")
+                                        || message.contains("jsonparseexception")
+                                        || message.contains("jsonmappingexception");
+
+                        if (likelyTruncated) {
+                                throw new RuntimeException(
+                                                "INCOMPLETE_JSON_RESPONSE_FROM_MODEL",
+                                                ex);
+                        }
+
+                        throw new RuntimeException(
+                                        "INVALID_JSON_RESPONSE_FROM_MODEL",
+                                        ex);
+                }
+
+                var usage = chatResponse.getMetadata().getUsage();
+                log.info("Summary generation successful. Prompt tokens: {}, Completion tokens: {}, Total tokens: {}",
+                                usage.getPromptTokens(),
+                                usage.getCompletionTokens(),
+                                usage.getTotalTokens());
                 return new SummaryLlmResponse(
                                 structuredResponseEntity,
-                                promptTokens,
-                                completionTokens,
-                                totalTokens);
+                                usage.getPromptTokens(),
+                                usage.getCompletionTokens(),
+                                usage.getTotalTokens());
         }
 }
