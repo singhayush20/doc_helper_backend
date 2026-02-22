@@ -2,18 +2,21 @@ package com.ayushsingh.doc_helper.features.user_activity.service.service_impl;
 
 import com.ayushsingh.doc_helper.core.caching.RedisKeys;
 import com.ayushsingh.doc_helper.core.security.UserContext;
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityRedisMember;
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityTarget;
 import com.ayushsingh.doc_helper.features.user_activity.dto.UserActivityDto;
 import com.ayushsingh.doc_helper.features.user_activity.dto.UserActivityResponseDto;
+import com.ayushsingh.doc_helper.features.user_activity.entity.ActivityTargetType;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivity;
 import com.ayushsingh.doc_helper.features.user_activity.repository.UserActivityRepository;
+import com.ayushsingh.doc_helper.features.user_activity.service.ActivityTargetNameResolver;
 import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityService;
-import com.ayushsingh.doc_helper.features.user_doc.repository.projections.UserDocNameProjection;
-import com.ayushsingh.doc_helper.features.user_doc.service.UserDocService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,93 +29,110 @@ public class UserActivityServiceImpl implements UserActivityService {
 
     private final RedisTemplate<String, String> redis;
     private final UserActivityRepository userActivityRepository;
-    private final UserDocService userDocService;
+    private final List<ActivityTargetNameResolver> nameResolvers;
 
     @Override
     public UserActivityResponseDto fetchUserActivity(int limit) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         String key = RedisKeys.recentDocsKey(userId);
 
-        // Redis Sorted Set ensures ordered list access
-        // Without this, we would need to have a custom sorting logic
-        Set<String> rawDocIds =
+        Set<String> rawTargetMembers =
                 redis.opsForZSet()
                         .reverseRange(key, 0, limit - 1);
 
-        // If no docs in Redis, fallback to DB
-        if (rawDocIds == null || rawDocIds.isEmpty()) {
+        if (rawTargetMembers == null || rawTargetMembers.isEmpty()) {
             List<UserActivity> activities =
-                    userActivityRepository
-                            .findTop5ByUserIdOrderByDominantAtDesc(userId);
-
-            List<Long> documentIds =
-                    activities.stream()
-                            .map(UserActivity::getDocumentId)
-                            .toList();
-
-            Map<Long, String> docIdToName =
-                    userDocService.findAllDocNamesByIdIn(documentIds)
-                            .stream()
-                            .collect(Collectors.toMap(
-                                    UserDocNameProjection::id,
-                                    UserDocNameProjection::fileName
-                            ));
-
-            return new UserActivityResponseDto(
-                    activities.stream()
-                            .map(activity ->
-                                    userActivityToDto(
-                                            activity,
-                                            docIdToName.get(activity.getDocumentId())
-                                    )
-                            )
-                            .toList()
-            );
+                    userActivityRepository.findTop5ByUserIdOrderByDominantAtDesc(userId);
+            return new UserActivityResponseDto(toDtos(userId, activities));
         }
 
-        List<Long> documentIds =
-                rawDocIds.stream()
-                        .map(Long::valueOf)
-                        .toList();
+        List<ActivityTarget> orderedTargets = rawTargetMembers.stream()
+                .map(ActivityRedisMember::parse)
+                .filter(java.util.Objects::nonNull)
+                .toList();
 
-        List<UserActivity> activities =
-                userActivityRepository
-                        .findAllByUserIdAndDocumentIdIn(userId, documentIds);
+        List<UserActivity> activities = findActivitiesInRedisOrder(userId, orderedTargets);
+        return new UserActivityResponseDto(toDtos(userId, activities, orderedTargets));
+    }
 
-        // Build map for quick lookup, since the order is not guaranteed by the db fetch query
-        Map<Long, UserActivity> byDocId =
-                activities.stream()
-                        .collect(Collectors.toMap(
-                                UserActivity::getDocumentId,
-                                Function.identity()
-                        ));
+    private List<UserActivity> findActivitiesInRedisOrder(Long userId, List<ActivityTarget> orderedTargets) {
+        Map<ActivityTargetType, List<Long>> idsByType = orderedTargets.stream()
+                .collect(Collectors.groupingBy(
+                        ActivityTarget::type,
+                        () -> new EnumMap<>(ActivityTargetType.class),
+                        Collectors.mapping(ActivityTarget::id, Collectors.toList())
+                ));
 
-        Map<Long, String> docIdToName =
-                userDocService.findAllDocNamesByIdIn(documentIds)
-                        .stream()
-                        .collect(Collectors.toMap(
-                                UserDocNameProjection::id,
-                                UserDocNameProjection::fileName
-                        ));
+        List<UserActivity> all = new ArrayList<>();
+        idsByType.forEach((type, ids) -> all.addAll(
+                userActivityRepository.findAllByUserIdAndTargetTypeAndTargetIdIn(userId, type, ids)
+        ));
+        return all;
+    }
 
+    private List<UserActivityDto> toDtos(Long userId, List<UserActivity> activities) {
+        return toDtos(userId, activities, null);
+    }
 
-        // Rebuild list in Redis order
+    private List<UserActivityDto> toDtos(Long userId, List<UserActivity> activities, List<ActivityTarget> orderedTargets) {
+        Map<ActivityTargetType, ActivityTargetNameResolver> resolverByType = nameResolvers.stream()
+                .collect(Collectors.toMap(ActivityTargetNameResolver::supports, Function.identity()));
+
+        Map<ActivityTargetType, List<Long>> idsByType = activities.stream()
+                .collect(Collectors.groupingBy(
+                        this::targetTypeOf,
+                        () -> new EnumMap<>(ActivityTargetType.class),
+                        Collectors.mapping(UserActivity::getTargetId, Collectors.toList())
+                ));
+
+        Map<ActivityTargetType, Map<Long, String>> namesByType = new EnumMap<>(ActivityTargetType.class);
+        idsByType.forEach((type, ids) -> {
+            ActivityTargetNameResolver resolver = resolverByType.get(type);
+            if (resolver != null) {
+                namesByType.put(type, resolver.resolveNames(userId, ids));
+            } else {
+                namesByType.put(type, Map.of());
+            }
+        });
+
+        if (orderedTargets == null) {
+            return activities.stream()
+                    .map(activity -> userActivityToDto(activity, resolveName(activity, namesByType)))
+                    .toList();
+        }
+
+        Map<String, UserActivity> byTarget = activities.stream()
+                .collect(Collectors.toMap(
+                        a -> targetTypeOf(a).name() + ":" + a.getTargetId(),
+                        Function.identity(),
+                        (a, b) -> a
+                ));
+
         List<UserActivityDto> result = new ArrayList<>();
-
-        for (Long docId : documentIds) {
-            UserActivity activity = byDocId.get(docId);
-            String fileName = docIdToName.get(docId);
+        for (ActivityTarget target : orderedTargets) {
+            UserActivity activity = byTarget.get(target.type().name() + ":" + target.id());
             if (activity != null) {
-                result.add(userActivityToDto(activity,fileName));
+                result.add(userActivityToDto(activity, resolveName(activity, namesByType)));
             }
         }
+        return result;
+    }
 
-        return new UserActivityResponseDto(result);
+    private String resolveName(UserActivity activity, Map<ActivityTargetType, Map<Long, String>> namesByType) {
+        return namesByType
+                .getOrDefault(targetTypeOf(activity), Map.of())
+                .getOrDefault(activity.getTargetId(), "Unknown resource");
+    }
+
+
+    private ActivityTargetType targetTypeOf(UserActivity activity) {
+        return activity.getTargetType() != null ? activity.getTargetType() : ActivityTargetType.USER_DOC;
     }
 
     private UserActivityDto userActivityToDto(UserActivity userActivity, String fileName) {
         return UserActivityDto.builder()
-                .documentId(userActivity.getDocumentId())
+                .targetType(targetTypeOf(userActivity))
+                .documentId(userActivity.getTargetId())
                 .dominantAt(userActivity.getDominantAt())
                 .lastAction(userActivity.getLastAction())
                 .fileName(fileName)

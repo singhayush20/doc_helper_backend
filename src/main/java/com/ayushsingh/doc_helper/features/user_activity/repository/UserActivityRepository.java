@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.user_activity.repository;
 
+import com.ayushsingh.doc_helper.features.user_activity.entity.ActivityTargetType;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,18 +11,19 @@ import java.util.Optional;
 public interface UserActivityRepository
         extends JpaRepository<UserActivity, Long> {
 
-    Optional<UserActivity> findByUserIdAndDocumentId(
+    Optional<UserActivity> findByUserIdAndTargetTypeAndTargetId(
             Long userId,
-            Long documentId
+            ActivityTargetType targetType,
+            Long targetId
     );
 
-    List<UserActivity> findAllByUserIdAndDocumentIdIn(
+    List<UserActivity> findAllByUserIdAndTargetTypeAndTargetIdIn(
             Long userId,
-            Collection<Long> documentIds
+            ActivityTargetType targetType,
+            Collection<Long> targetIds
     );
 
     List<UserActivity> findTop5ByUserIdOrderByDominantAtDesc(
             Long userId
     );
 }
-

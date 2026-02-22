@@ -1,6 +1,8 @@
 package com.ayushsingh.doc_helper.features.user_activity.service;
 
 import com.ayushsingh.doc_helper.core.caching.RedisKeys;
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityRedisMember;
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityTarget;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityGroup;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -24,11 +26,11 @@ public class UserActivityRedisGateway {
      */
     public boolean allowByDebounce(
             Long userId,
-            Long documentId,
+            ActivityTarget target,
             UserActivityGroup group,
             Duration ttl
     ) {
-        String key = RedisKeys.debounceKey(userId, documentId, group);
+        String key = RedisKeys.debounceKey(userId, target.type(), target.id(), group);
         Boolean ok = redis.opsForValue()
                 .setIfAbsent(key, "1", ttl);
 
@@ -37,14 +39,14 @@ public class UserActivityRedisGateway {
 
     public void updateRecentDocuments(
             Long userId,
-            Long documentId,
+            ActivityTarget target,
             Instant at
     ) {
         String key = RedisKeys.recentDocsKey(userId);
 
         redis.opsForZSet().add(
                 key,
-                documentId.toString(),
+                ActivityRedisMember.toMember(target),
                 at.toEpochMilli()
         );
 

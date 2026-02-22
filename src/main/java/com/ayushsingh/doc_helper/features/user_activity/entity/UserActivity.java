@@ -20,7 +20,7 @@ import java.util.Map;
 @Table(
         name = "user_activity",
         uniqueConstraints = @UniqueConstraint(
-                columnNames = {"user_id", "document_id"}
+                columnNames = {"user_id", "target_type", "target_id"}
         ),
         indexes = {
                 @Index(
@@ -37,8 +37,13 @@ public class UserActivity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "document_id", nullable = false)
-    private Long documentId;
+    @Column(name = "target_id", nullable = false)
+    private Long targetId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_type", nullable = false)
+    private ActivityTargetType targetType;
+
 
     @Enumerated(EnumType.STRING)
     @Column(name = "dominant_activity", nullable = false)
@@ -72,7 +77,8 @@ public class UserActivity {
         return "UserActivity{" +
                 "id=" + id +
                 ", userId=" + userId +
-                ", documentId=" + documentId +
+                " , targetType=" + targetType +
+                ", targetId=" + targetId +
                 ", dominantActivity=" + dominantActivity +
                 ", lastAction=" + lastAction +
                 ", dominantAt=" + dominantAt +

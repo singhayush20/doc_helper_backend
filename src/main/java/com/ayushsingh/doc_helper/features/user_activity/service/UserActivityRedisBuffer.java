@@ -23,7 +23,7 @@
         private final ObjectMapper objectMapper;
 
         public void buffer(UserActivityWriteRequest writeRequest) {
-            String field = writeRequest.userId() + ":" + writeRequest.documentId();
+            String field = writeRequest.userId() + ":" + writeRequest.targetType() + ":" + writeRequest.targetId();
 
             try {
                 String value = objectMapper.writeValueAsString(writeRequest);

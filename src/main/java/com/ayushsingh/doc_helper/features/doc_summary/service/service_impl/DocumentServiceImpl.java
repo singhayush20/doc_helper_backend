@@ -9,6 +9,8 @@ import com.ayushsingh.doc_helper.features.doc_summary.repository.DocumentReposit
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentService;
 import com.ayushsingh.doc_helper.features.doc_util.DocService;
 import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
+import com.ayushsingh.doc_helper.features.user_activity.dto.ActivityTarget;
+import com.ayushsingh.doc_helper.features.user_activity.entity.ActivityTargetType;
 import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
 import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
@@ -48,7 +50,7 @@ public class DocumentServiceImpl implements DocumentService {
         doc.setStatus(DocumentStatus.UPLOADED);
         Document savedDoc = documentRepository.save(doc);
 
-        userActivityRecorder.record(userId, savedDoc.getId(), UserActivityType.DOCUMENT_UPLOAD);
+        userActivityRecorder.record(userId, new ActivityTarget(ActivityTargetType.SUMMARY_DOCUMENT, savedDoc.getId()), UserActivityType.DOCUMENT_UPLOAD);
 
         return modelMapper.map(savedDoc, DocumentDetailsDto.class);
     }
