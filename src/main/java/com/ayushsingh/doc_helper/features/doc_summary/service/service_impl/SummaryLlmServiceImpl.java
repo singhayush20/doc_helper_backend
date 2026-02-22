@@ -1,5 +1,10 @@
 package com.ayushsingh.doc_helper.features.doc_summary.service.service_impl;
 
+import com.ayushsingh.doc_helper.core.ai.advisors.PromptMetadataLoggingAdvisor;
+import com.ayushsingh.doc_helper.features.doc_summary.dto.StructuredSummaryDto;
+import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
+import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryLlmService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -7,21 +12,16 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.ayushsingh.doc_helper.core.ai.advisors.PromptMetadataLoggingAdvisor;
-import com.ayushsingh.doc_helper.features.doc_summary.dto.StructuredSummaryDto;
-import com.ayushsingh.doc_helper.features.doc_summary.dto.SummaryLlmResponse;
-import com.ayushsingh.doc_helper.features.doc_summary.service.SummaryLlmService;
-
-import lombok.extern.slf4j.Slf4j;
-
 @Component
 @Slf4j
 public class SummaryLlmServiceImpl implements SummaryLlmService {
 
         private final ChatClient chatClient;
         private final PromptMetadataLoggingAdvisor promptMetadataLoggingAdvisor;
+
         @Value("${doc-summary.model}")
-        String modelName;
+        String defaultModelName;
+
         @Value("${doc-summary.temperature}")
         Double temperature;
 
@@ -34,7 +34,12 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
 
         @Override
         public SummaryLlmResponse generate(String prompt, Integer maxTokens) {
-                log.debug("Generating response for prompt: {} \n maxTokens: {}", prompt, maxTokens);
+                return generate(prompt, maxTokens, defaultModelName);
+        }
+
+        @Override
+        public SummaryLlmResponse generate(String prompt, Integer maxTokens, String modelName) {
+                log.debug("Generating summary response. model: {}, maxTokens: {}", modelName, maxTokens);
 
                 var clientResponse = chatClient
                                 .prompt(prompt)
@@ -46,11 +51,30 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
                                 .advisors(promptMetadataLoggingAdvisor)
                                 .call();
 
-                var response = clientResponse.responseEntity(StructuredSummaryDto.class);
+                StructuredSummaryDto structuredResponseEntity;
+                ChatResponse chatResponse;
 
-                ChatResponse chatResponse = response.getResponse();
+                try {
+                        var response = clientResponse.responseEntity(StructuredSummaryDto.class);
+                        structuredResponseEntity = response.getEntity();
+                        chatResponse = response.getResponse();
+                } catch (RuntimeException parseException) {
+                        String message = parseException.getMessage() != null
+                                        ? parseException.getMessage().toLowerCase()
+                                        : "";
 
-                StructuredSummaryDto structuredResponseEntity = response.getEntity();
+                        boolean likelyTruncated = message.contains("unexpected end-of-input")
+                                        || message.contains("was expecting closing quote")
+                                        || message.contains("end-of-input")
+                                        || message.contains("jsonparseexception")
+                                        || message.contains("jsonmappingexception");
+
+                        if (likelyTruncated) {
+                                throw new RuntimeException("INCOMPLETE_JSON_RESPONSE_FROM_MODEL", parseException);
+                        }
+
+                        throw new RuntimeException("INVALID_JSON_RESPONSE_FROM_MODEL", parseException);
+                }
 
                 Usage usage = chatResponse != null && chatResponse.getMetadata() != null
                                 ? chatResponse.getMetadata().getUsage()
