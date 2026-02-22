@@ -23,6 +23,8 @@ import com.ayushsingh.doc_helper.features.doc_util.service_impl.DocumentParsingS
 import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import com.ayushsingh.doc_helper.features.product_features.entity.UsageMetric;
 import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaService;
+import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
+import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
@@ -50,46 +52,44 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
     private final DocumentChunkRepository documentChunkRepository;
     private final DocumentChunkingService summaryChunker;
     private final ModelMapper modelMapper;
+    private final UserActivityRecorder userActivityRecorder;
 
     @Transactional
     @Override
     public SummaryResponseDto createSummary(
-            SummaryCreateRequestDto request
-    ) {
+            SummaryCreateRequestDto requestDto) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
+        Long documentId = requestDto.getDocumentId();
 
-        Document document = documentService.getByIdForUser(request.getDocumentId(), userId);
+        Document document = documentService.getByIdForUser(documentId, userId);
         List<String> chunks = loadOrCreateChunks(document);
         if (chunks.isEmpty()) {
             throw new BaseException(
                     "Document content is empty",
-                    ExceptionCodes.DOCUMENT_PARSING_FAILED
-            );
+                    ExceptionCodes.DOCUMENT_PARSING_FAILED);
         }
 
-        SummaryTone tone = parseTone(request.getTone());
-        SummaryLength length = parseLength(request.getLength());
+        SummaryTone tone = parseTone(requestDto.getTone());
+        SummaryLength length = parseLength(requestDto.getLength());
 
         long remainingTokens = usageQuotaService
                 .getRemainingTokens(userId, FeatureCodes.DOC_SUMMARY.name());
 
-        SummaryGenerationResult result =
-                summaryGenerationService.generate(
-                        chunks,
-                        tone,
-                        length,
-                        remainingTokens,
-                        tokens -> usageQuotaService.consume(
-                                userId,
-                                FeatureCodes.DOC_SUMMARY.name(),
-                                UsageMetric.TOKEN_COUNT,
-                                tokens
-                        ));
+        SummaryGenerationResult result = summaryGenerationService.generate(
+                chunks,
+                tone,
+                length,
+                remainingTokens,
+                tokens -> usageQuotaService.consume(
+                        userId,
+                        FeatureCodes.DOC_SUMMARY.name(),
+                        UsageMetric.TOKEN_COUNT,
+                        tokens));
 
-        Integer nextVersion = resolveNextVersion(request.getDocumentId());
+        Integer nextVersion = resolveNextVersion(documentId);
 
         DocumentSummary summary = new DocumentSummary();
-        summary.setDocumentId(request.getDocumentId());
+        summary.setDocumentId(documentId);
         summary.setVersionNumber(nextVersion);
         summary.setTone(tone);
         summary.setWordCount(result.content().wordCount());
@@ -98,6 +98,8 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         summary.setTokensUsed(result.tokensUsed());
 
         DocumentSummary saved = documentSummaryRepository.save(summary);
+
+        userActivityRecorder.record(userId, documentId, UserActivityType.DOCUMENT_SUMMARY);
 
         return SummaryResponseDto.builder()
                 .summaryId(saved.getId())
@@ -121,8 +123,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
                         .findByDocumentIdOrderByVersionNumberAsc(documentId)
                         .stream()
                         .map(s -> modelMapper.map(s, SummaryResponseDto.class))
-                        .toList()
-        );
+                        .toList());
     }
 
     @Override
@@ -130,20 +131,17 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         DocumentSummary summary = documentSummaryRepository.findById(summaryId)
                 .orElseThrow(() -> new BaseException(
                         "Summary not found",
-                        ExceptionCodes.DOCUMENT_NOT_FOUND
-                ));
+                        ExceptionCodes.DOCUMENT_NOT_FOUND));
 
         Long userId = UserContext.getCurrentUser().getUser().getId();
         var isDocumentPresent = documentService.existsByIdAndUserId(summary.getDocumentId(), userId);
 
-        if(isDocumentPresent) {
+        if (isDocumentPresent) {
             return modelMapper.map(summary, SummaryContentDto.class);
-        }
-        else {
+        } else {
             throw new BaseException(
                     "DOcument not found",
-                    ExceptionCodes.DOCUMENT_NOT_FOUND
-            );
+                    ExceptionCodes.DOCUMENT_NOT_FOUND);
         }
     }
 
@@ -158,8 +156,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         } catch (Exception e) {
             throw new BaseException(
                     "Invalid tone value",
-                    ExceptionCodes.INVALID_FEATURE_CONFIG
-            );
+                    ExceptionCodes.INVALID_FEATURE_CONFIG);
         }
     }
 
@@ -169,8 +166,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         } catch (Exception e) {
             throw new BaseException(
                     "Invalid length value",
-                    ExceptionCodes.INVALID_FEATURE_CONFIG
-            );
+                    ExceptionCodes.INVALID_FEATURE_CONFIG);
         }
     }
 
@@ -195,16 +191,14 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
             if (text == null || text.isBlank()) {
                 throw new BaseException(
                         "Failed to parse document",
-                        ExceptionCodes.DOCUMENT_PARSING_FAILED
-                );
+                        ExceptionCodes.DOCUMENT_PARSING_FAILED);
             }
 
             List<String> chunks = summaryChunker.splitWithOverlap(text);
             if (chunks.isEmpty()) {
                 throw new BaseException(
                         "Failed to parse document",
-                        ExceptionCodes.DOCUMENT_PARSING_FAILED
-                );
+                        ExceptionCodes.DOCUMENT_PARSING_FAILED);
             }
 
             List<DocumentChunk> chunksList = new ArrayList<>(chunks.size());
@@ -229,8 +223,7 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
             documentRepository.save(document);
             throw new BaseException(
                     "Failed to parse document",
-                    ExceptionCodes.DOCUMENT_PARSING_FAILED
-            );
+                    ExceptionCodes.DOCUMENT_PARSING_FAILED);
         }
     }
 

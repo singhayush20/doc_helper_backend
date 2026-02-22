@@ -9,6 +9,8 @@ import com.ayushsingh.doc_helper.features.doc_summary.repository.DocumentReposit
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentService;
 import com.ayushsingh.doc_helper.features.doc_util.DocService;
 import com.ayushsingh.doc_helper.features.doc_util.dto.DocSaveResponse;
+import com.ayushsingh.doc_helper.features.user_activity.entity.UserActivityType;
+import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityRecorder;
 import com.ayushsingh.doc_helper.features.user_doc.entity.DocumentStatus;
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +34,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentRepository documentRepository;
     private final DocService docService;
     private final ModelMapper modelMapper;
+    private final UserActivityRecorder userActivityRecorder;
 
     @Override
     public DocumentDetailsDto uploadDocument(Long userId, MultipartFile file) {
@@ -44,6 +47,9 @@ public class DocumentServiceImpl implements DocumentService {
         doc.setOriginalFilename(saved.originalFileName());
         doc.setStatus(DocumentStatus.UPLOADED);
         Document savedDoc = documentRepository.save(doc);
+
+        userActivityRecorder.record(userId, savedDoc.getId(), UserActivityType.DOCUMENT_UPLOAD);
+
         return modelMapper.map(savedDoc, DocumentDetailsDto.class);
     }
 
