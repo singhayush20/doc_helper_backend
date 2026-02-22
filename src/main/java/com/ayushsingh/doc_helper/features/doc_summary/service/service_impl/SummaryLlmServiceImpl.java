@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.ResponseFormat;
+import org.springframework.ai.openai.api.ResponseFormat.Type;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -44,13 +46,33 @@ public class SummaryLlmServiceImpl implements SummaryLlmService {
 
                 log.debug("Generating summary response. model: {}, maxTokens: {}", modelName, maxTokens);
 
+                OpenAiChatOptions options = OpenAiChatOptions.builder()
+                                .model(modelName)
+                                .temperature(temperature)
+                                .maxTokens(maxTokens)
+                                .responseFormat(ResponseFormat.builder().jsonSchema(
+                                                """
+                                                                {
+                                                                  "type": "object",
+                                                                  "additionalProperties": false,
+                                                                  "properties": {
+                                                                    "summary": {
+                                                                      "type": "string",
+                                                                      "description": "Markdown formatted summary"
+                                                                    },
+                                                                    "wordCount": {
+                                                                      "type": "integer",
+                                                                      "description": "Word count of the summary"
+                                                                    }
+                                                                  },
+                                                                  "required": ["summary", "wordCount"]
+                                                                }
+                                                                """).type(Type.JSON_SCHEMA).build())
+                                .build();
+
                 var clientResponse = chatClient
                                 .prompt(prompt)
-                                .options(OpenAiChatOptions.builder()
-                                                .model(modelName)
-                                                .temperature(temperature)
-                                                // .maxTokens(maxTokens) // TODO: Re-enable maxTokens - to ensure we get response within limit
-                                                .build())
+                                .options(options)
                                 .advisors(promptMetadataLoggingAdvisor)
                                 .call();
 

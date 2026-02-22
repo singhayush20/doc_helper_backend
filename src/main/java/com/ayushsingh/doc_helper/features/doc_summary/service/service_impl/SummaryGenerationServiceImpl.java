@@ -26,8 +26,6 @@ import java.util.function.LongConsumer;
 @Slf4j
 public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
-    private static final int MIN_REQUIRED_TOKEN_DIFFERENCE = 120;
-
     private final SummaryLlmService llmService;
     private final DocumentTokenEstimationService tokenEstimator;
 
@@ -73,7 +71,7 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
 
         for (String chunk : normalizedChunks) {
             String prompt = SummaryPromptBuilder.buildChunkPrompt(chunk, tone, length);
-            int maxOutputTokens = resolveMaxOutputTokens(prompt, length, false, remainingTokens);
+            int maxOutputTokens = resolveMaxOutputTokens(length, false);
 
             SummaryLlmResponse response = callWithRetry(prompt, maxOutputTokens, chunkModel);
             stageOutputs.add(response.content().summary());
@@ -92,8 +90,7 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
                 List<String> group = stageOutputs.subList(start, end);
 
                 String aggregationPrompt = SummaryPromptBuilder.buildAggregatePrompt(group, tone, length);
-                int aggregationMaxTokens = resolveMaxOutputTokens(aggregationPrompt, length, true, remainingTokens);
-
+                int aggregationMaxTokens = resolveMaxOutputTokens(length, true);
                 SummaryLlmResponse aggregatedResponse = callWithRetry(
                         aggregationPrompt,
                         aggregationMaxTokens,
@@ -182,8 +179,8 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
             return baseMaxTokens;
         }
 
-        int boosted = baseMaxTokens + (attempt - 1) * 120;
-        return Math.min(boosted, baseMaxTokens + 500);
+        int boosted = baseMaxTokens + (attempt - 1) * 500;
+        return Math.min(boosted, baseMaxTokens + 3000);
     }
 
     private long resolveBackoffDelay(int attempt) {
@@ -193,29 +190,19 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
     }
 
     private int resolveMaxOutputTokens(
-            String prompt,
             SummaryLength length,
-            boolean finalPass,
-            long remainingTokens) {
+            boolean finalPass) {
 
-        int promptTokens = tokenEstimator.estimateTokens(prompt);
-
-        int lengthBasedMax = switch (length) {
-            case SHORT -> finalPass ? 300 : 220;
-            case MEDIUM -> finalPass ? 600 : 320;
-            case LONG -> finalPass ? 1300 : 450;
-            case VERY_LONG -> finalPass ? 2000 : 550;
+        int base = switch (length) {
+            case SHORT -> finalPass ? 600 : 400;
+            case MEDIUM -> finalPass ? 1200 : 700;
+            case LONG -> finalPass ? 2500 : 1200;
+            case VERY_LONG -> finalPass ? 4500 : 2000;
         };
 
-        long safetyMargin = finalPass ? MIN_REQUIRED_TOKEN_DIFFERENCE : MIN_REQUIRED_TOKEN_DIFFERENCE / 2;
-        long allowed = remainingTokens - promptTokens - safetyMargin;
-        if (allowed <= 0) {
-            throw new BaseException(
-                    "Quota exceeded",
-                    ExceptionCodes.QUOTA_EXCEEDED);
-        }
+        int slack = Math.max(500, (int) (base * 0.6));
 
-        return (int) Math.min(lengthBasedMax, allowed);
+        return base + slack;
     }
 
     private long resolveTokensUsed(
@@ -226,9 +213,8 @@ public class SummaryGenerationServiceImpl implements SummaryGenerationService {
             return response.totalTokens();
         }
 
-        return tokenEstimator.estimateTokens(prompt)
-                + tokenEstimator
-                        .estimateTokens(response.content().summary());
+        // Fallback: completion only
+        return tokenEstimator.estimateTokens(response.content().summary());
     }
 
     private long updateRemainingTokens(

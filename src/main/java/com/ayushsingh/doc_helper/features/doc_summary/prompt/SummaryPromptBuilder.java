@@ -77,7 +77,7 @@ public final class SummaryPromptBuilder {
                 Return ONLY valid JSON in this exact structure:
 
                 {
-                  "summary": "string",
+                  "summary": "markdown string",
                   "wordCount": integer
                 }
 
@@ -85,7 +85,7 @@ public final class SummaryPromptBuilder {
                 - Eliminate repetition.
                 - Maintain logical flow.
                 - Preserve important names, numbers, claims, and outcomes.
-                - summary must be markdown, not plain text.
+                - the summary field in the output JSON must be in markdown format, not plain text.
                 - summary must include:
                   1) a short heading line,
                   2) one overview paragraph,
