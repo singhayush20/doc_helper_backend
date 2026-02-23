@@ -95,4 +95,10 @@ public class DocumentServiceImpl implements DocumentService {
         }
     }
 
+    @Override
+    public void deleteDocument(Long userId, Long documentId) {
+        Document doc = getByIdForUser(documentId, userId);
+        docService.deleteFile(doc.getFileName());
+        documentRepository.delete(doc);
+    }
 }

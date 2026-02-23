@@ -11,4 +11,6 @@ public interface DocumentSummaryService {
     SummaryListResponseDto getSummaries(Long documentId);
 
     SummaryContentDto getSummary(Long summaryId);
+
+    void deleteSummaryByDocumentId(Long documentId);
 }

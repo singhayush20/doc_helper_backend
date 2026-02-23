@@ -14,4 +14,6 @@ public interface DocumentService {
     boolean existsByIdAndUserId(Long documentId, Long userId);
 
     DocumentListResponse getDocumentsForUser(Long userId);
+
+    void deleteDocument(Long userId, Long documentId);
 }

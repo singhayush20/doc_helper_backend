@@ -233,4 +233,10 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
         Resource resource = docService.loadFileAsResource(document.getFileName());
         return documentParsingService.extractText(resource, document.getOriginalFilename());
     }
+
+    @Override
+    public void deleteSummaryByDocumentId(Long documentId) {
+        List<DocumentSummary> summaries = documentSummaryRepository.findByDocumentIdOrderByVersionNumberAsc(documentId);
+        documentSummaryRepository.deleteAll(summaries);
+    }
 }
