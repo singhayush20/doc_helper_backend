@@ -6,8 +6,6 @@ import com.ayushsingh.doc_helper.features.doc_summary.dto.DocumentListResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentService;
 import lombok.RequiredArgsConstructor;
 
-import org.apache.hc.core5.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
