@@ -35,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.core.io.Resource;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -235,8 +236,9 @@ public class DocumentSummaryServiceImpl implements DocumentSummaryService {
     }
 
     @Override
-    public void deleteSummaryByDocumentId(Long documentId) {
-        List<DocumentSummary> summaries = documentSummaryRepository.findByDocumentIdOrderByVersionNumberAsc(documentId);
-        documentSummaryRepository.deleteAll(summaries);
+    @Async
+    @Transactional
+    public void deleteDocumentSummariesAsync(Long documentId) {
+        documentSummaryRepository.deleteAllById(documentId);
     }
 }

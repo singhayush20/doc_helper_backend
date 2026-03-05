@@ -4,6 +4,8 @@ import com.ayushsingh.doc_helper.core.security.UserContext;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.DocumentDetailsDto;
 import com.ayushsingh.doc_helper.features.doc_summary.dto.DocumentListResponse;
 import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentService;
+import com.ayushsingh.doc_helper.features.doc_summary.service.DocumentSummaryService;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final DocumentSummaryService documentSummaryService;
 
     @PostMapping("/upload")
     public ResponseEntity<DocumentDetailsDto> uploadDocument(
@@ -33,7 +36,7 @@ public class DocumentController {
        
     }
 
-    @GetMapping("/")
+    @GetMapping
     public ResponseEntity<DocumentListResponse> getDocuments() {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         return ResponseEntity.ok(documentService.getDocumentsForUser(userId));
@@ -43,6 +46,7 @@ public class DocumentController {
     public ResponseEntity<Void> deleteDocument(@PathVariable Long documentId) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         documentService.deleteDocument(userId, documentId);
+        documentSummaryService.deleteDocumentSummariesAsync(documentId);
         return ResponseEntity.ok().build();
     }
 }

@@ -12,5 +12,5 @@ public interface DocumentSummaryService {
 
     SummaryContentDto getSummary(Long summaryId);
 
-    void deleteSummaryByDocumentId(Long documentId);
+    void deleteDocumentSummariesAsync(Long documentId);
 }
