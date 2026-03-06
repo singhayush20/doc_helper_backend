@@ -3,6 +3,7 @@ package com.ayushsingh.doc_helper.features.ui_components.registry;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.features.product_features.entity.UIComponentType;
+import com.ayushsingh.doc_helper.features.ui_components.models.Banner;
 import com.ayushsingh.doc_helper.features.ui_components.models.FeatureCard;
 import com.ayushsingh.doc_helper.features.ui_components.models.UIComponent;
 import org.springframework.stereotype.Component;
@@ -14,11 +15,13 @@ import java.util.Map;
 public class UIComponentRegistry {
 
         // using HashMap since the map is constructed only once at the start-up
-        // if this is changed to support dynamic registration, consider using ConcurrentHashMap
+        // if this is changed to support dynamic registration, consider using
+        // ConcurrentHashMap
         private final Map<RegistryKey, Class<? extends UIComponent>> registry = new HashMap<>();
 
         public UIComponentRegistry() {
                 register(UIComponentType.CARD, 1, FeatureCard.class);
+                register(UIComponentType.BANNER, 1, Banner.class);
         }
 
         public Class<? extends UIComponent> resolve(

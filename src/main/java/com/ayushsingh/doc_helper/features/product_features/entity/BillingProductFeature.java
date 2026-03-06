@@ -46,7 +46,7 @@
         @Column(name = "enabled_version",nullable=false)
         private Integer enabledVersion;
 
-        @Column(name = "quota_limit",nullable=false)
+        @Column(name = "quota_limit")
         private Long quotaLimit;
 
         @Column(nullable = false)

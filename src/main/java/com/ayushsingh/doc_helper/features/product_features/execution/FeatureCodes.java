@@ -4,5 +4,6 @@ public enum FeatureCodes {
     DOC_CHAT,
     LIVE_CHAT,
     OCR,
-    DOC_SUMMARY
+    DOC_SUMMARY,
+    BANNER
 }

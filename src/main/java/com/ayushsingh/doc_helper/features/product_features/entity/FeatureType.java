@@ -4,5 +4,6 @@ public enum FeatureType {
     DOC_CHAT,
     LIVE_CHAT,
     SUMMARIZER,
-    OCR
+    OCR,
+    BANNER
 }

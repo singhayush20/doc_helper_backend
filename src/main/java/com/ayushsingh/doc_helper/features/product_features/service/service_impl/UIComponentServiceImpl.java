@@ -47,7 +47,8 @@ public class UIComponentServiceImpl implements UIComponentService {
                         Integer featureUIVersion,
                         String screen) {
                 // Resolve concrete Java type BEFORE parsing
-                Class<? extends UIComponent> targetClass = uiComponentRegistry.resolve(uiComponentType, componentVersion);
+                Class<? extends UIComponent> targetClass = uiComponentRegistry.resolve(uiComponentType,
+                                componentVersion);
 
                 // Parse JSON to concrete UI record - This IS the validation step
                 try {
@@ -59,13 +60,13 @@ public class UIComponentServiceImpl implements UIComponentService {
                                         ExceptionCodes.INVALID_UI_CONFIG);
                 }
 
-                var existingUiFeatureVersion = featureUIConfigRepository
-                                .existsByFeatureIdAndFeatureUiVersion(productFeatureId, featureUIVersion);
+                        var existingUiFeatureVersion = featureUIConfigRepository
+                                        .existsByFeatureIdAndFeatureUiVersion(productFeatureId, featureUIVersion);
 
-                if (existingUiFeatureVersion) {
-                        throw new BaseException("Feature already has a UI config with " +
-                                        "version " + featureUIVersion,
-                                        ExceptionCodes.DUPLICATE_UI_CONFIG_FOUND);
+                        if (existingUiFeatureVersion) {
+                                throw new BaseException("Feature already has a UI config with " +
+                                                "version " + featureUIVersion,
+                                                ExceptionCodes.DUPLICATE_UI_CONFIG_FOUND);
                 }
 
                 // Persist JSON as-is (validated snapshot)
@@ -80,7 +81,6 @@ public class UIComponentServiceImpl implements UIComponentService {
 
                 FeatureUIConfig saved = featureUIConfigRepository.save(entity);
 
-                // Return minimal metadata DTO
                 JsonNode uiConfigNode;
                 try {
                         uiConfigNode = objectMapper.readTree(saved.getUiJson());
