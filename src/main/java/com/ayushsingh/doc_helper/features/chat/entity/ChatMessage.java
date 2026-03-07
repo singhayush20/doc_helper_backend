@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.List;
 
 @Document(collection = "chat_messages")
 @Getter
@@ -26,6 +27,8 @@ public class ChatMessage {
     private MessageRole role;
 
     private String content;
+
+    private List<ChatResponseCitation> citations;
 
     @CreatedDate
     private Instant timestamp;

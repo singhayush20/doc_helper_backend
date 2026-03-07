@@ -33,7 +33,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
 
     @Override
     public int getOrder() {
-        return 0; // Execute FIRST to see all messages
+        return 1; // Execute FIRST to see all messages
     }
 
     @Override

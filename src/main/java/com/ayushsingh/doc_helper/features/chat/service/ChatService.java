@@ -3,12 +3,13 @@ package com.ayushsingh.doc_helper.features.chat.service;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatCallResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatHistoryResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatRequest;
-
+import org.springframework.http.codec.ServerSentEvent;
 import reactor.core.publisher.Flux;
 
 public interface ChatService {
 
-        Flux<String> generateStreamingResponse(ChatRequest chatRequest, Boolean webSearch, String generationId);
+        Flux<ServerSentEvent<ChatCallResponse>> generateStreamingResponse(ChatRequest chatRequest,
+                                                                Boolean webSearch, String generationId);
 
         ChatCallResponse generateResponse(ChatRequest chatRequest, Boolean webSearch);
 

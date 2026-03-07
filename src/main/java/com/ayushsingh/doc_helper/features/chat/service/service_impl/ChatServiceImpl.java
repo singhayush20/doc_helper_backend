@@ -2,7 +2,9 @@ package com.ayushsingh.doc_helper.features.chat.service.service_impl;
 
 import com.ayushsingh.doc_helper.core.ai.ChatCancellationRegistry;
 import com.ayushsingh.doc_helper.core.ai.advisors.LoggingAdvisor;
+import com.ayushsingh.doc_helper.core.ai.advisors.ToolCallAdvisor;
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.WebSearchTool;
+import com.ayushsingh.doc_helper.core.ai.tools.websearch.dto.WebSearchItem;
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
 import com.ayushsingh.doc_helper.core.security.UserContext;
@@ -10,14 +12,12 @@ import com.ayushsingh.doc_helper.features.chat.dto.ChatCallResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatHistoryResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatMessageResponse;
 import com.ayushsingh.doc_helper.features.chat.dto.ChatRequest;
-import com.ayushsingh.doc_helper.features.chat.entity.ChatMessage;
-import com.ayushsingh.doc_helper.features.chat.entity.ChatThread;
-import com.ayushsingh.doc_helper.features.chat.entity.MessageRole;
-import com.ayushsingh.doc_helper.features.chat.entity.TurnReservation;
+import com.ayushsingh.doc_helper.features.chat.entity.*;
 import com.ayushsingh.doc_helper.features.chat.repository.ChatMessageRepository;
 import com.ayushsingh.doc_helper.features.chat.repository.ChatThreadRepository;
 import com.ayushsingh.doc_helper.features.chat.service.ChatService;
 import com.ayushsingh.doc_helper.features.chat.service.ChatSummaryService;
+import com.ayushsingh.doc_helper.features.chat.service.CitationBuilder;
 import com.ayushsingh.doc_helper.features.chat.service.ThreadTurnService;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
 import com.ayushsingh.doc_helper.features.usage_monitoring.service.QuotaManagementService;
@@ -28,14 +28,15 @@ import com.ayushsingh.doc_helper.features.user_activity.service.UserActivityReco
 import com.ayushsingh.doc_helper.features.user_doc.repository.UserDocRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,12 +46,16 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,6 +76,8 @@ public class ChatServiceImpl implements ChatService {
     private final ChatSummaryService chatSummaryService;
     private final UserActivityRecorder userActivityRecorder;
     private final ChatClient chatClient;
+    private final ToolCallAdvisor toolCallAdvisor;
+    private final CitationBuilder citationBuilder;
 
     @Value("${doc-chat.model}")
     String modelName;
@@ -81,9 +88,9 @@ public class ChatServiceImpl implements ChatService {
     private static final int MAX_RAG_CHARS = 2500;
 
     @Override
-    public Flux<String> generateStreamingResponse(ChatRequest chatRequest,
-            Boolean webSearch,
-            String generationId) {
+    public Flux<ServerSentEvent<ChatCallResponse>> generateStreamingResponse(ChatRequest chatRequest,
+                                                                             Boolean webSearch,
+                                                                             String generationId) {
         log.debug("Generating streaming response for documentId: {}, generationId: {}",
                 chatRequest.documentId(), generationId);
 
@@ -101,12 +108,35 @@ public class ChatServiceImpl implements ChatService {
 
         StringBuilder fullResponse = new StringBuilder();
         Flux<Void> cancelFlux = chatCancellationRegistry.getOrCreateCancelFlux(generationId);
+        AtomicReference<ChatClientResponse> lastClientResponse = new AtomicReference<>();
 
-        return buildChatClientSpec(context, webSearch, generationId)
+        Flux<ServerSentEvent<ChatCallResponse>> tokenFlux = buildChatClientSpec(context,
+                webSearch, generationId)
                 .stream()
-                .content()
+                .chatClientResponse()
                 .takeUntilOther(cancelFlux)
-                .doOnNext(fullResponse::append)
+                .doOnNext(clientResponse -> {
+                    lastClientResponse.set(clientResponse);
+                    var chatResponse = clientResponse.chatResponse();
+                    if (chatResponse != null) {
+                        String token = chatResponse.getResult().getOutput().getText();
+                        if (token != null) fullResponse.append(token);
+                    }
+                })
+                .map(clientResponse -> {
+                    var chatResponse = clientResponse.chatResponse();
+                    if (chatResponse != null) {
+                        String token = chatResponse
+                                .getResult().getOutput().getText();
+                        return ServerSentEvent.<ChatCallResponse>builder()
+                                .event("token")
+                                .data(new ChatCallResponse(token != null ? token
+                                        : "", null, null, null))
+                                .build();
+                    } else {
+                        return ServerSentEvent.<ChatCallResponse>builder().event("token").build();
+                    }
+                })
                 .doOnError(error -> log.error(
                         "Error during streaming response for documentId: {}, generationId: {}",
                         chatRequest.documentId(), generationId, error))
@@ -115,14 +145,40 @@ public class ChatServiceImpl implements ChatService {
                         generationId,
                         context,
                         fullResponse,
-                        turnNumber));
+                        turnNumber,
+                        lastClientResponse,
+                        webSearch));
+
+        Flux<ServerSentEvent<ChatCallResponse>> citationsFlux = Mono
+                .fromCallable(() -> {
+                    @SuppressWarnings("unchecked")
+                    List<WebSearchItem> webItems = webSearch
+                            ? Optional.ofNullable(lastClientResponse.get())
+                            .map(r -> (List<WebSearchItem>) r.context()
+                                    .getOrDefault(ToolCallAdvisor.WEB_CITATIONS_KEY, List.of()))
+                            .orElse(List.of())
+                            : List.of();
+                    return citationBuilder.build(context.ragDocuments(), webItems);
+                })
+                .map(citations -> {
+                    return ServerSentEvent.<ChatCallResponse>builder()
+                            .event("citations")
+                            .data(new ChatCallResponse(null, citations,
+                                    null, null))
+                            .build();
+                })
+                .flux();
+
+        return tokenFlux.concatWith(citationsFlux);
     }
 
     private void handleStream(SignalType signalType,
-            String generationId,
-            ChatContext context,
-            StringBuilder fullResponse,
-            Long turnNumber) {
+                              String generationId,
+                              ChatContext context,
+                              StringBuilder fullResponse,
+                              Long turnNumber,
+                              AtomicReference<ChatClientResponse> lastClientResponse,
+                              Boolean webSearch) {
 
         boolean userCancelled = chatCancellationRegistry.isManuallyCancelled(generationId);
         chatCancellationRegistry.clear(generationId);
@@ -136,29 +192,29 @@ public class ChatServiceImpl implements ChatService {
         }
 
         switch (signalType) {
-            case ON_COMPLETE -> {
-                handleOnComplete(generationId, context, fullResponse, turnNumber);
-            }
-            case ON_ERROR -> {
-                log.warn("Streaming ERROR for threadId: {}, generationId: {}",
-                        threadId, generationId);
-                // optional: mark turn as failed
-            }
-            case CANCEL -> {
-                handleCancel(generationId, context, fullResponse, turnNumber);
-            }
-            default -> log.debug("Streaming finished with {} for generationId: {}",
-                    signalType, generationId);
+            case ON_COMPLETE -> handleOnComplete(
+                    generationId, context, fullResponse, turnNumber,
+                    lastClientResponse, webSearch);
+            case ON_ERROR ->
+                    log.warn("Streaming ERROR for threadId: {}, generationId: {}",
+                            threadId, generationId);
+            case CANCEL ->
+                    handleCancel(generationId, context, fullResponse, turnNumber);
+            default ->
+                    log.debug("Streaming finished with {} for generationId: {}",
+                            signalType, generationId);
         }
     }
 
     private void handleCancel(
             String generationId,
             ChatContext context,
-            StringBuilder fullResponse, Long turnNumber) {
+            StringBuilder fullResponse,
+            Long turnNumber) {
 
         if (!fullResponse.isEmpty()) {
-            saveAssistantMessage(context.chatThread(), turnNumber, fullResponse.toString());
+            saveAssistantMessage(context.chatThread(), turnNumber,
+                    fullResponse.toString(), null);
             if (turnNumber % 6 == 0) {
                 chatSummaryService.summarizeThread(context.chatThread().getId());
             }
@@ -170,9 +226,32 @@ public class ChatServiceImpl implements ChatService {
     private void handleOnComplete(
             String generationId,
             ChatContext context,
-            StringBuilder fullResponse, Long turnNumber) {
+            StringBuilder fullResponse,
+            Long turnNumber,
+            AtomicReference<ChatClientResponse> lastClientResponse,
+            Boolean webSearch) {
+
         if (!fullResponse.isEmpty()) {
-            saveAssistantMessage(context.chatThread(), turnNumber, fullResponse.toString());
+            // Extract web citations from the advisor context on the last response chunk.
+            // ToolCallAdvisor uses ChatClientMessageAggregator so citations are available
+            // on the final aggregated chunk, not on every intermediate token.
+            @SuppressWarnings("unchecked")
+            List<WebSearchItem> webItems = webSearch
+                    ? Optional.ofNullable(lastClientResponse.get())
+                    .map(r -> (List<WebSearchItem>) r.context()
+                            .getOrDefault(ToolCallAdvisor.WEB_CITATIONS_KEY, List.of()))
+                    .orElse(List.of())
+                    : List.of();
+
+            List<ChatResponseCitation> citations =
+                    citationBuilder.build(context.ragDocuments(), webItems);
+
+            log.debug("Stream citations for threadId {}: {}",
+                    context.chatThread().getId(), citations);
+
+            saveAssistantMessage(context.chatThread(), turnNumber,
+                    fullResponse.toString(), citations);
+
             log.info("Streaming response completed for threadId: {}, generationId: {}",
                     context.chatThread().getId(), generationId);
         } else {
@@ -184,12 +263,15 @@ public class ChatServiceImpl implements ChatService {
             chatSummaryService.summarizeThread(context.chatThread().getId());
         }
 
-        userActivityRecorder.record(context.userId(), new ActivityTarget(ActivityTargetType.USER_DOC, context.documentId()), UserActivityType.DOCUMENT_CHAT);
+        userActivityRecorder.record(
+                context.userId(),
+                new ActivityTarget(ActivityTargetType.USER_DOC, context.documentId()),
+                UserActivityType.DOCUMENT_CHAT);
     }
 
     @Override
     public ChatCallResponse generateResponse(ChatRequest chatRequest,
-            Boolean webSearch) {
+                                             Boolean webSearch) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         ChatContext context = prepareChatContext(chatRequest);
         String threadId = context.chatThread().getId();
@@ -203,66 +285,41 @@ public class ChatServiceImpl implements ChatService {
 
         saveUserMessage(context.chatThread(), turnNumber, chatRequest.question());
 
-        String responseContent = buildChatClientSpec(context, webSearch, null).call()
-                .content();
+        ChatClientResponse clientResponse = buildChatClientSpec(context, webSearch,
+                null).call().chatClientResponse();
+        ChatResponse chatResponse = clientResponse.chatResponse();
 
-        saveAssistantMessage(context.chatThread(), turnNumber, responseContent);
+        if (chatResponse != null) {
+            String responseContent = chatResponse.getResult().getOutput().getText();
 
-        if (turnNumber % 6 == 0) {
-            chatSummaryService.summarizeThread(threadId);
+            @SuppressWarnings("unchecked")
+            List<WebSearchItem> webItems = webSearch
+                    ? (List<WebSearchItem>) clientResponse.context()
+                    .getOrDefault(ToolCallAdvisor.WEB_CITATIONS_KEY, List.of())
+                    : List.of();
+
+            List<ChatResponseCitation> citations =
+                    citationBuilder.build(context.ragDocuments(),
+                            webItems);
+
+            saveAssistantMessage(context.chatThread(), turnNumber,
+                    responseContent, citations);
+
+            if (turnNumber % 6 == 0) {
+                chatSummaryService.summarizeThread(threadId);
+            }
+
+            userActivityRecorder.record(context.userId(), new ActivityTarget(ActivityTargetType.USER_DOC, context.documentId()), UserActivityType.DOCUMENT_CHAT);
+
+            log.debug("Non-streaming response completed for threadId: {}",
+                    threadId);
+            return ChatCallResponse.builder()
+                    .message(responseContent)
+                    .citations(citations)
+                    .build();
+        } else {
+            return new ChatCallResponse();
         }
-
-        userActivityRecorder.record(context.userId(), new ActivityTarget(ActivityTargetType.USER_DOC, context.documentId()), UserActivityType.DOCUMENT_CHAT);
-
-        log.debug("Non-streaming response completed for threadId: {}",
-                threadId);
-        return ChatCallResponse.builder().message(responseContent).build();
-    }
-
-    private ChatContext prepareChatContext(ChatRequest chatRequest) {
-        Long documentId = chatRequest.documentId();
-        String userQuestion = chatRequest.question();
-
-        validateDocumentExists(documentId);
-
-        Long userId = UserContext.getCurrentUser().getUser().getId();
-
-        ChatThread chatThread = getOrCreateChatThread(documentId, userId);
-
-        String ragContext = retrieveRagContext(documentId, userId,
-                userQuestion);
-
-        String historyContext = retrieveHistoryContext(chatThread);
-
-        Prompt prompt = getUserPrompt(ragContext, historyContext, userQuestion);
-
-        return new ChatContext(documentId, userId, chatThread, prompt,
-                ragContext, historyContext);
-    }
-
-    private static @NonNull Prompt getUserPrompt(String ragContext, String historyContext, String userQuestion) {
-        String userPrompt = """
-                Context:
-                %s
-
-                Conversation:
-                %s
-
-                Question:
-                %s
-                """.formatted(ragContext, historyContext, userQuestion);
-
-        SystemMessage systemMessage = new SystemMessage(
-                "You are an assistant that answers using the provided context. " +
-                        "If context is insufficient, say you do not know.");
-
-        UserMessage userMessage = new UserMessage(userPrompt);
-
-        log.debug("User message: {}", userMessage);
-
-        log.debug("System message: {}", systemMessage);
-
-        return new Prompt(List.of(systemMessage, userMessage));
     }
 
     private ChatClient.ChatClientRequestSpec buildChatClientSpec(
@@ -272,6 +329,7 @@ public class ChatServiceImpl implements ChatService {
                 .options(OpenAiChatOptions.builder()
                         .model(modelName)
                         .temperature(temperature)
+                        .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.AUTO)
                         .build())
                 .advisors(spec -> {
                     spec.param("documentId", context.documentId())
@@ -281,7 +339,8 @@ public class ChatServiceImpl implements ChatService {
                         spec.param("generationId", generationId);
                     }
                 })
-                .advisors(loggingAdvisor);
+                .advisors(loggingAdvisor)
+                .advisors(toolCallAdvisor);
 
         if (webSearchEnabled) {
             chatClientSpec.tools(webSearchTool);
@@ -298,8 +357,8 @@ public class ChatServiceImpl implements ChatService {
         }
     }
 
-    private String retrieveRagContext(Long documentId, Long userId, String question) {
-        log.debug("Retrieving rag context for documetId: {}, question: {}, ", documentId, question);
+    // Returns raw docs (kept for citation building)
+    private List<Document> retrieveRagDocuments(Long documentId, Long userId, String question) {
         SearchRequest request = SearchRequest.builder()
                 .query(question)
                 .topK(12)
@@ -308,22 +367,86 @@ public class ChatServiceImpl implements ChatService {
 
         List<Document> docs = vectorStore.similaritySearch(request);
 
-        if (docs != null) {
-            log.debug("Similarity search docs returned for question: {}, number of docs: {}", question, docs.size());
-        }
-
-        List<Document> filtered = docs != null ? docs.stream()
+        return docs.stream()
                 .filter(doc -> {
                     Float dist = (Float) doc.getMetadata().get("distance");
-                    log.debug("Metadata for doc: {} {}", doc.getId(), doc.getMetadata());
-                    return dist == null || dist < 0.65f;
+                    return dist == null || dist < 0.45f;
                 })
-                .toList() : List.of();
+                .toList();
+    }
 
-        log.debug("Similarity search filtered docs returned for question: {}, number of docs: {}", question,
-                filtered.size());
+    private ChatContext prepareChatContext(ChatRequest chatRequest) {
+        Long documentId = chatRequest.documentId();
+        String userQuestion = chatRequest.question();
+        validateDocumentExists(documentId);
 
-        return buildRagContext(filtered);
+        Long userId = UserContext.getCurrentUser().getUser().getId();
+        ChatThread chatThread = getOrCreateChatThread(documentId, userId);
+
+        List<Document> ragDocuments = retrieveRagDocuments(documentId, userId, userQuestion);
+        String ragContext = buildRagContext(ragDocuments);   // existing method, unchanged
+        String historyContext = retrieveHistoryContext(chatThread);
+
+        Prompt prompt = getUserPrompt(ragContext, historyContext, userQuestion, ragDocuments);
+
+        return new ChatContext(documentId, userId, chatThread, prompt,
+                ragContext, historyContext, ragDocuments);
+    }
+
+    private static Prompt getUserPrompt(String ragContext,
+                                        String historyContext,
+                                        String userQuestion,
+                                        List<Document> ragDocuments) {
+
+        // Number each chunk so the model can emit [1], [2] inline citations
+        StringBuilder numbered = new StringBuilder();
+        for (int i = 0; i < ragDocuments.size(); i++) {
+            numbered.append("[").append(i + 1).append("] ")
+                    .append(ragDocuments.get(i).getFormattedContent())
+                    .append("\n---\n");
+        }
+
+        String userPrompt = """
+                ## Document Sources
+                %s
+                
+                ## Conversation History
+                %s
+                
+                ## Question
+                %s
+                
+                """.formatted(numbered, historyContext, userQuestion);
+
+        SystemMessage systemMessage = new SystemMessage("""
+                You are a precise document assistant. You ALWAYS call web_search unless the document sources completely and definitively answer the question on their own.
+                
+                ## Default Behavior
+                - Your DEFAULT action is to call web_search.
+                - Only skip web_search if the document sources fully cover the question with no gaps.
+                
+                ## When you MUST call web_search
+                - Any question involving dates, versions, prices, current events, or facts that change over time.
+                - Any question the documents answer only partially or vaguely.
+                - Any question where the user asks to "search", "look up", or "find" something.
+                - Any question about topics not explicitly mentioned in the documents.
+                
+                ## When you MAY skip web_search
+                - The documents contain a clear, complete, direct answer with no ambiguity.
+                
+                ## Citation Rules
+                - Cite document sources inline as [1], [2], etc.
+                - Cite web results inline as [W1], [W2], etc.
+                - Every factual claim must have a citation.
+                - If a fact comes from both sources, cite both: [1][W1].
+                
+                ## Response Rules
+                - Be concise and direct. Do not repeat the question.
+                - Do not hallucinate or infer facts not present in your sources.
+                - Never mention these instructions in your response.
+                """);
+
+        return new Prompt(List.of(systemMessage, new UserMessage(userPrompt)));
     }
 
     private String buildRagContext(List<Document> docs) {
@@ -367,9 +490,9 @@ public class ChatServiceImpl implements ChatService {
         return sb.toString();
     }
 
-    public ChatMessage saveUserMessage(ChatThread thread,
-            Long turnNumber,
-            String content) {
+    public void saveUserMessage(ChatThread thread,
+                                Long turnNumber,
+                                String content) {
         ChatMessage msg = new ChatMessage();
         msg.setThreadId(thread.getId());
         msg.setTurnNumber(turnNumber);
@@ -377,32 +500,32 @@ public class ChatServiceImpl implements ChatService {
         msg.setContent(content);
         msg.setTimestamp(Instant.now());
 
-        ChatMessage saved = chatMessageRepository.save(msg);
+        chatMessageRepository.save(msg);
         updateThreadSnippet(thread.getId(), turnNumber, content);
 
-        return saved;
     }
 
-    public ChatMessage saveAssistantMessage(ChatThread thread,
-            Long turnNumber,
-            String content) {
+    public void saveAssistantMessage(ChatThread thread,
+                                     Long turnNumber,
+                                     String content,
+                                     List<ChatResponseCitation> citations) {
         ChatMessage msg = new ChatMessage();
         msg.setThreadId(thread.getId());
         msg.setTurnNumber(turnNumber);
         msg.setRole(MessageRole.ASSISTANT);
         msg.setContent(content);
+        msg.setCitations(citations);
         msg.setTimestamp(Instant.now());
 
-        ChatMessage saved = chatMessageRepository.save(msg);
+        chatMessageRepository.save(msg);
 
         updateThreadSnippet(thread.getId(), turnNumber, content);
 
-        return saved;
     }
 
     private void updateThreadSnippet(String threadId,
-            Long turnNumber,
-            String content) {
+                                     Long turnNumber,
+                                     String content) {
 
         String snippet = computeSnippet(content);
 
@@ -432,7 +555,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public ChatHistoryResponse fetchChatHistoryForDocument(Long documentId,
-            Integer page) {
+                                                           Integer page) {
         Long userId = UserContext.getCurrentUser().getUser().getId();
         var chatThread = chatThreadRepository.findByDocumentIdAndUserId(
                 documentId, userId);
