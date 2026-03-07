@@ -60,13 +60,13 @@ public class UIComponentServiceImpl implements UIComponentService {
                                         ExceptionCodes.INVALID_UI_CONFIG);
                 }
 
-                        var existingUiFeatureVersion = featureUIConfigRepository
-                                        .existsByFeatureIdAndFeatureUiVersion(productFeatureId, featureUIVersion);
+                var existingUiFeatureVersion = featureUIConfigRepository
+                                .existsByFeatureIdAndFeatureUiVersion(productFeatureId, featureUIVersion);
 
-                        if (existingUiFeatureVersion) {
-                                throw new BaseException("Feature already has a UI config with " +
-                                                "version " + featureUIVersion,
-                                                ExceptionCodes.DUPLICATE_UI_CONFIG_FOUND);
+                if (existingUiFeatureVersion) {
+                        throw new BaseException("Feature already has a UI config with " +
+                                        "version " + featureUIVersion,
+                                        ExceptionCodes.DUPLICATE_UI_CONFIG_FOUND);
                 }
 
                 // Persist JSON as-is (validated snapshot)
@@ -128,7 +128,6 @@ public class UIComponentServiceImpl implements UIComponentService {
                                                                         .featureId(feature.getId())
                                                                         .code(feature.getCode())
                                                                         .name(feature.getName())
-                                                                        .usageMetric(feature.getUsageMetric())
                                                                         .build())
                                                         .ui(validateJsonNode(view
                                                                         .getUiConfig()))

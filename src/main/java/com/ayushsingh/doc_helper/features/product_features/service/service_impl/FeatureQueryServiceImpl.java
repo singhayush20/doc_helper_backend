@@ -2,6 +2,8 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureResponse;
 import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
+import com.ayushsingh.doc_helper.features.product_features.dto.UsageInfoListResponse;
+import com.ayushsingh.doc_helper.features.product_features.dto.UsageInfoResponse;
 import com.ayushsingh.doc_helper.features.product_features.dto.UsageQuotaDto;
 import com.ayushsingh.doc_helper.features.product_features.entity.BillingProductFeature;
 import com.ayushsingh.doc_helper.features.product_features.entity.Feature;
@@ -13,9 +15,11 @@ import com.ayushsingh.doc_helper.features.product_features.service.UsageQuotaSer
 import com.ayushsingh.doc_helper.features.user_plan.entity.AccountTier;
 import com.ayushsingh.doc_helper.features.user_plan.service.BillingProductService;
 import com.ayushsingh.doc_helper.features.user_plan.service.SubscriptionService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -35,36 +39,59 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
         @Override
         public FeatureResponse getProductFeatures(Long userId) {
 
-                List<BillingProductFeature> billingProductFeatures =
-                                fetchEnabledMappings(userId);
+                List<BillingProductFeature> billingProductFeatures = fetchEnabledMappings(userId);
 
                 if (billingProductFeatures.isEmpty()) {
                         return new FeatureResponse(List.of());
                 }
 
-                Map<Long, Feature> featureMap =
-                                fetchActiveFeatures(billingProductFeatures);
+                Map<Long, Feature> featureMap = fetchActiveFeatures(billingProductFeatures);
 
-                Map<String, UsageQuota> quotaMap =
-                                fetchUsageQuotas(userId, featureMap);
-
-                List<ProductFeatureDto> result =
-                                composeFeatures(billingProductFeatures, featureMap, quotaMap);
+                List<ProductFeatureDto> result = composeFeatures(billingProductFeatures, featureMap);
 
                 FeatureResponse response = new FeatureResponse(result);
                 return response;
         }
 
+        @Override
+        public UsageInfoListResponse getUsageInfoForUser(Long userId) {
+                List<BillingProductFeature> billingProductFeatures = fetchEnabledMappings(userId);
+                Map<Long, Feature> featureMap = fetchActiveFeatures(billingProductFeatures);
+                Map<String, UsageQuota> usageInfo = fetchUsageQuotas(userId, featureMap);
+                var usageInfoList = new ArrayList<UsageInfoResponse>();
+                for (Map.Entry<Long, Feature> featureEntry : featureMap.entrySet()) {
+                        var feature = featureEntry.getValue();
+                        var featureCode = feature.getCode();
+                        var usageInfoForFeature = usageInfo.get(featureCode.name());
+                        if (usageInfoForFeature != null) {
+                                var usageInfoDto = new UsageQuotaDto();
+                                usageInfoDto.setLimit(usageInfoForFeature.getLimit());
+                                usageInfoDto.setMetric(usageInfoForFeature.getMetric());
+                                usageInfoDto.setResetAt(usageInfoForFeature.getResetAt());
+                                usageInfoDto.setUsed(usageInfoForFeature.getUsed());
+
+                                var usageInfoResponse = new UsageInfoResponse();
+                                usageInfoResponse.setCode(feature.getCode());
+                                usageInfoResponse.setFeatureId(feature.getId());
+                                usageInfoResponse.setName(feature.getName());
+                                usageInfoResponse.setUsageInfo(usageInfoDto);
+
+                                usageInfoList.add(usageInfoResponse);
+                        }
+                }
+
+                return new UsageInfoListResponse(usageInfoList);
+        }
+
         private List<BillingProductFeature> fetchEnabledMappings(Long userId) {
                 Long billingProductId = subscriptionService.getBillingProductIdBySubscriptionId(userId).orElse(
                                 billingProductService.getProductIdByTier(AccountTier.FREE));
-                                
+
                 return billingProductFeatureService.getEnabledByBillingProductId(billingProductId);
         }
 
         private Map<Long, Feature> fetchActiveFeatures(
-                        List<BillingProductFeature> billingProductFeatures
-        ) {
+                        List<BillingProductFeature> billingProductFeatures) {
                 List<Long> featureIds = billingProductFeatures.stream()
                                 .map(BillingProductFeature::getFeatureId)
                                 .toList();
@@ -77,8 +104,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
 
         private Map<String, UsageQuota> fetchUsageQuotas(
                         Long userId,
-                        Map<Long, Feature> featureMap
-        ) {
+                        Map<Long, Feature> featureMap) {
                 List<String> featureCodes = featureMap.values()
                                 .stream()
                                 .map(feature -> feature.getCode().name())
@@ -93,9 +119,7 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
 
         private List<ProductFeatureDto> composeFeatures(
                         List<BillingProductFeature> billingProductFeatures,
-                        Map<Long, Feature> featureMap,
-                        Map<String, UsageQuota> quotaMap
-        ) {
+                        Map<Long, Feature> featureMap) {
                 return billingProductFeatures.stream()
                                 .sorted(Comparator.comparing(
                                                 BillingProductFeature::getPriority,
@@ -109,24 +133,9 @@ public class FeatureQueryServiceImpl implements FeatureQueryService {
                                                         .featureId(feature.getId())
                                                         .code(feature.getCode())
                                                         .name(feature.getName())
-                                                        .usageMetric(feature.getUsageMetric())
-                                                        .quota(toQuotaDto(
-                                                                        quotaMap.get(feature.getCode().name())))
                                                         .build();
                                 })
                                 .filter(Objects::nonNull)
                                 .toList();
-        }
-
-        private UsageQuotaDto toQuotaDto(UsageQuota quota) {
-                if (quota == null)
-                        return null;
-
-                return UsageQuotaDto.builder()
-                                .metric(quota.getMetric().name())
-                                .used(quota.getUsed())
-                                .limit(quota.getLimit())
-                                .resetAt(quota.getResetAt())
-                                .build();
         }
 }
