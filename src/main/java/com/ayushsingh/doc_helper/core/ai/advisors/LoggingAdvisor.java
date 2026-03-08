@@ -29,11 +29,13 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
 
     public static final String ID = "id";
+    private static final int STREAM_CHUNK_PREVIEW_LIMIT = 240;
+    private static final int FINAL_RESPONSE_PREVIEW_LIMIT = 1200;
     private final UsageRecordingService usageRecordingService;
 
     @Override
     public int getOrder() {
-        return 1; // Execute FIRST to see all messages
+        return 0; // Execute FIRST to see all messages
     }
 
     @Override
@@ -48,23 +50,26 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             @NonNull ChatClientRequest chatClientRequest,
             @NonNull CallAdvisorChain callAdvisorChain) {
         Instant startTime = Instant.now();
+        String generationId = normalizeId(extractGenerationId(chatClientRequest));
+        String threadId = normalizeId(extractThreadId(chatClientRequest));
 
-        log.debug("=== AI Call Started ===");
-        log.debug("Request timestamp: {}", startTime);
+        log.info("event=ai_call_start generationId={} threadId={} promptMessages={} contextKeys={}",
+                generationId,
+                threadId,
+                promptMessageCount(chatClientRequest),
+                chatClientRequest.context().keySet());
 
         try {
-            // Get the response
             ChatClientResponse response = callAdvisorChain.nextCall(chatClientRequest);
 
             Instant endTime = Instant.now();
             Duration duration = Duration.between(startTime, endTime);
 
-            log.debug("=== AI Call Completed ===");
-            log.debug("Response timestamp: {}", endTime);
-            log.debug("Total duration: {} ms", duration.toMillis());
+            log.info("event=ai_call_complete generationId={} threadId={} durationMs={}",
+                    generationId, threadId, duration.toMillis());
 
             if (response.chatResponse() != null) {
-                logResponseDetails(response.chatResponse());
+                logResponseDetails(response.chatResponse(), generationId);
 
                 persistUsageMetrics(chatClientRequest, response, duration,
                         ChatOperationType.CHAT_CALL);
@@ -72,13 +77,9 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
 
             return response;
         } catch (Exception e) {
-            Instant endTime = Instant.now();
-            Duration duration = Duration.between(startTime, endTime);
-
-            log.error("=== AI Call Failed ===");
-            log.error("Error timestamp: {}", endTime);
-            log.error("Duration before failure: {} ms", duration.toMillis());
-            log.error("Error details: ", e);
+            Duration duration = Duration.between(startTime, Instant.now());
+            log.error("event=ai_call_failed generationId={} threadId={} durationMs={}",
+                    generationId, threadId, duration.toMillis(), e);
 
             throw e;
         }
@@ -92,59 +93,68 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
         Instant startTime = Instant.now();
         AtomicReference<ChatClientResponse> lastResponse = new AtomicReference<>();
         AtomicInteger chunkCount = new AtomicInteger(0);
-        var generationId = extractGenerationId(chatClientRequest);
+        String generationId = normalizeId(extractGenerationId(chatClientRequest));
+        String threadId = normalizeId(extractThreadId(chatClientRequest));
 
-        log.info("=== AI Stream Started for generationId: {} ===", generationId);
-        log.info("[ {} ] Stream request timestamp: {}", generationId, startTime);
+        log.info("event=ai_stream_start generationId={} threadId={} promptMessages={}",
+                generationId,
+                threadId,
+                promptMessageCount(chatClientRequest));
         logRequestDetails(chatClientRequest);
 
         return streamAdvisorChain.nextStream(chatClientRequest)
                 .doOnCancel(() -> {
-                    Instant cancelTime = Instant.now();
-                    Duration duration = Duration.between(startTime, cancelTime);
-
-                    log.info("=== AI Stream Cancelled for {} ===", generationId);
-                    log.info("[ {} ] Stream cancellation timestamp: {}", generationId, cancelTime);
-                    log.info("[ {} ] Stream duration before cancellation: {} ms", generationId, duration.toMillis());
-                    log.info("[ {} ] Chunks processed before cancellation: {}", generationId, chunkCount.get());
+                    Duration duration = Duration.between(startTime, Instant.now());
+                    log.info("event=ai_stream_cancelled generationId={} threadId={} durationMs={} chunks={}",
+                            generationId, threadId, duration.toMillis(), chunkCount.get());
 
                     lastResponse.set(null);
                 })
                 .doOnNext(response -> {
-                    log.debug("[ {} ] Streaming response: " + response.chatResponse().getResult().getOutput(),
-                            generationId);
                     lastResponse.set(response);
                     int currentChunk = chunkCount.incrementAndGet();
 
                     ChatResponse chatResponse = response.chatResponse();
-                    if (chatResponse != null) {
+                    if (chatResponse == null) {
+                        log.debug("event=ai_stream_chunk generationId={} chunk={} chars=0",
+                                generationId, currentChunk);
+                        return;
+                    }
 
-                        if (chatResponse.getMetadata() != null) {
-                            Usage usage = chatResponse.getMetadata().getUsage();
-                            Long totalTokens = usage != null && usage.getTotalTokens() != null
-                                    ? usage.getTotalTokens()
-                                    : 0L;
+                    String chunkContent = extractResponseContent(chatResponse);
+                    if (chunkContent != null && !chunkContent.isBlank()) {
+                        log.debug("event=ai_stream_chunk generationId={} chunk={} chars={} preview=\"{}\"",
+                                generationId,
+                                currentChunk,
+                                chunkContent.length(),
+                                toPreview(chunkContent, STREAM_CHUNK_PREVIEW_LIMIT));
+                    } else {
+                        log.debug("event=ai_stream_chunk generationId={} chunk={} chars=0",
+                                generationId, currentChunk);
+                    }
 
-                            log.debug("[ {} ] Chunk {} - Model: {}, Total tokens: {} (cumulative)",
-                                    generationId,
-                                    currentChunk,
-                                    chatResponse.getMetadata().getModel(),
-                                    totalTokens);
-                        }
+                    if (chatResponse.getMetadata() != null) {
+                        Usage usage = chatResponse.getMetadata().getUsage();
+                        Long totalTokens = usage != null && usage.getTotalTokens() != null
+                                ? usage.getTotalTokens()
+                                : 0L;
+
+                        log.debug("event=ai_stream_chunk_meta generationId={} chunk={} model={} totalTokens={}",
+                                generationId,
+                                currentChunk,
+                                chatResponse.getMetadata().getModel(),
+                                totalTokens);
                     }
                 })
                 .doOnComplete(() -> {
-                    Instant endTime = Instant.now();
-                    Duration duration = Duration.between(startTime, endTime);
+                    Duration duration = Duration.between(startTime, Instant.now());
 
-                    log.debug("=== AI Stream Completed for {} ===", generationId);
-                    log.debug("[ {} ] Stream completion timestamp: {}", generationId, endTime);
-                    log.debug("[ {} ] Stream total duration: {} ms", generationId, duration.toMillis());
-                    log.debug("[ {} ] Total chunks processed: {}", generationId, chunkCount.get());
+                    log.info("event=ai_stream_complete generationId={} threadId={} durationMs={} chunks={}",
+                            generationId, threadId, duration.toMillis(), chunkCount.get());
 
                     ChatClientResponse finalResponse = lastResponse.get();
                     if (finalResponse != null && finalResponse.chatResponse() != null) {
-                        logResponseDetails(finalResponse.chatResponse());
+                        logResponseDetails(finalResponse.chatResponse(), generationId);
 
                         persistUsageMetrics(chatClientRequest, finalResponse,
                                 duration, ChatOperationType.CHAT_STREAM);
@@ -153,14 +163,9 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                     lastResponse.set(null);
                 })
                 .doOnError(error -> {
-                    Instant endTime = Instant.now();
-                    Duration duration = Duration.between(startTime, endTime);
-
-                    log.error("=== AI Stream Failed for {} ===", generationId);
-                    log.error("[ {} ] Stream error timestamp: {}", generationId, endTime);
-                    log.error("[ {} ] Stream duration before failure: {} ms", generationId, duration.toMillis());
-                    log.error("[ {} ] Chunks processed before error: {}", generationId, chunkCount.get());
-                    log.error("[ {} ] Stream error details: ", generationId, error);
+                    Duration duration = Duration.between(startTime, Instant.now());
+                    log.error("event=ai_stream_failed generationId={} threadId={} durationMs={} chunks={}",
+                            generationId, threadId, duration.toMillis(), chunkCount.get(), error);
 
                     lastResponse.set(null);
                 });
@@ -213,8 +218,8 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
         usageRecordingService.recordTokenUsage(usageDTO);
 
         log.info(
-                "Successfully persisted token usage: userId={}, tokens={}, messageId={}",
-                userId, usage.getTotalTokens(), messageId);
+                "event=ai_usage_persisted userId={} operation={} tokens={} messageId={}",
+                userId, operationType, usage.getTotalTokens(), messageId);
     }
 
     /**
@@ -230,7 +235,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             }
 
             log.debug(
-                    "No valid usage found in response. Metadata: {}, Results count: {}",
+                    "event=ai_usage_missing metadata={} resultsCount={}",
                     chatResponse.getMetadata(),
                     chatResponse.getResults() != null ? chatResponse.getResults().size() : 0);
 
@@ -264,7 +269,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
 
             String generatedId = "msg_" + System.currentTimeMillis() + "_" +
                     Integer.toHexString(chatResponse.hashCode());
-            log.debug("No messageId found in response, generated: {}",
+            log.debug("event=ai_message_id_generated messageId={}",
                     generatedId);
             return generatedId;
 
@@ -288,10 +293,10 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                 return Long.parseLong((String) userId);
             }
         } catch (Exception e) {
-            log.debug("Could not extract userId from request context", e);
+            log.debug("event=ai_user_id_extraction_failed", e);
         }
 
-        log.warn("No userId found in request context. Available keys: {}",
+        log.warn("event=ai_user_id_missing contextKeys={}",
                 request.context().keySet());
         return null;
     }
@@ -307,7 +312,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                 return Long.parseLong((String) docId);
             }
         } catch (Exception e) {
-            log.debug("Could not extract documentId from request context", e);
+            log.debug("event=ai_document_id_extraction_failed", e);
         }
         return null;
     }
@@ -319,7 +324,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                 return threadId.toString();
             }
         } catch (Exception e) {
-            log.debug("Could not extract threadId from request context", e);
+            log.debug("event=ai_thread_id_extraction_failed", e);
         }
         return null;
     }
@@ -329,45 +334,45 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             Object genId = request.context().get("generationId");
             return genId != null ? genId.toString() : null;
         } catch (Exception e) {
-            log.debug("Could not extract generationId from request context", e);
+            log.debug("event=ai_generation_id_extraction_failed", e);
             return null;
         }
     }
 
     private void logRequestDetails(ChatClientRequest request) {
-        log.debug("Request details:");
-        log.debug("- Context keys: {}", request.context().keySet());
+        log.debug("event=ai_request_details contextKeys={} promptMessages={}",
+                request.context().keySet(),
+                promptMessageCount(request));
 
-        if (request.prompt().getInstructions() != null) {
-            log.debug("- Prompt messages count: {}",
-                    request.prompt().getInstructions().size());
-
+        if (request.prompt() != null && request.prompt().getInstructions() != null) {
             request.prompt()
                     .getInstructions()
                     .forEach(message -> log.debug(
-                            "- Message type: {}, Content length: {}",
+                            "event=ai_request_message type={} contentChars={}",
                             message.getMessageType(),
                             message.getText() != null ? message.getText().length() : 0));
         }
     }
 
-    private void logResponseDetails(ChatResponse chatResponse) {
+    private void logResponseDetails(ChatResponse chatResponse, String generationId) {
         if (chatResponse == null) {
             log.warn("ChatResponse is null");
             return;
         }
-        log.debug("chat response : {}",chatResponse);
+
+        String model = chatResponse.getMetadata() != null ? chatResponse.getMetadata().getModel() : "unknown";
+        String messageId = extractMessageId(chatResponse);
+        int resultsCount = chatResponse.getResults() != null ? chatResponse.getResults().size() : 0;
+
+        log.info("event=ai_response_meta generationId={} model={} messageId={} results={}",
+                generationId, model, messageId, resultsCount);
 
         if (chatResponse.getMetadata() != null) {
-            log.debug("=== Response Metadata ===");
-            log.debug("Model: {}", chatResponse.getMetadata().getModel());
-            log.debug("ID: {}", chatResponse.getMetadata().getId());
-
             Usage usage = extractUsage(chatResponse);
             if (usage != null && usage.getTotalTokens() != null &&
                     usage.getTotalTokens() > 0) {
-                log.debug("=== Token Usage ===");
-                log.debug("Prompt: {} | Generation: {} | Total: {}",
+                log.info("event=ai_response_usage generationId={} promptTokens={} completionTokens={} totalTokens={}",
+                        generationId,
                         usage.getPromptTokens(), usage.getCompletionTokens(),
                         usage.getTotalTokens());
             } else {
@@ -375,8 +380,63 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             }
         }
 
-        if (chatResponse.getResults() != null) {
-            log.debug("Results count: {}", chatResponse.getResults().size());
+        String responseContent = extractResponseContent(chatResponse);
+        if (responseContent != null && !responseContent.isBlank()) {
+            log.debug("event=ai_response_content generationId={} chars={} preview=\"{}\"",
+                    generationId,
+                    responseContent.length(),
+                    toPreview(responseContent, FINAL_RESPONSE_PREVIEW_LIMIT));
+        } else {
+            log.debug("event=ai_response_content generationId={} chars=0", generationId);
         }
+    }
+
+    private int promptMessageCount(ChatClientRequest request) {
+        if (request.prompt() == null || request.prompt().getInstructions() == null) {
+            return 0;
+        }
+        return request.prompt().getInstructions().size();
+    }
+
+    private String normalizeId(String id) {
+        return (id == null || id.isBlank()) ? "null" : id;
+    }
+
+    private String extractResponseContent(ChatResponse chatResponse) {
+        if (chatResponse == null) {
+            return null;
+        }
+
+        try {
+            if (chatResponse.getResult() != null &&
+                    chatResponse.getResult().getOutput() != null &&
+                    chatResponse.getResult().getOutput().getText() != null) {
+                return chatResponse.getResult().getOutput().getText();
+            }
+
+            if (chatResponse.getResults() != null && !chatResponse.getResults().isEmpty()) {
+                var firstResult = chatResponse.getResults().getFirst();
+                if (firstResult.getOutput() != null) {
+                    return firstResult.getOutput().getText();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("event=ai_response_content_extraction_failed", e);
+        }
+
+        return null;
+    }
+
+    private String toPreview(String content, int maxLength) {
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+
+        String normalized = content.replaceAll("[\\r\\n\\t]+", " ").trim();
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+
+        return normalized.substring(0, maxLength) + "...(truncated)";
     }
 }

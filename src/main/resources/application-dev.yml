@@ -44,7 +44,7 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        "[format_sql]": false # Disable SQL formatting since we're using JSON format
+        "[format_sql]": false # Keep SQL logs compact when SQL logging is enabled
         # "[trace_level]": OFF # Disable parameter logging at Hibernate level
 
   servlet:
@@ -109,35 +109,26 @@ web:
 
 logging:
   level:
-    "[org.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/].[dispatcherServlet]]": WARN
-    "[org.springframework.web.servlet.mvc.method.annotation.ReactiveTypeHandler]": INFO
-    "[com.ayushsingh]": DEBUG
-    "[org.springframework]": WARN
-    "[org.springframework.web.client.DefaultRestClient]": WARN
-    "[org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger]": WARN
-    "[org.apache.hc.client5.http]": WARN
-    "[org.apache]": WARN
-    "[ch.qos.logback]": WARN
-    "[net.logstash]": WARN
-    "[org.hibernate]": WARN
-    "[org.hibernate.SQL]": DEBUG
-    "[org.hibernate.orm.jdbc.bind]": TRACE
-    "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE
-    "[org.hibernate.engine.jdbc]": DEBUG
-    "[org.springframework.data.mongodb.core.MongoTemplate]": INFO
-    "[org.mongodb.driver]": INFO
-    "[com.p6spy]": DEBUG
-    "[io.lettuce.core]": INFO
-    "[org.springframework.data.redis]": DEBUG
-    "[org.springframework.mail]": DEBUG
-    "[org.springframework.data.redis.core.RedisTemplate]": DEBUG
-    "[org.springframework.data.redis.connection]": DEBUG
-    "[org.springframework.data.redis.listener]": DEBUG
-    "[org.springframework.data.redis.core.RedisConnectionUtils]": WARN
-  file:
-    path: logs
-  config: null
+    root: INFO
 
+    # Your application code
+    com.ayushsingh: DEBUG
+
+    # Third-party — suppress noise
+    org.springframework: WARN
+    org.apache: WARN
+    org.hibernate: WARN
+    org.mongodb.driver: WARN
+    ch.qos.logback: WARN
+    net.logstash: WARN
+    io.lettuce.core: WARN
+    com.p6spy: OFF
+    org.hibernate.orm.jdbc.bind: OFF
+
+    # Exceptions — specific loggers that need a different level than their parent
+    org.springframework.web.servlet.mvc.method.annotation.ReactiveTypeHandler: INFO
+    org.springframework.data.mongodb.core.MongoTemplate: INFO
+    org.springframework.mail: INFO
 server:
   port: 8086
 
