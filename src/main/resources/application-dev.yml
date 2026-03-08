@@ -57,10 +57,16 @@ spring:
       api-key: ${OPENAI_API_KEY}
       base-url: ${OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/}
       chat:
+        # Chat can use an OpenAI-compatible Ollama endpoint independently from embeddings.
+        api-key: ${OPENAI_CHAT_API_KEY:${OLLAMA_API_KEY:ollama}}
+        base-url: ${OPENAI_CHAT_BASE_URL:${OLLAMA_BASE_URL:http://localhost:11434}}
         options:
-          model: gemini-3-pro-preview
+          model: ${OPENAI_CHAT_DEFAULT_MODEL:gemini-3-pro-preview}
           stream-usage: true
       embedding:
+        # Keep embeddings on Gemini/OpenAI-compatible endpoint to preserve vector dimensions.
+        api-key: ${OPENAI_EMBEDDING_API_KEY:${OPENAI_API_KEY}}
+        base-url: ${OPENAI_EMBEDDING_BASE_URL:${OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/}}
         options:
           model: ${OPENAI_EMBEDDING_MODEL:gemini-embedding-001}
           dimensions: ${OPENAI_EMBEDDING_DIMENSIONS:1536}
@@ -73,19 +79,19 @@ spring:
 
 doc-chat:
   # model: gemini-2.5-flash
-  model: meta-llama/llama-3.3-70b-instruct:free
+  model: qwen2.5:7b-instruct
   temperature: 0.2
 
 summarizer:
   # model: gemini-2.5-flash-lite
-  model: google/gemma-3-27b-it:free
+  model: qwen2.5:3b-instruct
 
 doc-summary:
-  model: gemini-3-pro-preview
+  model: qwen2.5:7b-instruct
   chunk:
-    model: gemini-2.5-flash-lite
+    model: qwen2.5:3b-instruct
   aggregate:
-    model: gemini-3-pro-preview
+    model: qwen2.5:3b-instruct
   merge:
     group-size: 4
   retry:
