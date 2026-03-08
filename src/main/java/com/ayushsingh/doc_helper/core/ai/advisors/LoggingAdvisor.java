@@ -356,6 +356,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             log.warn("ChatResponse is null");
             return;
         }
+        log.debug("chat response : {}",chatResponse);
 
         if (chatResponse.getMetadata() != null) {
             log.debug("=== Response Metadata ===");

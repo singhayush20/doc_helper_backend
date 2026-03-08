@@ -74,6 +74,7 @@ public class ToolCallAdvisor implements BaseAdvisor {
     }
 
     private List<WebSearchItem> extractWebCitations(ChatClientResponse response) {
+        log.debug("Extracting web citations from: {}",response);
         if (response.chatResponse() == null) return List.of();
 
         Object raw = response.chatResponse().getMetadata().get("messages");

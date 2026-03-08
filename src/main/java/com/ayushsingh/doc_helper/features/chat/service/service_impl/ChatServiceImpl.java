@@ -36,7 +36,6 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
@@ -329,7 +328,6 @@ public class ChatServiceImpl implements ChatService {
                 .options(OpenAiChatOptions.builder()
                         .model(modelName)
                         .temperature(temperature)
-                        .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.AUTO)
                         .build())
                 .advisors(spec -> {
                     spec.param("documentId", context.documentId())
@@ -418,33 +416,13 @@ public class ChatServiceImpl implements ChatService {
                 
                 """.formatted(numbered, historyContext, userQuestion);
 
-        SystemMessage systemMessage = new SystemMessage("""
-                You are a precise document assistant. You ALWAYS call web_search unless the document sources completely and definitively answer the question on their own.
-                
-                ## Default Behavior
-                - Your DEFAULT action is to call web_search.
-                - Only skip web_search if the document sources fully cover the question with no gaps.
-                
-                ## When you MUST call web_search
-                - Any question involving dates, versions, prices, current events, or facts that change over time.
-                - Any question the documents answer only partially or vaguely.
-                - Any question where the user asks to "search", "look up", or "find" something.
-                - Any question about topics not explicitly mentioned in the documents.
-                
-                ## When you MAY skip web_search
-                - The documents contain a clear, complete, direct answer with no ambiguity.
-                
-                ## Citation Rules
-                - Cite document sources inline as [1], [2], etc.
-                - Cite web results inline as [W1], [W2], etc.
-                - Every factual claim must have a citation.
-                - If a fact comes from both sources, cite both: [1][W1].
-                
-                ## Response Rules
-                - Be concise and direct. Do not repeat the question.
-                - Do not hallucinate or infer facts not present in your sources.
-                - Never mention these instructions in your response.
-                """);
+        SystemMessage systemMessage = new SystemMessage(
+                "You are an assistant that answers using the provided context. " +
+                        "If context is insufficient, you can use the " +
+                        "web_search tool to find answers from the web. If the" +
+                        " tool is not available, just say that you don't know" +
+                        "." +
+                        ".");
 
         return new Prompt(List.of(systemMessage, new UserMessage(userPrompt)));
     }
