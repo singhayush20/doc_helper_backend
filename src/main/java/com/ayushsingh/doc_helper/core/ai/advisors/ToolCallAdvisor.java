@@ -18,12 +18,16 @@ import reactor.core.publisher.Flux;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Component
 public class ToolCallAdvisor implements BaseAdvisor {
 
     public static final String WEB_CITATIONS_KEY = "web_search_citations";
+    private static final Set<String> WEB_SEARCH_TOOL_NAMES = Set.of(
+            "web_search", "webSearch", "search");
     private final ObjectMapper objectMapper;
 
     ToolCallAdvisor(ObjectMapper objectMapper) {
@@ -78,13 +82,18 @@ public class ToolCallAdvisor implements BaseAdvisor {
         if (response.chatResponse() == null) return List.of();
 
         Object raw = response.chatResponse().getMetadata().get("messages");
+        if (!(raw instanceof List<?>)) {
+            raw = Optional.ofNullable(response.chatResponse().getResult())
+                    .map(result -> result.getMetadata().get("messages"))
+                    .orElse(null);
+        }
         if (!(raw instanceof List<?> messages)) return List.of();
 
         return messages.stream()
                 .filter(m -> m instanceof ToolResponseMessage)
                 .map(m -> (ToolResponseMessage) m)
                 .flatMap(trm -> trm.getResponses().stream())
-                .filter(r -> "web_search".equals(r.name()))
+                .filter(r -> WEB_SEARCH_TOOL_NAMES.contains(r.name()))
                 .map(r -> parseItems(r.responseData()))
                 .flatMap(Collection::stream)
                 .toList();
