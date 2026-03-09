@@ -78,12 +78,10 @@ spring:
         dimensions: 1536
 
 doc-chat:
-  # model: gemini-2.5-flash
-  model: qwen2.5:7b-instruct
+  model: gpt-oss
   temperature: 0.2
 
 summarizer:
-  # model: gemini-2.5-flash-lite
   model: qwen2.5:3b-instruct
 
 doc-summary:
@@ -104,7 +102,7 @@ web:
   search:
     base-url: ${WEB_SEARCH_BASE_URL}
     api-key: ${WEB_SEARCH_API_KEY}
-    timeout-seconds: 4
+    timeout-seconds: 10
     default-max-results: 2
 
 logging:

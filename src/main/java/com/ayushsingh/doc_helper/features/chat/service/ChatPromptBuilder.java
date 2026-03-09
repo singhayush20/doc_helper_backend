@@ -42,7 +42,8 @@ public class ChatPromptBuilder {
                 + "return the final answer grounded in the tool result. "
                 + "Never output placeholder text like 'I will search the web and return later'."
                 : "You are an assistant that answers using the provided context. "
-                + "If context is insufficient, say that you do not know.";
+                + "If context is insufficient, say that you do not know."
+                + "Use the web search tool ONLY once. ";
 
         return new Prompt(List.of(
                 new SystemMessage(systemPrompt),

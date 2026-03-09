@@ -133,18 +133,16 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                                 generationId, currentChunk);
                     }
 
-                    if (chatResponse.getMetadata() != null) {
-                        Usage usage = chatResponse.getMetadata().getUsage();
-                        Long totalTokens = usage != null && usage.getTotalTokens() != null
-                                ? usage.getTotalTokens()
-                                : 0L;
+                    Usage usage = chatResponse.getMetadata().getUsage();
+                    Long totalTokens = usage != null && usage.getTotalTokens() != null
+                            ? usage.getTotalTokens()
+                            : 0L;
 
-                        log.debug("event=ai_stream_chunk_meta generationId={} chunk={} model={} totalTokens={}",
-                                generationId,
-                                currentChunk,
-                                chatResponse.getMetadata().getModel(),
-                                totalTokens);
-                    }
+                    log.debug("event=ai_stream_chunk_meta generationId={} chunk={} model={} totalTokens={}",
+                            generationId,
+                            currentChunk,
+                            chatResponse.getMetadata().getModel(),
+                            totalTokens);
                 })
                 .doOnComplete(() -> {
                     Duration duration = Duration.between(startTime, Instant.now());
@@ -172,8 +170,8 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private void persistUsageMetrics(ChatClientRequest request,
-            ChatClientResponse response, Duration duration,
-            ChatOperationType operationType) {
+                                     ChatClientResponse response, Duration duration,
+                                     ChatOperationType operationType) {
         ChatResponse chatResponse = response.chatResponse();
         if (chatResponse == null) {
             log.warn("No chat response available to persist usage");
@@ -199,7 +197,7 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
         String threadId = extractThreadId(request);
         String messageId = extractMessageId(chatResponse);
 
-        String modelName = chatResponse.getMetadata() != null ? chatResponse.getMetadata().getModel() : "unknown";
+        String modelName = chatResponse.getMetadata().getModel();
 
         TokenUsageDto usageDTO = TokenUsageDto.builder()
                 .userId(userId)
@@ -227,17 +225,14 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
      */
     private Usage extractUsage(ChatResponse chatResponse) {
         try {
-            if (chatResponse.getMetadata() != null &&
-                    chatResponse.getMetadata().getUsage() != null &&
-                    chatResponse.getMetadata().getUsage().getTotalTokens() != null &&
-                    chatResponse.getMetadata().getUsage().getTotalTokens() > 0) {
+            if (chatResponse.getMetadata().getUsage() != null && chatResponse.getMetadata().getUsage().getTotalTokens() != null && chatResponse.getMetadata().getUsage().getTotalTokens() > 0) {
                 return chatResponse.getMetadata().getUsage();
             }
 
             log.debug(
                     "event=ai_usage_missing metadata={} resultsCount={}",
                     chatResponse.getMetadata(),
-                    chatResponse.getResults() != null ? chatResponse.getResults().size() : 0);
+                    chatResponse.getResults().size());
 
         } catch (Exception e) {
             log.warn("Error extracting usage from response", e);
@@ -251,19 +246,16 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
      */
     private String extractMessageId(ChatResponse chatResponse) {
         try {
-            if (chatResponse.getMetadata() != null &&
-                    chatResponse.getMetadata().getId() != null) {
+            if (chatResponse.getMetadata().getId() != null) {
                 return chatResponse.getMetadata().getId();
             }
 
-            if (chatResponse.getResults() != null &&
-                    !chatResponse.getResults().isEmpty()) {
+            if (!chatResponse.getResults().isEmpty()) {
                 var firstResult = chatResponse.getResults().getFirst();
-                if (firstResult.getMetadata() != null) {
-                    Object msgId = firstResult.getMetadata().get(ID);
-                    if (msgId != null) {
-                        return msgId.toString();
-                    }
+                firstResult.getMetadata();
+                Object msgId = firstResult.getMetadata().get(ID);
+                if (msgId != null) {
+                    return msgId.toString();
                 }
             }
 
@@ -344,14 +336,12 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
                 request.context().keySet(),
                 promptMessageCount(request));
 
-        if (request.prompt() != null && request.prompt().getInstructions() != null) {
-            request.prompt()
-                    .getInstructions()
-                    .forEach(message -> log.debug(
-                            "event=ai_request_message type={} contentChars={}",
-                            message.getMessageType(),
-                            message.getText() != null ? message.getText().length() : 0));
-        }
+        request.prompt()
+                .getInstructions()
+                .forEach(message -> log.debug(
+                        "event=ai_request_message type={} contentChars={}",
+                        message.getMessageType(),
+                        message.getText() != null ? message.getText().length() : 0));
     }
 
     private void logResponseDetails(ChatResponse chatResponse, String generationId) {
@@ -360,24 +350,24 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
             return;
         }
 
-        String model = chatResponse.getMetadata() != null ? chatResponse.getMetadata().getModel() : "unknown";
+        String model = chatResponse.getMetadata().getModel();
         String messageId = extractMessageId(chatResponse);
-        int resultsCount = chatResponse.getResults() != null ? chatResponse.getResults().size() : 0;
+        int resultsCount = chatResponse.getResults().size();
+
+        log.debug("Generated response: {}",chatResponse);
 
         log.info("event=ai_response_meta generationId={} model={} messageId={} results={}",
                 generationId, model, messageId, resultsCount);
 
-        if (chatResponse.getMetadata() != null) {
-            Usage usage = extractUsage(chatResponse);
-            if (usage != null && usage.getTotalTokens() != null &&
-                    usage.getTotalTokens() > 0) {
-                log.info("event=ai_response_usage generationId={} promptTokens={} completionTokens={} totalTokens={}",
-                        generationId,
-                        usage.getPromptTokens(), usage.getCompletionTokens(),
-                        usage.getTotalTokens());
-            } else {
-                log.warn("No valid usage data in response");
-            }
+        Usage usage = extractUsage(chatResponse);
+        if (usage != null && usage.getTotalTokens() != null &&
+                usage.getTotalTokens() > 0) {
+            log.info("event=ai_response_usage generationId={} promptTokens={} completionTokens={} totalTokens={}",
+                    generationId,
+                    usage.getPromptTokens(), usage.getCompletionTokens(),
+                    usage.getTotalTokens());
+        } else {
+            log.warn("No valid usage data in response");
         }
 
         String responseContent = extractResponseContent(chatResponse);
@@ -392,9 +382,6 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private int promptMessageCount(ChatClientRequest request) {
-        if (request.prompt() == null || request.prompt().getInstructions() == null) {
-            return 0;
-        }
         return request.prompt().getInstructions().size();
     }
 
@@ -408,17 +395,15 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
         }
 
         try {
-            if (chatResponse.getResult() != null &&
-                    chatResponse.getResult().getOutput() != null &&
-                    chatResponse.getResult().getOutput().getText() != null) {
+            chatResponse.getResult();
+            chatResponse.getResult();
+            if (chatResponse.getResult().getOutput().getText() != null) {
                 return chatResponse.getResult().getOutput().getText();
             }
 
-            if (chatResponse.getResults() != null && !chatResponse.getResults().isEmpty()) {
+            if (!chatResponse.getResults().isEmpty()) {
                 var firstResult = chatResponse.getResults().getFirst();
-                if (firstResult.getOutput() != null) {
-                    return firstResult.getOutput().getText();
-                }
+                return firstResult.getOutput().getText();
             }
         } catch (Exception e) {
             log.debug("event=ai_response_content_extraction_failed", e);

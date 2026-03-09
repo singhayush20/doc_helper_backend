@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.chat.service;
 
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.dto.WebSearchItem;
 import com.ayushsingh.doc_helper.features.chat.entity.ChatResponseCitation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Component;
 
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class CitationBuilder {
 
@@ -55,6 +57,8 @@ public class CitationBuilder {
                     null
             ));
         }
+
+        log.debug("Generated citations: {}",citations);
 
         return citations;
     }

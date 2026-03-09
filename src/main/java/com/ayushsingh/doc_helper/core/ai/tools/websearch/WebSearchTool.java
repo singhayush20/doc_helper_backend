@@ -1,15 +1,14 @@
 package com.ayushsingh.doc_helper.core.ai.tools.websearch;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.stereotype.Component;
-import org.springframework.validation.annotation.Validated;
-
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.dto.WebSearchRequest;
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.dto.WebSearchResult;
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.searchprovider.WebSearchProvider;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 @Component
 @Validated
@@ -24,7 +23,13 @@ public class WebSearchTool {
             Search the public web for recent or external information not present in the document.
             Use for current events, releases, figures, or facts requiring freshness; return concise, citable results.
             """)
-    public WebSearchResult search(@Valid WebSearchRequest request) {
+    public WebSearchResult search(@ToolParam(description = "Search query " +
+            "describing what to look up") String question) {
+        WebSearchRequest request = WebSearchRequest.builder()
+                .query(question)
+                .maxResults(webSearchConfig.defaultMaxResults())
+                .maxSnippetChars(600)
+                .build();
         // TODO: Check the request object to limit large max-results or max-chars in request by LLM
         log.debug("Web search tool invoked with request: {}",request);
         String query = request.query() == null ? "" : request.query().strip();

@@ -149,6 +149,9 @@ public class ChatServiceImpl implements ChatService {
         }
 
         String responseContent = chatResponse.getResult().getOutput().getText();
+        log.debug("Generated chat response content for non-streaming request " +
+                "for " +
+                "document id: {} -> {}",chatRequest.documentId(),chatResponse);
         var citations = chatCitationService.build(
                 context.ragDocuments(),
                 clientResponse,
