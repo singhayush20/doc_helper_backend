@@ -1,15 +1,14 @@
 package com.ayushsingh.doc_helper.core.ai.tools.websearch;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.stereotype.Component;
-import org.springframework.validation.annotation.Validated;
-
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.dto.WebSearchRequest;
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.dto.WebSearchResult;
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.searchprovider.WebSearchProvider;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 @Component
 @Validated
@@ -24,15 +23,21 @@ public class WebSearchTool {
             Search the public web for recent or external information not present in the document.
             Use for current events, releases, figures, or facts requiring freshness; return concise, citable results.
             """)
-    public WebSearchResult search(@Valid WebSearchRequest request) {
+    public WebSearchResult search(@ToolParam(description = "Search query " +
+                                          "describing what to look up") String question) {
+        WebSearchRequest request = WebSearchRequest.builder()
+                .query(question)
+                .maxResults(webSearchConfig.defaultMaxResults())
+                .maxSnippetChars(600)
+                .build();
         // TODO: Check the request object to limit large max-results or max-chars in request by LLM
-        log.debug("Web search tool invoked with request: {}",request);
+        log.debug("Web search tool invoked with request: {}", request);
         String query = request.query() == null ? "" : request.query().strip();
         if (query.length() < 3) {
             return WebSearchResult.failure("Query too short", query);
         }
         try {
-            log.debug("Using web search provider for {}",request);
+            log.debug("Using web search provider for {}", request);
             WebSearchResult webSearchResponse = provider.search(request);
             log.debug("Web search provider returned {} results", webSearchResponse.results() == null ? 0 : webSearchResponse.results().size());
             int maxResults =
@@ -40,6 +45,7 @@ public class WebSearchTool {
                             webSearchConfig.defaultMaxResults();
             int maxChars = request.maxSnippetChars() != null ?
                     request.maxSnippetChars() : 600;
+
             return webSearchResponse.truncatedTo(maxResults, maxChars);
         } catch (Exception e) {
             log.warn("Web search tool failed: {}", e.getMessage());

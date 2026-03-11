@@ -172,8 +172,8 @@ public class LoggingAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private void persistUsageMetrics(ChatClientRequest request,
-            ChatClientResponse response, Duration duration,
-            ChatOperationType operationType) {
+                                     ChatClientResponse response, Duration duration,
+                                     ChatOperationType operationType) {
         ChatResponse chatResponse = response.chatResponse();
         if (chatResponse == null) {
             log.warn("No chat response available to persist usage");

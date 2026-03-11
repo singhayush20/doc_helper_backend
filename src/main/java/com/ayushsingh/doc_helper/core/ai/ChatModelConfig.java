@@ -26,6 +26,7 @@ public class ChatModelConfig {
                                 .build();
         }
 
+        @Bean("docSummaryChatClient")
         @Primary
         public ChatClient docSummaryChatClient(
                         ChatClient.Builder builder) {
