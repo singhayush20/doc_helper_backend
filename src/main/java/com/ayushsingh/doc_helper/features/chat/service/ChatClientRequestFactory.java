@@ -1,11 +1,11 @@
 package com.ayushsingh.doc_helper.features.chat.service;
 
 import com.ayushsingh.doc_helper.core.ai.advisors.LoggingAdvisor;
-import com.ayushsingh.doc_helper.core.ai.advisors.ToolCallAdvisor;
 import com.ayushsingh.doc_helper.core.ai.tools.websearch.WebSearchTool;
 import com.ayushsingh.doc_helper.features.usage_monitoring.dto.ChatContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +17,6 @@ public class ChatClientRequestFactory {
 
     private final ChatClient chatClient;
     private final LoggingAdvisor loggingAdvisor;
-    private final ToolCallAdvisor toolCallAdvisor;
     private final WebSearchTool webSearchTool;
 
     @Value("${doc-chat.model}")
@@ -49,8 +48,8 @@ public class ChatClientRequestFactory {
                         spec.param("generationId", generationId);
                     }
                 })
-                .advisors(loggingAdvisor)
-                .advisors(toolCallAdvisor);
+                .advisors(new SimpleLoggerAdvisor())
+                .advisors(loggingAdvisor);
 
         if (webSearchEnabled) {
             requestSpec.tools(webSearchTool);

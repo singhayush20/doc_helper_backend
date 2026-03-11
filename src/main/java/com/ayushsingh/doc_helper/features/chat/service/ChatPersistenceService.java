@@ -118,11 +118,13 @@ public class ChatPersistenceService {
                 chatThread.get().getId(), pageRequest);
 
         List<ChatMessageResponse> messageResponses = recentMessages.stream()
-                .map(message -> new ChatMessageResponse(
-                        message.getId(),
-                        message.getContent(),
-                        message.getRole(),
-                        message.getTimestamp()))
+                .map(message -> ChatMessageResponse.builder()
+                        .id(message.getId())
+                        .content(message.getContent())
+                        .role(message.getRole())
+                        .timestamp(message.getTimestamp())
+                        .citations(message.getCitations())
+                        .build())
                 .toList();
 
         String threadId = recentMessages.isEmpty()

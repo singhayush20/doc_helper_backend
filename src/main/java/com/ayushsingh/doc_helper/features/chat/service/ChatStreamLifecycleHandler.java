@@ -82,7 +82,6 @@ public class ChatStreamLifecycleHandler {
         if (!fullResponse.isEmpty()) {
             var citations = chatCitationService.build(
                     context.ragDocuments(),
-                    lastClientResponse.get(),
                     webSearchRequested
             );
             log.debug("Stream citations for threadId {}: {}", threadId, citations);

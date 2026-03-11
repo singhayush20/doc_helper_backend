@@ -61,7 +61,7 @@ spring:
         api-key: ${OPENAI_CHAT_API_KEY:${OLLAMA_API_KEY:ollama}}
         base-url: ${OPENAI_CHAT_BASE_URL:${OLLAMA_BASE_URL:http://localhost:11434}}
         options:
-          model: ${OPENAI_CHAT_DEFAULT_MODEL:gemini-3-pro-preview}
+          model: ${OPENAI_CHAT_DEFAULT_MODEL:gpt-oss}
           stream-usage: true
       embedding:
         # Keep embeddings on Gemini/OpenAI-compatible endpoint to preserve vector dimensions.
