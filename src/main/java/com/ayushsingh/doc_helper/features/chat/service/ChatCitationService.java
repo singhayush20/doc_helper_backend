@@ -24,7 +24,6 @@ public class ChatCitationService {
         );
     }
 
-    @SuppressWarnings("unchecked")
     public List<WebSearchItem> extractWebItems(boolean webSearchRequested) {
         if(webSearchRequested) {
             // TODO: Implement this
