@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.feature_workflow.entity;
+package com.ayushsingh.doc_helper.features.feature_workflow.entity.enums;
 
 public enum StepActionUiType {
     CHIP("CHIP"),

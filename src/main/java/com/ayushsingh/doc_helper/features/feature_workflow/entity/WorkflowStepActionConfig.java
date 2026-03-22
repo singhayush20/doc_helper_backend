@@ -7,6 +7,9 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.StepActionType;
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.StepActionUiType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

@@ -1,7 +1,7 @@
 package com.ayushsingh.doc_helper.features.feature_workflow.dto.step_action_config;
 
-import com.ayushsingh.doc_helper.features.feature_workflow.entity.StepActionType;
-import com.ayushsingh.doc_helper.features.feature_workflow.entity.StepActionUiType;
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.StepActionType;
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.StepActionUiType;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.validation.constraints.NotNull;
