@@ -21,4 +21,13 @@ public interface WorkflowStepActionConfigRepository extends JpaRepository<Workfl
             ORDER BY wsac.stepUiId ASC
             """)
     List<WorkflowStepActionConfig> findAllActionConfigsByWorkflowStepId(@Param("workflowStepId") Integer workflowStepId);
+
+    @Query("""
+            SELECT wsac
+            FROM WorkflowStepActionConfig wsac
+            WHERE wsac.workflowStep.workflowStepId IN :workflowStepIds
+            ORDER BY wsac.workflowStep.workflowStepId ASC, wsac.stepUiId ASC
+            """)
+    List<WorkflowStepActionConfig> findAllActionConfigsByWorkflowStepIds(
+            @Param("workflowStepIds") List<Integer> workflowStepIds);
 }

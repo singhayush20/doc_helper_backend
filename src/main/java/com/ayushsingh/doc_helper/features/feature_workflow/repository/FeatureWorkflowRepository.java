@@ -12,9 +12,9 @@ public interface FeatureWorkflowRepository extends JpaRepository<FeatureWorkflow
 
     boolean existsByName(String name);
 
-    @EntityGraph(attributePaths = { "steps", "steps.actions" })
+    @EntityGraph(attributePaths = { "steps" })
     Optional<FeatureWorkflow> findByWorkflowId(Integer workflowId);
 
-    @EntityGraph(attributePaths = { "steps", "steps.actions" })
+    @EntityGraph(attributePaths = { "steps" })
     List<FeatureWorkflow> findAllByOrderByCreatedAtDesc();
 }

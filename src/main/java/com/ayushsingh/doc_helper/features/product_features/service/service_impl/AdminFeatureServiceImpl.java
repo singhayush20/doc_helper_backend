@@ -261,6 +261,20 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
         featureRepository.save(feature);
     }
 
+    @Override
+    @Transactional
+    public void unassignWorkflowFromFeature(Long featureId) {
+        if (featureId == null) {
+            throw new BaseException("Feature id is required", ExceptionCodes.FEATURE_NOT_FOUND);
+        }
+
+        var feature = featureRepository.findById(featureId)
+                .orElseThrow(() -> new BaseException("Feature not found", ExceptionCodes.FEATURE_NOT_FOUND));
+
+        feature.setWorkflow(null);
+        featureRepository.save(feature);
+    }
+
     private Feature getFeature(String code) {
         return featureRepository.findByCode(parseFeatureCode(code))
                 .orElseThrow(() -> new BaseException("Feature not found", ExceptionCodes.FEATURE_NOT_FOUND));

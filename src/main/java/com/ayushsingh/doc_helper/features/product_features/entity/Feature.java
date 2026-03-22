@@ -57,7 +57,7 @@ public class Feature {
         @JdbcTypeCode(SqlTypes.NAMED_ENUM)
         private UsageMetric usageMetric;
 
-        @OneToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE}, optional = false, orphanRemoval = false)
+        @OneToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE}, optional = true, orphanRemoval = false)
         @JoinColumn(name = "workflow_id",unique = true)
         private FeatureWorkflow workflow;
 

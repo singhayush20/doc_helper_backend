@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,6 +49,12 @@ public class FeatureWorkflowController {
     @GetMapping
     public ResponseEntity<List<WorkflowDetailsDto>> getAllWorkflows() {
         return ResponseEntity.ok(featureWorkflowService.getAllWorkflows());
+    }
+
+    @DeleteMapping("/{workflowId}")
+    public ResponseEntity<Void> deleteWorkflow(@PathVariable Integer workflowId) {
+        featureWorkflowService.deleteWorkflow(workflowId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{workflowId}/steps")

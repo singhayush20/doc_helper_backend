@@ -46,4 +46,6 @@ public interface AdminFeatureService {
     );
 
     void assignWorkflowToFeature(Long featureId, FeatureWorkflow workflow);
+
+    void unassignWorkflowFromFeature(Long featureId);
 }

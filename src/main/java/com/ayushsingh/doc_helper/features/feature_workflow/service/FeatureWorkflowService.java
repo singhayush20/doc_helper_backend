@@ -12,4 +12,6 @@ public interface FeatureWorkflowService {
     WorkflowDetailsDto getWorkflowById(Integer workflowId);
 
     List<WorkflowDetailsDto> getAllWorkflows();
+
+    void deleteWorkflow(Integer workflowId);
 }
