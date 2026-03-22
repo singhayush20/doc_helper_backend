@@ -37,7 +37,6 @@ spring:
     url: ${DB_CONNECTION_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
   jpa:
     hibernate:
       ddl-auto: validate

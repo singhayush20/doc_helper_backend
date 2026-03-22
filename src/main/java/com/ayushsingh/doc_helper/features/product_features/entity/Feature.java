@@ -1,6 +1,8 @@
 package com.ayushsingh.doc_helper.features.product_features.entity;
 
 import jakarta.persistence.*;
+
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflow;
 import com.ayushsingh.doc_helper.features.product_features.execution.FeatureCodes;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,7 +25,8 @@ import java.util.Objects;
 @Entity
 @Table(name = "features", indexes = {
                 @Index(name = "idx_features_active_id", columnList = "active, id"),
-                @Index(name = "idx_features_code", columnList = "code")
+                @Index(name = "idx_features_code", columnList = "code"),
+                @Index(name = "idx_features_workflow_id", columnList = "workflow_id")
 })
 @Getter
 @Setter
@@ -53,6 +56,10 @@ public class Feature {
         @Enumerated(EnumType.STRING)
         @JdbcTypeCode(SqlTypes.NAMED_ENUM)
         private UsageMetric usageMetric;
+
+        @OneToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE}, optional = false, orphanRemoval = false)
+        @JoinColumn(name = "workflow_id",unique = true)
+        private FeatureWorkflow workflow;
 
         @Column(nullable = false)
         private boolean active;

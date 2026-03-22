@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.product_features.service.service_impl
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflow;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureCreateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.FeatureUpdateRequestDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.ProductFeatureDto;
@@ -241,6 +242,23 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
                     "Feature mapping not found",
                     ExceptionCodes.FEATURE_NOT_FOUND);
         }
+    }
+
+    @Override
+    @Transactional
+    public void assignWorkflowToFeature(Long featureId, FeatureWorkflow workflow) {
+        if (featureId == null) {
+            throw new BaseException("Feature id is required", ExceptionCodes.FEATURE_NOT_FOUND);
+        }
+        if (workflow == null || workflow.getWorkflowId() == null) {
+            throw new BaseException("Workflow is required", ExceptionCodes.INVALID_FEATURE_CONFIG);
+        }
+
+        var feature = featureRepository.findById(featureId)
+                .orElseThrow(() -> new BaseException("Feature not found", ExceptionCodes.FEATURE_NOT_FOUND));
+
+        feature.setWorkflow(workflow);
+        featureRepository.save(feature);
     }
 
     private Feature getFeature(String code) {

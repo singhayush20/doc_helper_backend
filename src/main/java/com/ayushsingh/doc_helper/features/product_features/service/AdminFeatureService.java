@@ -1,5 +1,6 @@
 package com.ayushsingh.doc_helper.features.product_features.service;
 
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflow;
 import com.ayushsingh.doc_helper.features.product_features.dto.*;
 import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureDetailsDto;
 import com.ayushsingh.doc_helper.features.product_features.dto.feature_product.BillingProductFeatureKeyRequestDto;
@@ -43,4 +44,6 @@ public interface AdminFeatureService {
     void disableFeatureForProduct(
             BillingProductFeatureKeyRequestDto dto
     );
+
+    void assignWorkflowToFeature(Long featureId, FeatureWorkflow workflow);
 }
