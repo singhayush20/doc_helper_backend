@@ -21,10 +21,11 @@ import com.ayushsingh.doc_helper.features.feature_workflow.service.FeatureWorkfl
 import com.ayushsingh.doc_helper.features.feature_workflow.service.FeatureWorkflowStepService;
 import com.ayushsingh.doc_helper.features.feature_workflow.service.WorkflowStepActionConfigService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/admin/workflows")
+@RequestMapping("/api/v1/admin/workflows")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ROLE_ADMIN')")
 public class FeatureWorkflowController {
@@ -34,7 +35,7 @@ public class FeatureWorkflowController {
     private final WorkflowStepActionConfigService workflowStepActionConfigService;
 
     @PostMapping
-    public ResponseEntity<WorkflowDetailsDto> createWorkflow(@RequestBody WorkflowCreateDto workflowCreateDto) {
+    public ResponseEntity<WorkflowDetailsDto> createWorkflow(@Valid @RequestBody WorkflowCreateDto workflowCreateDto) {
         var createdWorkflow = featureWorkflowService.createWorkflow(workflowCreateDto);
         return new ResponseEntity<>(createdWorkflow, HttpStatus.CREATED);
     }
@@ -52,7 +53,7 @@ public class FeatureWorkflowController {
     @PostMapping("/{workflowId}/steps")
     public ResponseEntity<FeatureWorkflowStepDetailsDto> createWorkflowStep(
             @PathVariable Integer workflowId,
-            @RequestBody FeatureWorkflowStepCreateDto stepCreateDto) {
+            @Valid @RequestBody FeatureWorkflowStepCreateDto stepCreateDto) {
         var createdStep = featureWorkflowStepService.createWorkflowStep(workflowId, stepCreateDto);
         return new ResponseEntity<>(createdStep, HttpStatus.CREATED);
     }
@@ -70,7 +71,7 @@ public class FeatureWorkflowController {
     @PostMapping("/steps/{workflowStepId}/actions")
     public ResponseEntity<WorkflowStepActionConfigDetailsDto> createActionConfig(
             @PathVariable Integer workflowStepId,
-            @RequestBody WorkflowStepActionConfigDetailsDto actionConfigDetailsDto) {
+            @Valid @RequestBody WorkflowStepActionConfigDetailsDto actionConfigDetailsDto) {
         var createdAction = workflowStepActionConfigService.createActionConfig(workflowStepId, actionConfigDetailsDto);
         return new ResponseEntity<>(createdAction, HttpStatus.CREATED);
     }

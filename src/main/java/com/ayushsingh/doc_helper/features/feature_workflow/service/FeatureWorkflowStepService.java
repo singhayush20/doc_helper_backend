@@ -7,7 +7,9 @@ import com.ayushsingh.doc_helper.features.feature_workflow.dto.feature_workflow_
 
 public interface FeatureWorkflowStepService {
 
-    FeatureWorkflowStepDetailsDto createWorkflowStep(Integer workflowId, FeatureWorkflowStepCreateDto stepCreateDto);
+    FeatureWorkflowStepDetailsDto createWorkflowStep(
+            Integer workflowId,
+            FeatureWorkflowStepCreateDto stepCreateDto);
 
     FeatureWorkflowStepDetailsDto getWorkflowStepById(Integer workflowStepId);
 

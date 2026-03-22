@@ -1,4 +1,4 @@
-package com.ayushsingh.doc_helper.features.feature_workflow.service;
+package com.ayushsingh.doc_helper.features.feature_workflow.dto_to_entity_mapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,13 +99,13 @@ public class WorkflowEntityMapper {
 
     private String writeJson(JsonNode jsonNode) {
         if (jsonNode == null || jsonNode.isNull()) {
-            throw new BaseException("Action uiJson is required", ExceptionCodes.INVALID_UI_CONFIG);
+            throw new BaseException("Action uiJson is required", ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG);
         }
 
         try {
             return objectMapper.writeValueAsString(jsonNode);
         } catch (JsonProcessingException e) {
-            throw new BaseException("Invalid action uiJson", ExceptionCodes.INVALID_UI_CONFIG);
+            throw new BaseException("Invalid action uiJson", ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG);
         }
     }
 
@@ -117,7 +117,7 @@ public class WorkflowEntityMapper {
         try {
             return objectMapper.readTree(json);
         } catch (JsonProcessingException e) {
-            throw new BaseException("Invalid stored action uiJson", ExceptionCodes.INVALID_UI_CONFIG);
+            throw new BaseException("Invalid stored action uiJson", ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG);
         }
     }
 }
