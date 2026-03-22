@@ -309,7 +309,7 @@ public class AdminFeatureServiceImpl implements AdminFeatureService {
     private UsageMetric requireUsageMetric(String usageMetric, FeatureType featureType) {
 
         boolean isMetricRequired = switch (featureType) {
-            case DOC_CHAT, LIVE_CHAT, SUMMARIZER -> true;
+            case DOC_CHAT, LIVE_CHAT, SUMMARIZER, POST_GENERATOR -> true;
             case BANNER, OCR -> false;
         };
 

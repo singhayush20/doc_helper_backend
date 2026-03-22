@@ -22,7 +22,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class FeatureWorkflowServiceImpl implements FeatureWorkflowService {
 

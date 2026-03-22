@@ -5,5 +5,6 @@ public enum FeatureType {
     LIVE_CHAT,
     SUMMARIZER,
     OCR,
-    BANNER
+    BANNER,
+    POST_GENERATOR
 }

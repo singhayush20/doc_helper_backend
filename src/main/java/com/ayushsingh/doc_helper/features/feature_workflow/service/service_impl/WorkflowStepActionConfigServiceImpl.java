@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 
 import com.ayushsingh.doc_helper.core.exception_handling.ExceptionCodes;
 import com.ayushsingh.doc_helper.core.exception_handling.exceptions.BaseException;
@@ -17,7 +16,6 @@ import com.ayushsingh.doc_helper.features.feature_workflow.service.WorkflowStepA
 import lombok.RequiredArgsConstructor;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class WorkflowStepActionConfigServiceImpl implements WorkflowStepActionConfigService {
 

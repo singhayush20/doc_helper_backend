@@ -19,7 +19,6 @@ import com.ayushsingh.doc_helper.features.feature_workflow.service.FeatureWorkfl
 import lombok.RequiredArgsConstructor;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class FeatureWorkflowStepServiceImpl implements FeatureWorkflowStepService {
 
