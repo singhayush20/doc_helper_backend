@@ -7,27 +7,31 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflowStep;
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.WorkflowStepActionConfig;
 
 public interface WorkflowStepActionConfigRepository extends JpaRepository<WorkflowStepActionConfig, Integer> {
 
-    @Query("SELECT wsac FROM WorkflowStepActionConfig wsac WHERE wsac.stepUiId = :stepUiId")
-    Optional<WorkflowStepActionConfig> findActionConfigById(@Param("stepUiId") Integer stepUiId);
+        @Query("SELECT wsac FROM WorkflowStepActionConfig wsac WHERE wsac.stepUiId = :stepUiId")
+        Optional<WorkflowStepActionConfig> findActionConfigById(@Param("stepUiId") Integer stepUiId);
 
-    @Query("""
-            SELECT wsac
-            FROM WorkflowStepActionConfig wsac
-            WHERE wsac.workflowStep.workflowStepId = :workflowStepId
-            ORDER BY wsac.stepUiId ASC
-            """)
-    List<WorkflowStepActionConfig> findAllActionConfigsByWorkflowStepId(@Param("workflowStepId") Integer workflowStepId);
+        @Query("""
+                        SELECT wsac
+                        FROM WorkflowStepActionConfig wsac
+                        WHERE wsac.workflowStep.workflowStepId = :workflowStepId
+                        ORDER BY wsac.stepUiId ASC
+                        """)
+        List<WorkflowStepActionConfig> findAllActionConfigsByWorkflowStepId(
+                        @Param("workflowStepId") Integer workflowStepId);
 
-    @Query("""
-            SELECT wsac
-            FROM WorkflowStepActionConfig wsac
-            WHERE wsac.workflowStep.workflowStepId IN :workflowStepIds
-            ORDER BY wsac.workflowStep.workflowStepId ASC, wsac.stepUiId ASC
-            """)
-    List<WorkflowStepActionConfig> findAllActionConfigsByWorkflowStepIds(
-            @Param("workflowStepIds") List<Integer> workflowStepIds);
+        @Query("""
+                        SELECT wsac
+                        FROM WorkflowStepActionConfig wsac
+                        WHERE wsac.workflowStep.workflowStepId IN :workflowStepIds
+                        ORDER BY wsac.workflowStep.workflowStepId ASC, wsac.stepUiId ASC
+                        """)
+        List<WorkflowStepActionConfig> findAllActionConfigsByWorkflowStepIds(
+                        @Param("workflowStepIds") List<Integer> workflowStepIds);
+
+        List<WorkflowStepActionConfig> findByWorkflowStep(FeatureWorkflowStep workflowStep);
 }

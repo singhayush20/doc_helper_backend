@@ -55,7 +55,7 @@ public class WorkflowEntityMapper {
                 .actionType(actionConfigDto.getActionType())
                 .actionUiType(actionConfigDto.getActionUiType())
                 .workflowStep(workflowStep)
-                .uiJson(writeJson(actionConfigDto.getUiJson()))
+                .uiSchemaJson(writeJson(actionConfigDto.getUiJson()))
                 .build();
     }
 
@@ -73,7 +73,7 @@ public class WorkflowEntityMapper {
 
     public WorkflowStepActionConfigDetailsDto toActionDetailsDto(WorkflowStepActionConfig actionConfig) {
         var actionDetails = modelMapper.map(actionConfig, WorkflowStepActionConfigDetailsDto.class);
-        actionDetails.setUiJson(readJson(actionConfig.getUiJson()));
+        actionDetails.setUiJson(readJson(actionConfig.getUiSchemaJson()));
         return actionDetails;
     }
 

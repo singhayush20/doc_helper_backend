@@ -35,7 +35,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @Table(name = "workflow_step_action_config", indexes = {
         @Index(name = "idx_action_step_id", columnList = "workflow_step_id"),
-        @Index(name = "idx_action_type", columnList = "action_type")
+        @Index(name = "idx_action_type", columnList = "action_type"),
+        @Index(name = "idx_action_provider",columnList = "action_provider")
 })
 @Entity
 public class WorkflowStepActionConfig {
@@ -60,8 +61,20 @@ public class WorkflowStepActionConfig {
     private FeatureWorkflowStep workflowStep;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "ui_config", columnDefinition = "jsonb", nullable = false)
-    private String uiJson;
+    @Column(name = "ui_schema", columnDefinition = "jsonb", nullable = false)
+    private String uiSchemaJson;
+
+    /**
+     * Whether actions are dynamically generated at runtime
+     */
+    @Column(name = "is_dynamic", nullable = false)
+    private Boolean isDynamic;
+
+    /**
+     * ActionProvider key (e.g., RAG_TOPIC_EXTRACTOR)
+     */
+    @Column(name = "action_provider", length = 100)
+    private String actionProvider;
 
     @CreationTimestamp
     private Instant createdAt;

@@ -24,4 +24,17 @@ public interface FeatureWorkflowStepRepository extends JpaRepository<FeatureWork
             ORDER BY fws.stepOrder ASC
             """)
     List<FeatureWorkflowStep> findAllStepsByWorkflowId(@Param("workflowId") Integer workflowId);
+
+    Optional<FeatureWorkflowStep> findFirstByWorkflowIdOrderByStepOrderAsc(Integer workflowId);
+
+    @Query("""
+                SELECT s FROM FeatureWorkflowStep s
+                WHERE s.workflowId = :workflowId
+                  AND s.stepOrder > :currentOrder
+                ORDER BY s.stepOrder ASC
+                LIMIT 1
+            """)
+    Optional<FeatureWorkflowStep> findNextStep(
+            @Param("workflowId") Integer workflowId,
+            @Param("currentOrder") Integer currentOrder);
 }
