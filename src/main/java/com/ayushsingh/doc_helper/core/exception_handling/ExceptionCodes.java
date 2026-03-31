@@ -59,5 +59,7 @@ public final class ExceptionCodes {
     public static final String WORKFLOW_ACTION_CONFIG_NOT_FOUND = "E0053";
     public static final String INVALID_WORKFLOW_STEP_UI_CONFIG = "E0054";
     public static final String EXECUTION_STEP_NOT_FOUND = "E0055";
+    public static final String WORKFLOW_EXECUTION_NOT_FOUND = "E0056";
+    public static final String INVALID_WORKFLOW_ACTION = "E0057";
 
 }
