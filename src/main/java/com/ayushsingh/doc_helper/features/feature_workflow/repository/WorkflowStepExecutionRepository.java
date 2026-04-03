@@ -1,12 +1,11 @@
 package com.ayushsingh.doc_helper.features.feature_workflow.repository;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.WorkflowExecution;
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.WorkflowStepExecution;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface WorkflowStepExecutionRepository
         extends JpaRepository<WorkflowStepExecution, Integer> {
@@ -28,4 +27,10 @@ public interface WorkflowStepExecutionRepository
      * Load all steps for context building
      */
     List<WorkflowStepExecution> findByWorkflowExecution(WorkflowExecution workflowExecution);
+
+    Optional<WorkflowStepExecution>
+    findTopByWorkflowExecution_WorkflowExecutionIdAndStepIdOrderByVersionDesc(
+            Integer executionId,
+            Integer stepId
+    );
 }

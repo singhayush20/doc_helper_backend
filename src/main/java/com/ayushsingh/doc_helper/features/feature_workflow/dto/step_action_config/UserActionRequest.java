@@ -20,4 +20,6 @@ public class UserActionRequest {
      * Optional payload (file upload, text input, etc.)
      */
     private String inputJson;
+
+    private Boolean reExecute;
 }

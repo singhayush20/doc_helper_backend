@@ -61,5 +61,7 @@ public final class ExceptionCodes {
     public static final String EXECUTION_STEP_NOT_FOUND = "E0055";
     public static final String WORKFLOW_EXECUTION_NOT_FOUND = "E0056";
     public static final String INVALID_WORKFLOW_ACTION = "E0057";
-
+    public static final String WORKFLOW_EXECUTION_IN_PROGRESS = "E0058";
+    public static final String WORKFLOW_STEP_ACTION_NOT_FOUND = "E0059";
+    public static final String DUPLICATE_WORKFLOW_STEP_EXECUTION = "E0060";
 }

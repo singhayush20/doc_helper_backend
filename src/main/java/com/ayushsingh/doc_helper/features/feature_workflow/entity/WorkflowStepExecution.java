@@ -1,35 +1,21 @@
 package com.ayushsingh.doc_helper.features.feature_workflow.entity;
 
-import java.time.Instant;
-
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.StepExecutionStatus;
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
-import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.StepExecutionStatus;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import java.time.Instant;
 
 @Table(name = "workflow_step_execution", indexes = {
         @Index(name = "idx_step_execution_execution", columnList = "workflow_execution_id"),
-        @Index(name = "idx_step_execution_order", columnList = "workflow_execution_id, step_order")
+        @Index(name = "idx_step_execution_order", columnList = "workflow_execution_id, step_order"),
+        @Index(name = "idx_unique_step_per_execution",
+                columnList = "workflow_execution_id, step_id, version",
+                unique = true)
 })
 @Entity
 @Getter
@@ -74,6 +60,9 @@ public class WorkflowStepExecution {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private StepExecutionStatus status;
+
+    @Column(name = "version", nullable = false)
+    private Integer version;
 
     @CreationTimestamp
     private Instant createdAt;

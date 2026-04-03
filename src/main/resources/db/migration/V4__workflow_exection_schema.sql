@@ -7,13 +7,13 @@ CREATE TYPE workflow_execution_status AS ENUM (
     'CANCELLED'
 );
 
-CREATE TYPE workflow_execution_status AS ENUM (
-    'CREATED',
+CREATE TYPE step_execution_status AS ENUM (
+    'PENDING',
+    'WAITING_FOR_INPUT',
     'IN_PROGRESS',
     'COMPLETED',
     'FAILED',
-    'PAUSED',
-    'CANCELLED'
+    'RETRY'
 );
 
 CREATE TABLE workflow_execution (

@@ -1,14 +1,13 @@
 package com.ayushsingh.doc_helper.features.feature_workflow.repository;
 
-import java.util.List;
-import java.util.Optional;
-
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflowStep;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflowStep;
+import java.util.List;
+import java.util.Optional;
 
 public interface FeatureWorkflowStepRepository extends JpaRepository<FeatureWorkflowStep, Integer> {
 
@@ -25,11 +24,11 @@ public interface FeatureWorkflowStepRepository extends JpaRepository<FeatureWork
             """)
     List<FeatureWorkflowStep> findAllStepsByWorkflowId(@Param("workflowId") Integer workflowId);
 
-    Optional<FeatureWorkflowStep> findFirstByWorkflowIdOrderByStepOrderAsc(Integer workflowId);
+    Optional<FeatureWorkflowStep> findFirstByWorkflow_WorkflowIdOrderByStepOrderAsc(Integer workflowId);
 
     @Query("""
                 SELECT s FROM FeatureWorkflowStep s
-                WHERE s.workflowId = :workflowId
+                WHERE s.workflow.workflowId = :workflowId
                   AND s.stepOrder > :currentOrder
                 ORDER BY s.stepOrder ASC
                 LIMIT 1
