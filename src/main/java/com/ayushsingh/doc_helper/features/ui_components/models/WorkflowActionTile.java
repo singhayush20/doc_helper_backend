@@ -1,5 +1,5 @@
 package com.ayushsingh.doc_helper.features.ui_components.models;
 
-public record WorkflowActionTile(TextInfo title, TextInfo description, String iconUrl) implements UIComponent {
+public record WorkflowActionTile(String titleColor, String descriptionColor, String iconUrl, String backgroundColor) implements UIComponent {
 
 }

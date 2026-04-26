@@ -16,8 +16,8 @@ import com.ayushsingh.doc_helper.features.feature_workflow.dto.workflow.Workflow
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflow;
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflowStep;
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.WorkflowStepActionConfig;
+import com.ayushsingh.doc_helper.features.ui_components.models.WorkflowActionUIConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -44,6 +44,7 @@ public class WorkflowEntityMapper {
                 .stepOrder(createDto.getStepOrder())
                 .stepActor(createDto.getStepActor())
                 .instruction(createDto.getInstruction())
+                .stepConfig(createDto.getStepConfig())
                 .actions(new ArrayList<>())
                 .build();
     }
@@ -55,6 +56,7 @@ public class WorkflowEntityMapper {
                 .actionType(actionConfigDto.getActionType())
                 .actionUiType(actionConfigDto.getActionUiType())
                 .workflowStep(workflowStep)
+                .isDynamic(actionConfigDto.getIsDynamic())
                 .uiSchemaJson(writeJson(actionConfigDto.getUiJson()))
                 .build();
     }
@@ -97,27 +99,35 @@ public class WorkflowEntityMapper {
                 .toList();
     }
 
-    private String writeJson(JsonNode jsonNode) {
-        if (jsonNode == null || jsonNode.isNull()) {
-            throw new BaseException("Action uiJson is required", ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG);
-        }
-
-        try {
-            return objectMapper.writeValueAsString(jsonNode);
-        } catch (JsonProcessingException e) {
-            throw new BaseException("Invalid action uiJson", ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG);
-        }
+    private String writeJson(WorkflowActionUIConfig uiConfig) {
+    if (uiConfig == null) {
+        throw new BaseException(
+            "Action uiJson is required",
+            ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG
+        );
     }
 
-    private JsonNode readJson(String json) {
+    try {
+        return objectMapper.writeValueAsString(uiConfig);
+    } catch (JsonProcessingException e) {
+        throw new BaseException(
+            "Failed to serialize action uiJson",
+            ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG
+        );
+    }
+}
+
+    private WorkflowActionUIConfig readJson(String json) {
         if (json == null || json.isBlank()) {
             return null;
         }
 
         try {
-            return objectMapper.readTree(json);
+            return objectMapper.readValue(json, WorkflowActionUIConfig.class);
         } catch (JsonProcessingException e) {
-            throw new BaseException("Invalid stored action uiJson", ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG);
+            throw new BaseException(
+                    "Invalid stored action uiJson",
+                    ExceptionCodes.INVALID_WORKFLOW_STEP_UI_CONFIG);
         }
     }
 }

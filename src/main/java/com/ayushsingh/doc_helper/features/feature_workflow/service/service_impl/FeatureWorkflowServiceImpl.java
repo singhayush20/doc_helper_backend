@@ -139,6 +139,7 @@ public class FeatureWorkflowServiceImpl implements FeatureWorkflowService {
                         .stepOrder(step.getStepOrder())
                         .stepActor(step.getStepActor())
                         .instruction(step.getInstruction())
+                        .stepConfig(step.getStepConfig())
                         .actions(actionsByStepId.getOrDefault(step.getWorkflowStepId(), List.of()))
                         .build())
                 .toList();

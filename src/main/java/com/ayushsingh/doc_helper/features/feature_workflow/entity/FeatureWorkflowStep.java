@@ -9,10 +9,12 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.converters.WorkflowStepConfigConverter;
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.WorkflowStepActor;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -67,6 +69,11 @@ public class FeatureWorkflowStep {
     // instruction - set by admin or added from AI call
     @Column(name = "instruction")
     private String instruction;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Convert(converter = WorkflowStepConfigConverter.class)
+    @Column(name = "step_config", columnDefinition = "jsonb")
+    private WorkflowStepConfig stepConfig;
 
     @OneToMany(mappedBy = "workflowStep", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

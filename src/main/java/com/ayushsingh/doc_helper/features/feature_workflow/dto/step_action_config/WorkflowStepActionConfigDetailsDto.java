@@ -2,6 +2,7 @@ package com.ayushsingh.doc_helper.features.feature_workflow.dto.step_action_conf
 
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.StepActionType;
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.StepActionUiType;
+import com.ayushsingh.doc_helper.features.ui_components.models.WorkflowActionUIConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.validation.constraints.NotNull;
@@ -26,5 +27,8 @@ public class WorkflowStepActionConfigDetailsDto {
     private StepActionUiType actionUiType;
 
     @NotNull(message = "Action uiJson is required")
-    private JsonNode uiJson;
+    private WorkflowActionUIConfig uiJson;
+
+    @Builder.Default
+    private Boolean isDynamic = false;
 }

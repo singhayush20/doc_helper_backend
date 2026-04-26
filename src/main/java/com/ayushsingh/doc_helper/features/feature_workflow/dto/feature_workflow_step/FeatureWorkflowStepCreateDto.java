@@ -3,6 +3,7 @@ package com.ayushsingh.doc_helper.features.feature_workflow.dto.feature_workflow
 import java.util.List;
 
 import com.ayushsingh.doc_helper.features.feature_workflow.dto.step_action_config.WorkflowStepActionConfigDetailsDto;
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.WorkflowStepConfig;
 import com.ayushsingh.doc_helper.features.feature_workflow.entity.enums.WorkflowStepActor;
 
 import jakarta.validation.Valid;
@@ -31,6 +32,8 @@ public class FeatureWorkflowStepCreateDto {
     private WorkflowStepActor stepActor;
 
     private String instruction;
+
+    private WorkflowStepConfig stepConfig;
 
     @Valid
     private List<WorkflowStepActionConfigDetailsDto> actions;
