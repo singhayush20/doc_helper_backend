@@ -5,5 +5,6 @@ public enum FeatureCodes {
     LIVE_CHAT,
     OCR,
     DOC_SUMMARY,
-    BANNER
+    BANNER,
+    POST_GENERATOR
 }

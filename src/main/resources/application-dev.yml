@@ -37,7 +37,6 @@ spring:
     url: ${DB_CONNECTION_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
   jpa:
     hibernate:
       ddl-auto: validate
@@ -78,7 +77,7 @@ spring:
         dimensions: 1536
 
 doc-chat:
-  model: gpt-oss
+  model: llama3.1:8b
   temperature: 0.2
 
 summarizer:

@@ -54,5 +54,14 @@ public final class ExceptionCodes {
     public static final String DUPLICATE_UI_CONFIG_FOUND = "EOO48";
     public static final String INVALID_UI_CONFIG = "E0049";
     public static final String INVALID_FEATURE_CONFIG = "E0050";
-
+    public static final String WORKFLOW_NOT_FOUND = "E0051";
+    public static final String WORKFLOW_STEP_NOT_FOUND = "E0052";
+    public static final String WORKFLOW_ACTION_CONFIG_NOT_FOUND = "E0053";
+    public static final String INVALID_WORKFLOW_STEP_UI_CONFIG = "E0054";
+    public static final String EXECUTION_STEP_NOT_FOUND = "E0055";
+    public static final String WORKFLOW_EXECUTION_NOT_FOUND = "E0056";
+    public static final String INVALID_WORKFLOW_ACTION = "E0057";
+    public static final String WORKFLOW_EXECUTION_IN_PROGRESS = "E0058";
+    public static final String WORKFLOW_STEP_ACTION_NOT_FOUND = "E0059";
+    public static final String DUPLICATE_WORKFLOW_STEP_EXECUTION = "E0060";
 }

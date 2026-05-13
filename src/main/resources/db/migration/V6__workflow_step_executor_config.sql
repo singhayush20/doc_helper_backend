@@ -1,0 +1,1 @@
+ALTER TABLE feature_workflow_step ADD COLUMN step_config JSONB;

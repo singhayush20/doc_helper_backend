@@ -1,0 +1,39 @@
+package com.ayushsingh.doc_helper.features.feature_workflow.repository;
+
+import com.ayushsingh.doc_helper.features.feature_workflow.entity.FeatureWorkflowStep;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface FeatureWorkflowStepRepository extends JpaRepository<FeatureWorkflowStep, Integer> {
+
+    @EntityGraph(attributePaths = { "actions" })
+    @Query("SELECT fws FROM FeatureWorkflowStep fws WHERE fws.workflowStepId = :workflowStepId")
+    Optional<FeatureWorkflowStep> findStepById(@Param("workflowStepId") Integer workflowStepId);
+
+    @EntityGraph(attributePaths = { "actions" })
+    @Query("""
+            SELECT fws
+            FROM FeatureWorkflowStep fws
+            WHERE fws.workflow.workflowId = :workflowId
+            ORDER BY fws.stepOrder ASC
+            """)
+    List<FeatureWorkflowStep> findAllStepsByWorkflowId(@Param("workflowId") Integer workflowId);
+
+    Optional<FeatureWorkflowStep> findFirstByWorkflow_WorkflowIdOrderByStepOrderAsc(Integer workflowId);
+
+    @Query("""
+                SELECT s FROM FeatureWorkflowStep s
+                WHERE s.workflow.workflowId = :workflowId
+                  AND s.stepOrder > :currentOrder
+                ORDER BY s.stepOrder ASC
+                LIMIT 1
+            """)
+    Optional<FeatureWorkflowStep> findNextStep(
+            @Param("workflowId") Integer workflowId,
+            @Param("currentOrder") Integer currentOrder);
+}
